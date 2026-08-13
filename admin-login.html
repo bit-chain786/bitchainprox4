@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Gateway — BITCHAIN PRO X</title>
+  <link rel="icon" href="images/logo-circle.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #9d4edd;
+      --primary-light: #c77dff;
+      --bg: #060010;
+      --card-bg: rgba(20, 0, 40, 0.85);
+      --border: rgba(157, 78, 221, 0.3);
+      --text: #f0e6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    /* Animated background */
+    .bg-animation {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 150vw; height: 150vw;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(157,78,221,0.1) 0%, transparent 60%);
+      animation: pulse 8s infinite alternate;
+      z-index: 0;
+    }
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      100% { transform: translate(-50%, -50%) scale(1.1); }
+    }
+    
+    .gateway-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 420px;
+      padding: 40px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 40px rgba(157, 78, 221, 0.2);
+      text-align: center;
+    }
+    
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 0 20px rgba(157,78,221,0.5);
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    h1 span { color: var(--primary-light); }
+    
+    p.subtitle {
+      font-size: 0.85rem;
+      color: rgba(224, 170, 255, 0.7);
+      margin-bottom: 30px;
+    }
+    
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .input-group input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: 10px;
+      color: white;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    .input-group input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.2);
+    }
+    
+    .btn-login {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+      box-shadow: 0 4px 15px rgba(157,78,221,0.3);
+    }
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(157,78,221,0.5);
+    }
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .error-msg {
+      color: #e63946;
+      font-size: 0.85rem;
+      margin-top: 16px;
+      font-weight: 600;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-animation"></div>
+
+  <div class="gateway-container">
+    <div class="logo">⚡</div>
+    <h1>ADMIN <span>GATEWAY</span></h1>
+    <p class="subtitle">Secure access to BitChain Pro X</p>
+    
+    <form id="adminLoginForm">
+      <div class="input-group">
+        <label>Admin Email</label>
+        <input type="email" id="email" value="bussnisproject@email.com" required>
+      </div>
+      <div class="input-group">
+        <label>Security Password</label>
+        <input type="password" id="password" required>
+      </div>
+      
+      <button type="submit" class="btn-login" id="loginBtn">AUTHORIZE ACCESS</button>
+      <div class="error-msg" id="errorMsg"></div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Initialize Supabase using local storage keys
+    const SUPABASE_URL = localStorage.getItem('BITCHAIN_SUPABASE_URL') || 'https://cwzhihzlxbtkuoqsnkin.supabase.co';
+    const SUPABASE_KEY = localStorage.getItem('BITCHAIN_SUPABASE_ANON_KEY') || 'sb_publishable_gYl3A7Y660B6Dti6-rY9bA_AeOi0DsR';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const btn = document.getElementById('loginBtn');
+      const errorMsg = document.getElementById('errorMsg');
+      
+      btn.disabled = true;
+      btn.textContent = 'VERIFYING...';
+      errorMsg.style.display = 'none';
+
+      try {
+        // 1. Authenticate with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) throw new Error("Invalid credentials.");
+        
+        // 2. Verify Admin Role
+        const { data: profile, error: profileErr } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileErr || !profile || profile.role !== 'admin') {
+          // If not admin, sign them back out and show error
+          await supabase.auth.signOut();
+          throw new Error("Access Denied: You do not have admin privileges.");
+        }
+        
+        // 3. Success! Redirect to admin panel
+        btn.style.background = 'linear-gradient(135deg, #04a87e, #06d6a0)';
+        btn.textContent = 'ACCESS GRANTED';
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 800);
+        
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'AUTHORIZE ACCESS';
+      }
+    });
+  </script>
+</body>
+</html>
