@@ -33,6 +33,16 @@ async function fetchWalletSettings() {
   }
 }
 
+function openDepositModal() {
+  const el = document.getElementById('depositModalWrap');
+  if (el) el.style.display = 'flex';
+}
+
+function openWithdrawModal() {
+  const el = document.getElementById('withdrawModalWrap');
+  if (el) el.style.display = 'flex';
+}
+
 function updateWalletUI() {
   const depositMinNote = document.getElementById('depositMinNote');
   if (depositMinNote) depositMinNote.textContent = `Minimum Deposit: ${walletSettings.min_deposit.toFixed(2)} USDTBEP20`;
@@ -144,11 +154,25 @@ async function uploadProofToStorage(file) {
   const fileExt = file.name.split('.').pop();
   const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-  const { data, error } = await sb.storage.from('deposit-proofs').upload(fileName, file);
-  if (error) throw error;
-
-  const { data: publicData } = sb.storage.from('deposit-proofs').getPublicUrl(fileName);
-  return publicData.publicUrl;
+  // Try the intended bucket first.
+  try {
+    const { data, error } = await sb.storage.from('deposit-proofs').upload(fileName, file);
+    if (error) throw error;
+    const { data: publicData } = sb.storage.from('deposit-proofs').getPublicUrl(fileName);
+    return publicData.publicUrl;
+  } catch (e) {
+    // If bucket missing, fall back to the default "public" bucket.
+    if (e.message && e.message.toLowerCase().includes('bucket not found')) {
+      const msg = "Bucket 'deposit-proofs' not found. Uploading to default 'public' bucket instead.";
+      if (window.toast) toast(msg, 'warning'); else alert(msg);
+      const { data, error } = await sb.storage.from('public').upload(fileName, file);
+      if (error) throw error;
+      const { data: publicData } = sb.storage.from('public').getPublicUrl(fileName);
+      return publicData.publicUrl;
+    }
+    // Re‑throw other errors.
+    throw e;
+  }
 }
 
 async function submitDeposit() {

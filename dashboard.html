@@ -447,11 +447,11 @@
             </div>
             <div class="wallet-bal-usd" id="walletUsdValue">≈ $0.00</div>
             <div class="wallet-actions-row">
-              <button class="wallet-btn btn-deposit" onclick="document.getElementById('depositModalWrap').style.display='flex'">
+              <button class="wallet-btn btn-deposit" onclick="openDepositModal()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Deposit
               </button>
-              <button class="wallet-btn btn-withdraw" onclick="document.getElementById('withdrawModalWrap').style.display='flex'">
+              <button class="wallet-btn btn-withdraw" onclick="openWithdrawModal()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Withdraw
               </button>
