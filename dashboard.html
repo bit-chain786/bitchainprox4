@@ -952,6 +952,19 @@
         document.getElementById('valTodayInc').textContent = formatUsdt(todayInc);
         document.getElementById('valTotalTeam').textContent = totalTeam.toLocaleString('en-US');
 
+        // Save fresh profile to localStorage cache
+        localStorage.setItem('bitchain_user_profile', JSON.stringify(profile));
+
+        // Update Wallet Module UI elements
+        const mainBal = document.getElementById('walletMainBalance');
+        if (mainBal) mainBal.textContent = availBal.toFixed(2);
+        
+        const usdVal = document.getElementById('walletUsdValue');
+        if (usdVal) usdVal.textContent = `≈ $${availBal.toFixed(2)}`;
+
+        const wdBal = document.getElementById('withdrawAvailableBal');
+        if (wdBal) wdBal.textContent = `${availBal.toFixed(2)} USDTBEP20`;
+
         // 5. Populate Income Summary & Donut Chart
         const directInc = parseFloat(profile.direct_income) || 0;
         const teamInc = parseFloat(profile.team_income) || 0;
