@@ -102,7 +102,7 @@
               <!-- Dynamic User Name — NO BLUE CHECKMARK! -->
               <h2 class="profile-name-text" id="profUserFullName"><span class="skeleton-pulse" style="width: 140px; height: 24px;"></span></h2>
               <!-- Dynamic Rank Pill Badge -->
-              <div class="rank-badge-pill" id="profUserRankBadge">✦ STARTER</div>
+              <div class="rank-badge-pill" id="profUserRankBadge">✦ UNRANKED</div>
             </div>
             <div class="profile-meta-grid">
               <div class="meta-field-box">
@@ -897,7 +897,7 @@
             email: userEmail,
             sponsor_username: cache.sponsor_username || meta.sponsor_username || 'BCP100001',
             referral_code: cache.referral_code || meta.referral_code || ('BCP' + Math.floor(100000 + Math.random() * 900000)),
-            rank: 'STARTER',
+            rank: 'UNRANKED',
             package_name: 'No Package',
             available_balance: 0,
             total_income: 0,
@@ -918,7 +918,7 @@
         const rawSponsor = profile.sponsor_username ? profile.sponsor_username.trim() : '';
         const hasSponsor = Boolean(rawSponsor && rawSponsor !== 'null' && rawSponsor !== 'undefined');
         const sponsorDisplay = hasSponsor ? rawSponsor : 'DIRECT SIGNUP';
-        const rankName = profile.rank || 'STARTER';
+        const rankName = profile.rank || 'UNRANKED';
         const pkgName = profile.package_name || 'No Package';
 
         document.getElementById('profAvatarInitial').textContent = fullName.charAt(0).toUpperCase();

@@ -110,7 +110,8 @@ function pkgUpdateCardDisplay() {
   const actionBottom = document.getElementById('upgradeActionBottom');
 
   if (pkgCurrentIndex < 0) {
-    if (badgeEl) badgeEl.textContent = '✦ STARTER';
+    // Do NOT overwrite rank badge here — rank is set by the dashboard from the real DB value
+    // if (badgeEl) badgeEl.textContent = '✦ UNRANKED';  // managed by dashboard.html
     if (curNameEl) curNameEl.textContent = 'No Package';
     if (curPriceEl) curPriceEl.textContent = '';
     if (curIconEl) curIconEl.textContent = '🛡️';
