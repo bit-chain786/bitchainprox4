@@ -210,6 +210,516 @@
         display: none;
       }
     }
+
+    /* =====================================================
+       CRYPTO DEPOSIT & WITHDRAW MODALS — Exact Design Match
+    ===================================================== */
+    .wallet-crypto-card {
+      width: 100%;
+      max-width: 440px;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #16042a 0%, #0a0015 100%);
+      box-shadow: 0 16px 60px rgba(0,0,0,0.85), 0 0 30px rgba(157,78,221,0.2);
+      border: 1px solid rgba(199,125,255,0.25);
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(199,125,255,0.3) transparent;
+    }
+
+    .wallet-crypto-card.withdraw-theme {
+      background: linear-gradient(180deg, #021226 0%, #030814 100%);
+      border: 1px solid rgba(0,180,216,0.3);
+      box-shadow: 0 16px 60px rgba(0,0,0,0.85), 0 0 30px rgba(0,180,216,0.2);
+    }
+
+    .crypto-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px 14px;
+      position: sticky;
+      top: 0;
+      background: rgba(22,4,42,0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 10;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .withdraw-theme .crypto-modal-header {
+      background: rgba(2,18,38,0.96);
+    }
+
+    .btn-crypto-back {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #ffffff;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .btn-crypto-back:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(-2px);
+    }
+
+    .crypto-modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .crypto-modal-body {
+      padding: 18px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* Network Row */
+    .crypto-network-row {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tether-logo-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #009393;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .tether-logo-circle.large {
+      width: 44px;
+      height: 44px;
+      box-shadow: 0 4px 15px rgba(0,147,147,0.4);
+    }
+
+    .network-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 2px;
+    }
+
+    .net-sublabel {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      font-weight: 500;
+    }
+
+    .net-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .net-pill-badge {
+      background: rgba(157,78,221,0.2);
+      border: 1px solid rgba(199,125,255,0.3);
+      color: #e0aaff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* Section Card */
+    .crypto-card-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .crypto-sec-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: rgba(224,170,255,0.8);
+      text-transform: uppercase;
+    }
+
+    .withdraw-theme .crypto-sec-label {
+      color: rgba(0,245,212,0.8);
+    }
+
+    /* Deposit Address Display Box */
+    .address-display-box {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(199,125,255,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .address-display-box:hover {
+      border-color: rgba(199,125,255,0.5);
+    }
+
+    .address-display-box input {
+      background: transparent;
+      border: none;
+      color: #e0aaff;
+      font-family: monospace;
+      font-size: 0.78rem;
+      flex: 1;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-copy-inline {
+      background: none;
+      border: none;
+      color: #c77dff;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+    .btn-copy-inline:hover {
+      transform: scale(1.15);
+    }
+
+    /* QR Presentation Wrap */
+    .qr-presentation-wrap {
+      background: rgba(10,0,22,0.6);
+      border: 1px solid rgba(199,125,255,0.15);
+      border-radius: 16px;
+      padding: 16px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .qr-image-frame {
+      position: relative;
+      width: 155px;
+      height: 155px;
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-image-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+      object-fit: contain;
+    }
+
+    .qr-center-tether-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      border-radius: 50%;
+      border: 2px solid #009393;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .qr-sub-warning {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    /* Amount Input Wrap */
+    .crypto-amount-input-wrap {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(199,125,255,0.25);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 4px 12px;
+      gap: 10px;
+    }
+
+    .crypto-amount-input-wrap.cyan-border {
+      border-color: rgba(0,180,216,0.3);
+    }
+
+    .amount-prefix-badge {
+      display: flex;
+      align-items: center;
+    }
+
+    .dollar-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #06d6a0;
+      color: #00382d;
+      font-weight: 900;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .crypto-amount-input-wrap input {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 700;
+      flex: 1;
+      outline: none;
+      padding: 10px 0;
+    }
+
+    .amount-suffix-label {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .crypto-sub-hint {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* Upload Screenshot Box */
+    .crypto-upload-box {
+      background: rgba(157,78,221,0.05);
+      border: 1.5px dashed rgba(199,125,255,0.35);
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .crypto-upload-box:hover {
+      border-color: rgba(199,125,255,0.65);
+      background: rgba(157,78,221,0.1);
+    }
+
+    .upload-cloud-icon {
+      margin-bottom: 2px;
+    }
+
+    .upload-primary-text {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e0aaff;
+    }
+
+    .upload-secondary-text {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 1px;
+    }
+
+    /* Important Box */
+    .crypto-important-box {
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .crypto-important-box.purple-tint {
+      background: rgba(157,78,221,0.08);
+      border: 1px solid rgba(199,125,255,0.2);
+    }
+
+    .crypto-important-box.blue-tint {
+      background: rgba(0,180,216,0.08);
+      border: 1px solid rgba(0,245,212,0.2);
+    }
+
+    .imp-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .imp-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.35;
+    }
+
+    .imp-list span {
+      color: #06d6a0;
+      font-weight: 900;
+      margin-right: 3px;
+    }
+
+    /* Submit Button */
+    .btn-crypto-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-transform: capitalize;
+    }
+
+    .btn-crypto-submit.purple-grad {
+      background: linear-gradient(135deg, #7b2cbf 0%, #9d4edd 50%, #c77dff 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(157,78,221,0.45);
+    }
+    .btn-crypto-submit.purple-grad:hover {
+      background: linear-gradient(135deg, #8b37d4 0%, #ac5eeb 50%, #d495ff 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(157,78,221,0.6);
+    }
+
+    .btn-crypto-submit.blue-grad {
+      background: linear-gradient(135deg, #0077b6 0%, #0096c7 50%, #00b4d8 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,180,216,0.45);
+    }
+    .btn-crypto-submit.blue-grad:hover {
+      background: linear-gradient(135deg, #0088ce 0%, #00abdd 50%, #15c5e8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(0,180,216,0.6);
+    }
+
+    /* Available Bal Card */
+    .crypto-available-bal-card {
+      background: linear-gradient(135deg, rgba(0,119,182,0.2) 0%, rgba(3,4,94,0.3) 100%);
+      border: 1px solid rgba(0,180,216,0.3);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .avail-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: rgba(0,245,212,0.8);
+    }
+
+    .avail-val {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    /* Fee Row */
+    .crypto-fee-row {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .fee-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .fee-desc {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      display: block;
+    }
+
+    .fee-star-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0077b6, #00f5d4);
+      color: #030814;
+      font-weight: 900;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,245,212,0.35);
+    }
+
+    /* Destination Address Input */
+    .crypto-dest-input-wrap {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(0,180,216,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 2px 12px;
+      gap: 8px;
+    }
+
+    .dest-address-input {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 0.82rem;
+      flex: 1;
+      outline: none;
+      padding: 10px 0;
+    }
+
+    .scan-icon-badge {
+      color: #00f5d4;
+      display: flex;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -645,11 +1155,11 @@
             </div>
             <div class="wallet-bal-usd" id="walletUsdValue">≈ $0.00</div>
             <div class="wallet-actions-row">
-              <button class="wallet-btn btn-deposit" onclick="document.getElementById('depositModalWrap').style.display='flex'">
+              <button class="wallet-btn btn-deposit" onclick="WalletModule.openDepositModal()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Deposit
               </button>
-              <button class="wallet-btn btn-withdraw" onclick="document.getElementById('withdrawModalWrap').style.display='flex'">
+              <button class="wallet-btn btn-withdraw" onclick="WalletModule.openWithdrawModal()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Withdraw
               </button>
@@ -660,149 +1170,229 @@
           </div>
         </div>
 
-        <!-- Deposit Modal Wrapper -->
-        <div id="depositModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
-          <div style="position:relative; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; border-radius:20px; box-shadow: 0 0 40px rgba(157, 78, 221, 0.2);">
-            <button onclick="document.getElementById('depositModalWrap').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.5rem; width:36px; height:36px; border-radius:50%; cursor:pointer; z-index:10; display:flex; align-items:center; justify-content:center;">&times;</button>
-          <!-- Deposit Funds Card -->
-          <div class="wallet-card deposit-card" id="depositFundsCard" style="margin: 0; box-shadow: none; border: 1px solid rgba(157, 78, 221, 0.4);">
-            <div class="wallet-card-header">
-              <div>
-                <h3 class="wallet-card-title">Deposit Funds</h3>
-                <p class="wallet-card-subtitle">Add funds to your wallet</p>
-              </div>
-              <div class="wallet-network-icon purple">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#e0aaff" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </div>
-            </div>
-
-            <div class="wallet-form-group">
-              <label>Select Network</label>
-              <div class="network-select-box">USDTBEP20 <span>▼</span></div>
-            </div>
-
-            <div class="wallet-form-group">
-              <label>Deposit Amount</label>
-              <div class="input-with-currency">
-                <input type="number" id="depositAmount" placeholder="Enter amount" oninput="calcDepositReceive()">
-                <span class="currency-badge">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  USDTBEP20
-                </span>
-              </div>
-            </div>
-
-            <div class="wallet-calc-row">
-              <span>You Will Receive</span>
-              <span class="calc-val purple" id="depositReceiveVal">0.00 USDTBEP20</span>
-            </div>
-            <div class="wallet-min-note" id="depositMinNote">Minimum Deposit: 10.00 USDTBEP20</div>
-
-            <div class="wallet-form-group">
-              <label>Deposit Address</label>
-              <div class="address-copy-box">
-                <input type="text" id="bep20DepositAddress" value="TDsJx7GfR3mbX9jYkLBQwz6h1Kp8uN8z3c" readonly>
-                <button type="button" class="btn-copy-address" onclick="copyDepositAddress()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <div class="qr-code-box">
-              <div class="qr-placeholder" id="bep20QrCodeWrapper" style="width:120px;height:120px;background:#fff;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;margin-right:16px;">
-                <img src="" alt="QR" id="bep20QrCode" style="max-width:100%;display:none;">
-                <span id="qrFallback" style="color:#000;font-size:0.8rem;text-align:center;">QR Code</span>
-              </div>
-              <p class="qr-warning">Send only USDTBEP20 to this address via USDTBEP20 network.</p>
-            </div>
-
-            <div class="wallet-form-group">
-              <label>Upload Payment Screenshot</label>
-              <div class="upload-drop-zone" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()">
-                <input type="file" id="proofFileInput" accept="image/png, image/jpeg, image/jpg" style="display:none;" onchange="handleProofSelect(event)">
-                <div class="upload-icon">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#c77dff" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <div class="upload-text">Click to upload or drag and drop</div>
-                <div class="upload-sub">PNG, JPG, JPEG (Max 5MB)</div>
-                <div id="proofFileName" class="upload-file-name" style="display:none;color:#c77dff;margin-top:8px;font-weight:600;"></div>
-              </div>
-            </div>
-
-            <button type="button" class="wallet-submit-btn btn-deposit-submit" id="btnSubmitDeposit" onclick="submitDeposit()">I Have Made a Deposit</button>
+        <!-- ====================================================
+             DEPOSIT MODAL (Exact design matching user specification)
+        ===================================================== -->
+        <div id="depositModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); flex-direction:column; align-items:center; justify-content:center; padding:16px;">
+          <div class="wallet-crypto-card deposit-theme">
             
-            <!-- Deposit Status List -->
-            <div class="wallet-status-section">
-               <h4 style="margin-bottom:10px;font-size:0.9rem;color:#fff;">Deposit History</h4>
-               <div id="userDepositsList">
-                  <div class="empty-state-text" style="font-size:0.8rem;text-align:center;color:var(--text-muted);">No deposits yet</div>
-               </div>
+            <!-- Header with Back Arrow -->
+            <div class="crypto-modal-header">
+              <button type="button" class="btn-crypto-back" onclick="WalletModule.closeDepositModal()" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <h3 class="crypto-modal-title">Deposit USDT (BEP20)</h3>
             </div>
-          </div>
+
+            <div class="crypto-modal-body">
+              
+              <!-- Network Row Card -->
+              <div class="crypto-network-row">
+                <div class="tether-logo-circle">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                    <circle cx="12" cy="12" r="11" fill="#009393"/>
+                    <path d="M16.5 8.5H13.2V6.8H10.8V8.5H7.5V10.2H10.8V11.5C8.8 11.6 7.2 12.2 7.2 12.9C7.2 13.6 8.8 14.2 10.8 14.3V17.5H13.2V14.3C15.2 14.2 16.8 13.6 16.8 12.9C16.8 12.2 15.2 11.6 13.2 11.5V10.2H16.5V8.5ZM12 13.7C9.9 13.7 8.7 13.2 8.7 12.9C8.7 12.6 9.9 12.1 12 12.1C14.1 12.1 15.3 12.6 15.3 12.9C15.3 13.2 14.1 13.7 12 13.7Z" fill="#ffffff"/>
+                  </svg>
+                </div>
+                <div class="network-info">
+                  <span class="net-sublabel">Network</span>
+                  <span class="net-title">USDT (BEP20)</span>
+                </div>
+                <span class="net-pill-badge">BEP20</span>
+              </div>
+
+              <!-- Deposit Address Section -->
+              <div class="crypto-card-section">
+                <label class="crypto-sec-label">DEPOSIT ADDRESS</label>
+                <div class="address-display-box" onclick="WalletModule.copyDepositAddress()">
+                  <input type="text" id="bep20DepositAddress" value="0xAad5D80043CEBb13cE4292F1Ea8f0615cF94D8c5" readonly>
+                  <button type="button" class="btn-copy-inline" id="btnCopyDepositAddr" title="Copy Address">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="copyDepositIcon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                </div>
+
+                <!-- QR Code Box with Tether Logo in Center -->
+                <div class="qr-presentation-wrap">
+                  <div class="qr-image-frame">
+                    <img id="depositQrCodeImg" src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=4&data=0xAad5D80043CEBb13cE4292F1Ea8f0615cF94D8c5" alt="BEP20 QR Code">
+                    <div class="qr-center-tether-badge">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                        <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="#009393"/>
+                        <path d="M15.5 8H12.8V6.8H11.2V8H8.5V9.4H11.2V10.4C9.5 10.5 8.2 11 8.2 11.6C8.2 12.2 9.5 12.7 11.2 12.8V15.5H12.8V12.8C14.5 12.7 15.8 12.2 15.8 11.6C15.8 11 14.5 10.5 12.8 10.4V9.4H15.5V8ZM12 12.2C10.3 12.2 9.4 11.8 9.4 11.6C9.4 11.4 10.3 11 12 11C13.7 11 14.6 11.4 14.6 11.6C14.6 11.8 13.7 12.2 12 12.2Z" fill="#ffffff"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <p class="qr-sub-warning">Only send USDT (BEP20) to this address.<br>Sending other assets may result in permanent loss.</p>
+                </div>
+              </div>
+
+              <!-- Enter Amount Section -->
+              <div class="crypto-card-section">
+                <label class="crypto-sec-label">ENTER AMOUNT</label>
+                <div class="crypto-amount-input-wrap">
+                  <div class="amount-prefix-badge">
+                    <span class="dollar-circle">$</span>
+                  </div>
+                  <input type="number" id="depositAmount" placeholder="Enter amount" min="5" step="any" oninput="WalletModule.calcDepositReceive()">
+                  <span class="amount-suffix-label">USDT</span>
+                </div>
+                <div class="crypto-sub-hint">Minimum Deposit: <strong style="color:#00f5d4;">5 USDT</strong></div>
+              </div>
+
+              <!-- Upload Payment Screenshot (Optional) -->
+              <div class="crypto-card-section">
+                <label class="crypto-sec-label">UPLOAD PAYMENT SCREENSHOT <span style="font-size:0.68rem;color:#c77dff;font-weight:400;text-transform:none;">(Optional)</span></label>
+                <div class="crypto-upload-box" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()">
+                  <input type="file" id="proofFileInput" accept="image/png, image/jpeg, image/jpg" style="display:none;" onchange="WalletModule.handleProofSelect(event)">
+                  <div id="proofUploadPrompt">
+                    <div class="upload-cloud-icon">
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#c77dff" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 13 12 9 9.5 11.5"/></svg>
+                    </div>
+                    <div class="upload-primary-text">Upload Screenshot</div>
+                    <div class="upload-secondary-text">JPG, PNG up to 5MB</div>
+                  </div>
+                  <div id="proofPreviewWrap" style="display:none; text-align:center;">
+                    <img id="proofPreviewImg" src="" alt="Screenshot" style="max-height:80px; border-radius:8px; border:1px solid rgba(199,125,255,0.4); margin-bottom:6px;">
+                    <div style="font-size:0.75rem; color:#e0aaff; cursor:pointer;" onclick="WalletModule.removeProofFile(event)">✕ Remove Screenshot</div>
+                  </div>
+                  <div id="proofFileName" style="display:none;font-size:0.75rem;color:#00f5d4;margin-top:6px;font-weight:600;"></div>
+                </div>
+              </div>
+
+              <!-- Important Note Card -->
+              <div class="crypto-important-box purple-tint">
+                <div class="imp-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0aaff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <span>IMPORTANT</span>
+                </div>
+                <ul class="imp-list">
+                  <li><span>✓</span> Send only USDT (BEP20) to the above address.</li>
+                  <li><span>✓</span> Minimum deposit is 5 USDT.</li>
+                  <li><span>✓</span> After sending, upload the screenshot for verification (optional).</li>
+                </ul>
+              </div>
+
+              <!-- Submit Button -->
+              <button type="button" class="btn-crypto-submit purple-grad" id="btnSubmitDeposit" onclick="WalletModule.submitDeposit()">
+                Submit Deposit
+              </button>
+
+              <!-- User Deposit History Collapsible -->
+              <div class="crypto-history-toggle">
+                <details style="margin-top:14px;">
+                  <summary style="cursor:pointer;font-size:0.8rem;color:rgba(255,255,255,0.5);text-align:center;user-select:none;">📜 View Deposit History</summary>
+                  <div id="userDepositsList" style="margin-top:10px;">
+                    <div class="empty-state-text" style="font-size:0.75rem;text-align:center;color:rgba(255,255,255,0.4);padding:10px;">Loading history...</div>
+                  </div>
+                </details>
+              </div>
+
+            </div>
           </div>
         </div>
 
-        <!-- Withdraw Modal Wrapper -->
-        <div id="withdrawModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
-          <div style="position:relative; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; border-radius:20px; box-shadow: 0 0 40px rgba(0, 180, 216, 0.2);">
-            <button onclick="document.getElementById('withdrawModalWrap').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.5rem; width:36px; height:36px; border-radius:50%; cursor:pointer; z-index:10; display:flex; align-items:center; justify-content:center;">&times;</button>
-          <!-- Withdraw Funds Card -->
-          <div class="wallet-card withdraw-card" id="withdrawFundsCard" style="margin: 0; box-shadow: none; border: 1px solid rgba(0, 180, 216, 0.4);">
-            <div class="wallet-card-header">
-              <div>
-                <h3 class="wallet-card-title">Withdraw Funds</h3>
-                <p class="wallet-card-subtitle">Transfer your funds to your wallet</p>
-              </div>
-              <div class="wallet-network-icon green">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#00f5d4" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </div>
-            </div>
-
-            <div class="wallet-form-group">
-              <label>Withdrawal Amount</label>
-              <div class="input-with-currency blue-border">
-                <input type="number" id="withdrawAmount" placeholder="Enter amount" oninput="calcWithdrawReceive()">
-                <span class="currency-badge">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  USDTBEP20
-                </span>
-              </div>
-            </div>
-            <div class="wallet-balance-note">
-               <span style="color:var(--text-muted)">Available Balance</span>
-               <span id="withdrawAvailableBal" style="color:#00f5d4;font-weight:700;">0.00 USDTBEP20</span>
-            </div>
-
-            <div class="wallet-form-group" style="margin-top:20px;">
-              <label>Select Network</label>
-              <div class="network-select-box blue-border">USDTBEP20 <span>▼</span></div>
-            </div>
-
-            <div class="wallet-form-group">
-              <label>Wallet Address</label>
-              <input type="text" class="wallet-address-input" id="withdrawAddress" placeholder="Enter BEP-20 wallet address">
-            </div>
-
-            <div class="wallet-calc-row">
-              <span>Withdrawal Fee</span>
-              <span class="calc-val" id="withdrawFeeVal">1.00 USDTBEP20</span>
-            </div>
+        <!-- ====================================================
+             WITHDRAW MODAL (Exact design matching user specification)
+        ===================================================== -->
+        <div id="withdrawModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); flex-direction:column; align-items:center; justify-content:center; padding:16px;">
+          <div class="wallet-crypto-card withdraw-theme">
             
-            <div class="wallet-calc-row" style="margin-top:10px;">
-              <span>You Will Receive</span>
-              <span class="calc-val green" id="withdrawReceiveVal">0.00 USDTBEP20</span>
+            <!-- Header with Back Arrow -->
+            <div class="crypto-modal-header">
+              <button type="button" class="btn-crypto-back" onclick="WalletModule.closeWithdrawModal()" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <h3 class="crypto-modal-title">Withdraw USDT (BEP20)</h3>
             </div>
 
-            <button type="button" class="wallet-submit-btn btn-withdraw-submit" style="margin-top:20px;" id="btnSubmitWithdraw" onclick="submitWithdraw()">Confirm Withdrawal</button>
-          
-            <!-- Withdrawal Status List -->
-            <div class="wallet-status-section">
-               <h4 style="margin-bottom:10px;font-size:0.9rem;color:#fff;">Withdrawal History</h4>
-               <div id="userWithdrawalsList">
-                  <div class="empty-state-text" style="font-size:0.8rem;text-align:center;color:var(--text-muted);">No withdrawal requests yet</div>
-               </div>
+            <div class="crypto-modal-body">
+              
+              <!-- Available Balance Hero Card -->
+              <div class="crypto-available-bal-card">
+                <div class="avail-left">
+                  <span class="avail-label">AVAILABLE BALANCE</span>
+                  <div class="avail-amount-row">
+                    <span id="withdrawCardAvailableBal" class="avail-val">0.00 USDT</span>
+                  </div>
+                </div>
+                <div class="avail-right-badge">
+                  <div class="tether-logo-circle large">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+                      <circle cx="12" cy="12" r="11" fill="#009393"/>
+                      <path d="M16.5 8.5H13.2V6.8H10.8V8.5H7.5V10.2H10.8V11.5C8.8 11.6 7.2 12.2 7.2 12.9C7.2 13.6 8.8 14.2 10.8 14.3V17.5H13.2V14.3C15.2 14.2 16.8 13.6 16.8 12.9C16.8 12.2 15.2 11.6 13.2 11.5V10.2H16.5V8.5ZM12 13.7C9.9 13.7 8.7 13.2 8.7 12.9C8.7 12.6 9.9 12.1 12 12.1C14.1 12.1 15.3 12.6 15.3 12.9C15.3 13.2 14.1 13.7 12 13.7Z" fill="#ffffff"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Withdrawal Fee Row -->
+              <div class="crypto-fee-row">
+                <div class="fee-left-info">
+                  <span class="fee-title">Withdrawal Fee <span style="font-size:0.75rem;opacity:0.7;">ⓘ</span></span>
+                  <span class="fee-desc">2% of total amount</span>
+                </div>
+                <div class="fee-star-badge">
+                  <span>2%</span>
+                </div>
+              </div>
+
+              <!-- Enter Amount Section -->
+              <div class="crypto-card-section">
+                <label class="crypto-sec-label">ENTER AMOUNT</label>
+                <div class="crypto-amount-input-wrap cyan-border">
+                  <div class="amount-prefix-badge">
+                    <span class="dollar-circle">$</span>
+                  </div>
+                  <input type="number" id="withdrawAmount" placeholder="Enter amount" min="2" step="any" oninput="WalletModule.calcWithdrawReceive()">
+                  <span class="amount-suffix-label">USDT</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                  <span class="crypto-sub-hint">Minimum Withdraw: <strong style="color:#00b4d8;">2 USDT</strong></span>
+                  <span style="font-size:0.72rem; color:rgba(255,255,255,0.45);">Fee: <span id="withdrawFeeVal" style="color:#00f5d4; font-weight:600;">0.00 USDT</span></span>
+                </div>
+              </div>
+
+              <!-- Receive Wallet Address Section -->
+              <div class="crypto-card-section">
+                <label class="crypto-sec-label">RECEIVE WALLET ADDRESS (USDT BEP20)</label>
+                <div class="crypto-dest-input-wrap">
+                  <input type="text" id="withdrawAddress" placeholder="Enter your BEP20 wallet address" class="dest-address-input">
+                  <span class="scan-icon-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+                  </span>
+                </div>
+                <p class="qr-sub-warning" style="text-align:left; margin-top:4px; margin-bottom:0;">Make sure the wallet address is correct.<br>Wrong address may result in permanent loss.</p>
+              </div>
+
+              <!-- Important Note Card (Blue Theme) -->
+              <div class="crypto-important-box blue-tint">
+                <div class="imp-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f5d4" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>IMPORTANT</span>
+                </div>
+                <ul class="imp-list">
+                  <li><span>✓</span> Withdrawal fee is 2% of total amount.</li>
+                  <li><span>✓</span> Minimum withdrawal is 2 USDT.</li>
+                </ul>
+              </div>
+
+              <!-- Submit Button -->
+              <button type="button" class="btn-crypto-submit blue-grad" id="btnSubmitWithdraw" onclick="WalletModule.submitWithdraw()">
+                Submit Withdrawal
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+
+              <!-- User Withdrawal History Collapsible -->
+              <div class="crypto-history-toggle">
+                <details style="margin-top:14px;">
+                  <summary style="cursor:pointer;font-size:0.8rem;color:rgba(255,255,255,0.5);text-align:center;user-select:none;">📜 View Withdrawal History</summary>
+                  <div id="userWithdrawalsList" style="margin-top:10px;">
+                    <div class="empty-state-text" style="font-size:0.75rem;text-align:center;color:rgba(255,255,255,0.4);padding:10px;">Loading history...</div>
+                  </div>
+                </details>
+              </div>
+
             </div>
-          </div>
           </div>
         </div>
       </section>
