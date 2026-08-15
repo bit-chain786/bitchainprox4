@@ -203,6 +203,7 @@ async function submitDeposit() {
     const proofUrl = await uploadProofToStorage(uploadedProofFile);
 
     const { error } = await sb.from('deposits').insert({
+      user_id: user.id,
       amount: amt,
       payment_method: 'USDTBEP20',
       proof_url: proofUrl,
