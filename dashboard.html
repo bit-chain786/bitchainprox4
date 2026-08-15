@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BITCHAIN PRO X — User Dashboard</title>
+  <meta name="description" content="Official BITCHAIN PRO X User Dashboard. Monitor your digital packages, total income, direct referral team, and real-time earnings.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/packages.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Cropper.js for profile picture cropping -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+</head>
+<body>
+
+  <!-- Ambient Dynamic Canvas Background -->
+  <div class="auth-bg-wrapper">
+    <div class="auth-bg-gradient"></div>
+    <canvas id="authCanvas"></canvas>
+  </div>
+
+  <!-- Header Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-content-wrap">
+      <a href="index.html" class="brand-logo">
+        <div class="logo-anim-wrapper">
+          <div class="logo-glow-bg"></div>
+          <img src="images/logo-circle.png" alt="BitchainProx Logo" class="brand-logo-img anim-logo-pulse" onerror="this.src='images/logo.png'">
+        </div>
+        <div class="brand-name">BITCHAIN<span>PROX</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html#about">About Us</a></li>
+        <li><a href="index.html#packages">Package Plans</a></li>
+        <li><a href="index.html#income">Income</a></li>
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Dynamically populated via auth.js -->
+      </div>
+
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle Navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Wrapper (Sidebar + Content) -->
+  <div class="dash-page-wrapper">
+
+
+
+    <!-- 2. MAIN DASHBOARD CONTENT -->
+    <main class="dash-main-content">
+
+      <!-- Top Dashboard Header Bar -->
+      <div class="dash-header-bar">
+        <div class="dash-page-title">
+          <h1 class="desktop-only-element">DASHBOARD</h1>
+          <p class="desktop-only-element">Welcome back, <span id="dashHdrUserName">Member</span>! Here is your real-time ecosystem overview.</p>
+          
+          <!-- Mobile Only Greeting Pill -->
+          <div class="mobile-greeting-pill">
+            <span class="greeting-icon">👋</span>
+            <span class="greeting-text">Welcome back, <span id="mobDashHdrUserName">Member</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State Notification Wrap -->
+      <div id="dashErrorAlertWrap" style="display: none;"></div>
+
+      <!-- USER PROFILE & CURRENT PACKAGE GRID -->
+      <section class="profile-package-grid">
+
+        <!-- User Profile Card -->
+        <div class="profile-overview-card">
+          <!-- Hidden file input for avatar upload -->
+          <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+
+          <div class="avatar-ring-frame" id="avatarRingFrame" onclick="document.getElementById('avatarFileInput').click()" title="Click to change profile picture" style="cursor:pointer; position:relative;">
+            <div class="avatar-pulse-glow"></div>
+            <div class="avatar-inner-circle" id="profAvatarInitial">B</div>
+            <!-- Camera overlay on hover -->
+            <div class="avatar-camera-overlay" id="avatarCameraOverlay">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="26" height="26">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.5px;margin-top:2px;">CHANGE</span>
+            </div>
+          </div>
+          <div class="profile-details-wrap">
+            <div class="profile-title-row">
+              <!-- Dynamic User Name — NO BLUE CHECKMARK! -->
+              <h2 class="profile-name-text" id="profUserFullName"><span class="skeleton-pulse" style="width: 140px; height: 24px;"></span></h2>
+              <!-- Dynamic Rank Pill Badge -->
+              <div class="rank-badge-pill" id="profUserRankBadge">✦ STARTER</div>
+            </div>
+            <div class="profile-meta-grid">
+              <div class="meta-field-box">
+                <span class="meta-label">USER ID</span>
+                <span class="meta-value" id="profUserIdVal"><span class="skeleton-pulse" style="width: 80px; height: 16px;"></span></span>
+              </div>
+              <div class="meta-field-box">
+                <span class="meta-label">UPLINE ID</span>
+                <span class="meta-value" id="profUplineIdVal"><span class="skeleton-pulse" style="width: 80px; height: 16px;"></span></span>
+              </div>
+              <div class="meta-field-box">
+                <span class="meta-label">SPONSOR ID</span>
+                <span class="meta-value" id="profSponsorIdVal"><span class="skeleton-pulse" style="width: 80px; height: 16px;"></span></span>
+              </div>
+              <div class="meta-field-box">
+                <span class="meta-label">JOINING DATE</span>
+                <span class="meta-value" id="profJoiningDateVal"><span class="skeleton-pulse" style="width: 90px; height: 16px;"></span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Premium Rank Upgrade Section -->
+        <div class="upgrade-card-wrapper" id="upgradeCardWrapper">
+          <div class="upgrade-side current-side">
+            <div class="upgrade-label">CURRENT PACKAGE</div>
+            <div class="upgrade-package-info">
+              <div class="upgrade-icon" id="pkgCurrentIcon">🛡️</div>
+              <div class="upgrade-details">
+                <div class="upgrade-name" id="pkgCurrentName"><span class="skeleton-pulse" style="width: 80px; height: 18px;"></span></div>
+                <div class="upgrade-price" id="pkgCurrentPrice"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="upgrade-arrow-center" id="upgradeArrowCenter">
+            <div class="upgrade-arrow-line"></div>
+            <div class="upgrade-arrow-icon">→</div>
+            <div class="upgrade-arrow-line"></div>
+          </div>
+          
+          <div class="upgrade-side next-side" id="upgradeNextSide">
+            <div class="upgrade-label">NEXT UPGRADE</div>
+            <div class="upgrade-package-info">
+              <div class="upgrade-icon next-icon" id="pkgNextIcon">✨</div>
+              <div class="upgrade-details">
+                <div class="upgrade-name" id="pkgNextName"><span class="skeleton-pulse" style="width: 80px; height: 18px;"></span></div>
+                <div class="upgrade-price next-price" id="pkgNextPrice"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="upgrade-action-bottom" id="upgradeActionBottom">
+            <button class="upgrade-now-btn" id="pkgUpgradeTriggerBtn" onclick="pkgOpenConfirm(pkgCurrentIndex + 1)">
+              <span class="btn-icon">⚡</span> <span id="pkgUpgradeBtnText">UPGRADE NOW</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- FINANCIAL OVERVIEW CARDS (4 CARDS GRID) -->
+      <section class="financial-overview-grid">
+
+        <!-- Card 1: Available Balance -->
+        <div class="fin-card available">
+          <div class="fin-card-top">
+            <div class="fin-icon-wrap">👛</div>
+            <div>
+              <div class="fin-card-title">AVAILABLE BALANCE</div>
+              <div class="fin-card-value" id="valAvailableBal"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
+            </div>
+          </div>
+          <div class="fin-card-bottom">
+            <span class="trend-indicator-badge purple">↗ 5.7% Available</span>
+            <svg class="sparkline-svg" viewBox="0 0 140 55">
+              <defs>
+                <linearGradient id="purpleArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#5a189a"/>
+                  <stop offset="40%" stop-color="#9d4edd"/>
+                  <stop offset="80%" stop-color="#c77dff"/>
+                  <stop offset="100%" stop-color="#e0aaff"/>
+                </linearGradient>
+                <linearGradient id="purpleBarGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="rgba(90, 24, 154, 0.4)"/>
+                  <stop offset="60%" stop-color="rgba(157, 78, 221, 0.8)"/>
+                  <stop offset="100%" stop-color="#e0aaff"/>
+                </linearGradient>
+                <linearGradient id="purpleRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#5a189a" stop-opacity="0.2"/>
+                  <stop offset="50%" stop-color="#c77dff" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#e0aaff" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <ellipse cx="104" cy="47" rx="30" ry="5.5" fill="none" stroke="url(#purpleRingGrad)" stroke-width="1.2" opacity="0.6"/>
+              <ellipse cx="104" cy="47" rx="22" ry="4" fill="none" stroke="url(#purpleRingGrad)" stroke-width="1" opacity="0.8"/>
+              <rect x="76" y="36" width="5" height="10" rx="1.5" fill="url(#purpleBarGrad)" opacity="0.75"/>
+              <rect x="85" y="30" width="5" height="16" rx="1.5" fill="url(#purpleBarGrad)" opacity="0.82"/>
+              <rect x="94" y="23" width="5" height="23" rx="1.5" fill="url(#purpleBarGrad)" opacity="0.9"/>
+              <rect x="103" y="15" width="5" height="31" rx="1.5" fill="url(#purpleBarGrad)"/>
+              <rect x="112" y="7" width="5.5" height="39" rx="1.5" fill="url(#purpleBarGrad)"/>
+              <line x1="76" y1="36" x2="81" y2="36" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+              <line x1="85" y1="30" x2="90" y2="30" stroke="#ffffff" stroke-width="1" opacity="0.85"/>
+              <line x1="94" y1="23" x2="99" y2="23" stroke="#ffffff" stroke-width="1" opacity="0.9"/>
+              <line x1="103" y1="15" x2="108" y2="15" stroke="#ffffff" stroke-width="1.2" opacity="0.95"/>
+              <line x1="112" y1="7" x2="117.5" y2="7" stroke="#ffffff" stroke-width="1.5"/>
+              <path d="M 12 47 Q 55 22 118 6" fill="none" stroke="rgba(224,170,255,0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#9d4edd" stroke-width="8" stroke-linecap="round" opacity="0.45" style="filter: blur(4px);"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="url(#purpleArrowGrad)" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+              <polygon points="130,3 111,7 117,17 124,14" fill="url(#purpleArrowGrad)"/>
+              <polygon points="130,3 115,7 121,14" fill="#ffffff" opacity="0.85"/>
+              <g transform="translate(130, 3)">
+                <path d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8 Z" fill="#ffffff"/>
+              </g>
+              <circle cx="48" cy="36" r="1.5" fill="#ffffff" opacity="0.9"/>
+              <circle cx="82" cy="22" r="2" fill="#e0aaff" opacity="0.95"/>
+              <circle cx="100" cy="14" r="1.5" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 2: Total Income -->
+        <div class="fin-card total-income">
+          <div class="fin-card-top">
+            <div class="fin-icon-wrap">
+              <!-- Stacked coins / total income SVG icon -->
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="12" cy="6" rx="8" ry="3" fill="#3a86ff" opacity="0.9"/>
+                <path d="M4,6 Q4,9 12,9 Q20,9 20,6" stroke="#74b3ff" stroke-width="1.2" fill="none"/>
+                <path d="M4,9 Q4,12 12,12 Q20,12 20,9" stroke="#74b3ff" stroke-width="1.2" fill="rgba(58,134,255,0.3)"/>
+                <path d="M4,12 Q4,15 12,15 Q20,15 20,12" stroke="#74b3ff" stroke-width="1.2" fill="rgba(58,134,255,0.2)"/>
+                <path d="M4,15 Q4,18 12,18 Q20,18 20,15" stroke="#74b3ff" stroke-width="1.2" fill="rgba(58,134,255,0.15)"/>
+                <path d="M20,6 L20,15 Q20,18 12,18 Q4,18 4,15 L4,6" stroke="#74b3ff" stroke-width="1" fill="none" opacity="0.6"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fin-card-title">TOTAL INCOME</div>
+              <div class="fin-card-value" id="valTotalInc"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
+            </div>
+          </div>
+          <div class="fin-card-bottom">
+            <span class="trend-indicator-badge blue">↗ 12.5% vs Last Month</span>
+            <svg class="sparkline-svg" viewBox="0 0 140 55">
+              <defs>
+                <linearGradient id="blueArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#051f4d"/>
+                  <stop offset="40%" stop-color="#3a86ff"/>
+                  <stop offset="80%" stop-color="#00bbf9"/>
+                  <stop offset="100%" stop-color="#74b3ff"/>
+                </linearGradient>
+                <linearGradient id="blueBarGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="rgba(5, 31, 77, 0.4)"/>
+                  <stop offset="60%" stop-color="rgba(58, 134, 255, 0.8)"/>
+                  <stop offset="100%" stop-color="#74b3ff"/>
+                </linearGradient>
+                <linearGradient id="blueRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#051f4d" stop-opacity="0.2"/>
+                  <stop offset="50%" stop-color="#3a86ff" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#74b3ff" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <ellipse cx="104" cy="47" rx="30" ry="5.5" fill="none" stroke="url(#blueRingGrad)" stroke-width="1.2" opacity="0.6"/>
+              <ellipse cx="104" cy="47" rx="22" ry="4" fill="none" stroke="url(#blueRingGrad)" stroke-width="1" opacity="0.8"/>
+              <rect x="76" y="36" width="5" height="10" rx="1.5" fill="url(#blueBarGrad)" opacity="0.75"/>
+              <rect x="85" y="30" width="5" height="16" rx="1.5" fill="url(#blueBarGrad)" opacity="0.82"/>
+              <rect x="94" y="23" width="5" height="23" rx="1.5" fill="url(#blueBarGrad)" opacity="0.9"/>
+              <rect x="103" y="15" width="5" height="31" rx="1.5" fill="url(#blueBarGrad)"/>
+              <rect x="112" y="7" width="5.5" height="39" rx="1.5" fill="url(#blueBarGrad)"/>
+              <line x1="76" y1="36" x2="81" y2="36" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+              <line x1="85" y1="30" x2="90" y2="30" stroke="#ffffff" stroke-width="1" opacity="0.85"/>
+              <line x1="94" y1="23" x2="99" y2="23" stroke="#ffffff" stroke-width="1" opacity="0.9"/>
+              <line x1="103" y1="15" x2="108" y2="15" stroke="#ffffff" stroke-width="1.2" opacity="0.95"/>
+              <line x1="112" y1="7" x2="117.5" y2="7" stroke="#ffffff" stroke-width="1.5"/>
+              <path d="M 12 47 Q 55 22 118 6" fill="none" stroke="rgba(116,179,255,0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#3a86ff" stroke-width="8" stroke-linecap="round" opacity="0.45" style="filter: blur(4px);"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="url(#blueArrowGrad)" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+              <polygon points="130,3 111,7 117,17 124,14" fill="url(#blueArrowGrad)"/>
+              <polygon points="130,3 115,7 121,14" fill="#ffffff" opacity="0.85"/>
+              <g transform="translate(130, 3)">
+                <path d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8 Z" fill="#ffffff"/>
+              </g>
+              <circle cx="48" cy="36" r="1.5" fill="#ffffff" opacity="0.9"/>
+              <circle cx="82" cy="22" r="2" fill="#74b3ff" opacity="0.95"/>
+              <circle cx="100" cy="14" r="1.5" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 3: Today's Income -->
+        <div class="fin-card today-income">
+          <div class="fin-card-top">
+            <div class="fin-icon-wrap">
+              <!-- Bar chart / rising income SVG icon -->
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="14" width="4" height="8" rx="1" fill="#ffd166" opacity="0.7"/>
+                <rect x="8" y="9" width="4" height="13" rx="1" fill="#ffd166" opacity="0.85"/>
+                <rect x="14" y="5" width="4" height="17" rx="1" fill="#ffd166"/>
+                <polyline points="2,13 6,9 10,11 14,6 20,3" stroke="#ffe599" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="20" cy="3" r="1.5" fill="#ffe599"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fin-card-title">TODAY'S INCOME</div>
+              <div class="fin-card-value" id="valTodayInc"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
+            </div>
+          </div>
+          <div class="fin-card-bottom">
+            <span class="trend-indicator-badge gold">↗ 8.3% vs Yesterday</span>
+            <svg class="sparkline-svg" viewBox="0 0 140 55">
+              <defs>
+                <linearGradient id="goldArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4a3000"/>
+                  <stop offset="40%" stop-color="#ffbe0b"/>
+                  <stop offset="80%" stop-color="#ffd166"/>
+                  <stop offset="100%" stop-color="#ffe599"/>
+                </linearGradient>
+                <linearGradient id="goldBarGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="rgba(74, 48, 0, 0.4)"/>
+                  <stop offset="60%" stop-color="rgba(255, 190, 11, 0.8)"/>
+                  <stop offset="100%" stop-color="#ffe599"/>
+                </linearGradient>
+                <linearGradient id="goldRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4a3000" stop-opacity="0.2"/>
+                  <stop offset="50%" stop-color="#ffd166" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#ffe599" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <ellipse cx="104" cy="47" rx="30" ry="5.5" fill="none" stroke="url(#goldRingGrad)" stroke-width="1.2" opacity="0.6"/>
+              <ellipse cx="104" cy="47" rx="22" ry="4" fill="none" stroke="url(#goldRingGrad)" stroke-width="1" opacity="0.8"/>
+              <rect x="76" y="36" width="5" height="10" rx="1.5" fill="url(#goldBarGrad)" opacity="0.75"/>
+              <rect x="85" y="30" width="5" height="16" rx="1.5" fill="url(#goldBarGrad)" opacity="0.82"/>
+              <rect x="94" y="23" width="5" height="23" rx="1.5" fill="url(#goldBarGrad)" opacity="0.9"/>
+              <rect x="103" y="15" width="5" height="31" rx="1.5" fill="url(#goldBarGrad)"/>
+              <rect x="112" y="7" width="5.5" height="39" rx="1.5" fill="url(#goldBarGrad)"/>
+              <line x1="76" y1="36" x2="81" y2="36" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+              <line x1="85" y1="30" x2="90" y2="30" stroke="#ffffff" stroke-width="1" opacity="0.85"/>
+              <line x1="94" y1="23" x2="99" y2="23" stroke="#ffffff" stroke-width="1" opacity="0.9"/>
+              <line x1="103" y1="15" x2="108" y2="15" stroke="#ffffff" stroke-width="1.2" opacity="0.95"/>
+              <line x1="112" y1="7" x2="117.5" y2="7" stroke="#ffffff" stroke-width="1.5"/>
+              <path d="M 12 47 Q 55 22 118 6" fill="none" stroke="rgba(255,229,153,0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#ffbe0b" stroke-width="8" stroke-linecap="round" opacity="0.45" style="filter: blur(4px);"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="url(#goldArrowGrad)" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+              <polygon points="130,3 111,7 117,17 124,14" fill="url(#goldArrowGrad)"/>
+              <polygon points="130,3 115,7 121,14" fill="#ffffff" opacity="0.85"/>
+              <g transform="translate(130, 3)">
+                <path d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8 Z" fill="#ffffff"/>
+              </g>
+              <circle cx="48" cy="36" r="1.5" fill="#ffffff" opacity="0.9"/>
+              <circle cx="82" cy="22" r="2" fill="#ffe599" opacity="0.95"/>
+              <circle cx="100" cy="14" r="1.5" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 4: Total Team -->
+        <div class="fin-card total-team">
+          <div class="fin-card-top">
+            <div class="fin-icon-wrap">
+              <!-- People / team SVG icon -->
+              <svg viewBox="0 0 24 24" fill="none" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+                <!-- Center person -->
+                <circle cx="12" cy="7" r="3" fill="#00f5d4" opacity="0.95"/>
+                <path d="M6,20 C6,16.7 8.7,14 12,14 C15.3,14 18,16.7 18,20" stroke="#00f5d4" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                <!-- Left person -->
+                <circle cx="5" cy="9" r="2.2" fill="#00f5d4" opacity="0.6"/>
+                <path d="M1,20 C1,17.6 2.9,15.6 5.3,15.3" stroke="#00f5d4" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.7"/>
+                <!-- Right person -->
+                <circle cx="19" cy="9" r="2.2" fill="#00f5d4" opacity="0.6"/>
+                <path d="M23,20 C23,17.6 21.1,15.6 18.7,15.3" stroke="#00f5d4" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.7"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fin-card-title">TOTAL TEAM</div>
+              <div class="fin-card-value" id="valTotalTeam"><span class="skeleton-pulse" style="width: 80px; height: 28px;"></span></div>
+            </div>
+          </div>
+          <div class="fin-card-bottom">
+            <span class="trend-indicator-badge green">↗ 12.7% vs Last Month</span>
+            <svg class="sparkline-svg" viewBox="0 0 140 55">
+              <defs>
+                <linearGradient id="greenArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#00382d"/>
+                  <stop offset="40%" stop-color="#06d6a0"/>
+                  <stop offset="80%" stop-color="#00f5d4"/>
+                  <stop offset="100%" stop-color="#80ffea"/>
+                </linearGradient>
+                <linearGradient id="greenBarGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="rgba(0, 56, 45, 0.4)"/>
+                  <stop offset="60%" stop-color="rgba(6, 214, 160, 0.8)"/>
+                  <stop offset="100%" stop-color="#80ffea"/>
+                </linearGradient>
+                <linearGradient id="greenRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#00382d" stop-opacity="0.2"/>
+                  <stop offset="50%" stop-color="#00f5d4" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#80ffea" stop-opacity="0.3"/>
+                </linearGradient>
+              </defs>
+              <ellipse cx="104" cy="47" rx="30" ry="5.5" fill="none" stroke="url(#greenRingGrad)" stroke-width="1.2" opacity="0.6"/>
+              <ellipse cx="104" cy="47" rx="22" ry="4" fill="none" stroke="url(#greenRingGrad)" stroke-width="1" opacity="0.8"/>
+              <rect x="76" y="36" width="5" height="10" rx="1.5" fill="url(#greenBarGrad)" opacity="0.75"/>
+              <rect x="85" y="30" width="5" height="16" rx="1.5" fill="url(#greenBarGrad)" opacity="0.82"/>
+              <rect x="94" y="23" width="5" height="23" rx="1.5" fill="url(#greenBarGrad)" opacity="0.9"/>
+              <rect x="103" y="15" width="5" height="31" rx="1.5" fill="url(#greenBarGrad)"/>
+              <rect x="112" y="7" width="5.5" height="39" rx="1.5" fill="url(#greenBarGrad)"/>
+              <line x1="76" y1="36" x2="81" y2="36" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+              <line x1="85" y1="30" x2="90" y2="30" stroke="#ffffff" stroke-width="1" opacity="0.85"/>
+              <line x1="94" y1="23" x2="99" y2="23" stroke="#ffffff" stroke-width="1" opacity="0.9"/>
+              <line x1="103" y1="15" x2="108" y2="15" stroke="#ffffff" stroke-width="1.2" opacity="0.95"/>
+              <line x1="112" y1="7" x2="117.5" y2="7" stroke="#ffffff" stroke-width="1.5"/>
+              <path d="M 12 47 Q 55 22 118 6" fill="none" stroke="rgba(128,255,234,0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#06d6a0" stroke-width="8" stroke-linecap="round" opacity="0.45" style="filter: blur(4px);"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="url(#greenArrowGrad)" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M 6 45 C 28 44, 62 36, 116 11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+              <polygon points="130,3 111,7 117,17 124,14" fill="url(#greenArrowGrad)"/>
+              <polygon points="130,3 115,7 121,14" fill="#ffffff" opacity="0.85"/>
+              <g transform="translate(130, 3)">
+                <path d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8 Z" fill="#ffffff"/>
+              </g>
+              <circle cx="48" cy="36" r="1.5" fill="#ffffff" opacity="0.9"/>
+              <circle cx="82" cy="22" r="2" fill="#80ffea" opacity="0.95"/>
+              <circle cx="100" cy="14" r="1.5" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================================================
+           WALLET MODULE
+      ===================================================== -->
+      <section class="wallet-module" id="dashWalletSection">
+        <!-- Wallet Balance Header -->
+        <div class="wallet-balance-card">
+          <div class="wallet-bal-left">
+            <h3 class="wallet-card-maintitle">Wallet Balance</h3>
+            <p class="wallet-card-sub">Current Balance</p>
+            <div class="wallet-bal-amount">
+              <span id="walletMainBalance">0.00</span> <span class="wallet-currency">USDTBEP20</span>
+            </div>
+            <div class="wallet-bal-usd" id="walletUsdValue">≈ $0.00</div>
+            <div class="wallet-actions-row">
+              <button class="wallet-btn btn-deposit" onclick="document.getElementById('depositModalWrap').style.display='flex'">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Deposit
+              </button>
+              <button class="wallet-btn btn-withdraw" onclick="document.getElementById('withdrawModalWrap').style.display='flex'">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Withdraw
+              </button>
+            </div>
+          </div>
+          <div class="wallet-bal-right">
+            <!-- Glowing wallet icon - optional image if exists -->
+          </div>
+        </div>
+
+        <!-- Deposit Modal Wrapper -->
+        <div id="depositModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+          <div style="position:relative; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; border-radius:20px; box-shadow: 0 0 40px rgba(157, 78, 221, 0.2);">
+            <button onclick="document.getElementById('depositModalWrap').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.5rem; width:36px; height:36px; border-radius:50%; cursor:pointer; z-index:10; display:flex; align-items:center; justify-content:center;">&times;</button>
+          <!-- Deposit Funds Card -->
+          <div class="wallet-card deposit-card" id="depositFundsCard" style="margin: 0; box-shadow: none; border: 1px solid rgba(157, 78, 221, 0.4);">
+            <div class="wallet-card-header">
+              <div>
+                <h3 class="wallet-card-title">Deposit Funds</h3>
+                <p class="wallet-card-subtitle">Add funds to your wallet</p>
+              </div>
+              <div class="wallet-network-icon purple">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#e0aaff" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+
+            <div class="wallet-form-group">
+              <label>Select Network</label>
+              <div class="network-select-box">USDTBEP20 <span>▼</span></div>
+            </div>
+
+            <div class="wallet-form-group">
+              <label>Deposit Amount</label>
+              <div class="input-with-currency">
+                <input type="number" id="depositAmount" placeholder="Enter amount" oninput="calcDepositReceive()">
+                <span class="currency-badge">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  USDTBEP20
+                </span>
+              </div>
+            </div>
+
+            <div class="wallet-calc-row">
+              <span>You Will Receive</span>
+              <span class="calc-val purple" id="depositReceiveVal">0.00 USDTBEP20</span>
+            </div>
+            <div class="wallet-min-note" id="depositMinNote">Minimum Deposit: 10.00 USDTBEP20</div>
+
+            <div class="wallet-form-group">
+              <label>Deposit Address</label>
+              <div class="address-copy-box">
+                <input type="text" id="bep20DepositAddress" value="TDsJx7GfR3mbX9jYkLBQwz6h1Kp8uN8z3c" readonly>
+                <button type="button" class="btn-copy-address" onclick="copyDepositAddress()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="qr-code-box">
+              <div class="qr-placeholder" id="bep20QrCodeWrapper" style="width:120px;height:120px;background:#fff;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;margin-right:16px;">
+                <img src="" alt="QR" id="bep20QrCode" style="max-width:100%;display:none;">
+                <span id="qrFallback" style="color:#000;font-size:0.8rem;text-align:center;">QR Code</span>
+              </div>
+              <p class="qr-warning">Send only USDTBEP20 to this address via USDTBEP20 network.</p>
+            </div>
+
+            <div class="wallet-form-group">
+              <label>Upload Payment Screenshot</label>
+              <div class="upload-drop-zone" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()">
+                <input type="file" id="proofFileInput" accept="image/png, image/jpeg, image/jpg" style="display:none;" onchange="handleProofSelect(event)">
+                <div class="upload-icon">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#c77dff" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="upload-text">Click to upload or drag and drop</div>
+                <div class="upload-sub">PNG, JPG, JPEG (Max 5MB)</div>
+                <div id="proofFileName" class="upload-file-name" style="display:none;color:#c77dff;margin-top:8px;font-weight:600;"></div>
+              </div>
+            </div>
+
+            <button type="button" class="wallet-submit-btn btn-deposit-submit" id="btnSubmitDeposit" onclick="submitDeposit()">I Have Made a Deposit</button>
+            
+            <!-- Deposit Status List -->
+            <div class="wallet-status-section">
+               <h4 style="margin-bottom:10px;font-size:0.9rem;color:#fff;">Deposit History</h4>
+               <div id="userDepositsList">
+                  <div class="empty-state-text" style="font-size:0.8rem;text-align:center;color:var(--text-muted);">No deposits yet</div>
+               </div>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <!-- Withdraw Modal Wrapper -->
+        <div id="withdrawModalWrap" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+          <div style="position:relative; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; border-radius:20px; box-shadow: 0 0 40px rgba(0, 180, 216, 0.2);">
+            <button onclick="document.getElementById('withdrawModalWrap').style.display='none'" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.5rem; width:36px; height:36px; border-radius:50%; cursor:pointer; z-index:10; display:flex; align-items:center; justify-content:center;">&times;</button>
+          <!-- Withdraw Funds Card -->
+          <div class="wallet-card withdraw-card" id="withdrawFundsCard" style="margin: 0; box-shadow: none; border: 1px solid rgba(0, 180, 216, 0.4);">
+            <div class="wallet-card-header">
+              <div>
+                <h3 class="wallet-card-title">Withdraw Funds</h3>
+                <p class="wallet-card-subtitle">Transfer your funds to your wallet</p>
+              </div>
+              <div class="wallet-network-icon green">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#00f5d4" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+
+            <div class="wallet-form-group">
+              <label>Withdrawal Amount</label>
+              <div class="input-with-currency blue-border">
+                <input type="number" id="withdrawAmount" placeholder="Enter amount" oninput="calcWithdrawReceive()">
+                <span class="currency-badge">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  USDTBEP20
+                </span>
+              </div>
+            </div>
+            <div class="wallet-balance-note">
+               <span style="color:var(--text-muted)">Available Balance</span>
+               <span id="withdrawAvailableBal" style="color:#00f5d4;font-weight:700;">0.00 USDTBEP20</span>
+            </div>
+
+            <div class="wallet-form-group" style="margin-top:20px;">
+              <label>Select Network</label>
+              <div class="network-select-box blue-border">USDTBEP20 <span>▼</span></div>
+            </div>
+
+            <div class="wallet-form-group">
+              <label>Wallet Address</label>
+              <input type="text" class="wallet-address-input" id="withdrawAddress" placeholder="Enter BEP-20 wallet address">
+            </div>
+
+            <div class="wallet-calc-row">
+              <span>Withdrawal Fee</span>
+              <span class="calc-val" id="withdrawFeeVal">1.00 USDTBEP20</span>
+            </div>
+            
+            <div class="wallet-calc-row" style="margin-top:10px;">
+              <span>You Will Receive</span>
+              <span class="calc-val green" id="withdrawReceiveVal">0.00 USDTBEP20</span>
+            </div>
+
+            <button type="button" class="wallet-submit-btn btn-withdraw-submit" style="margin-top:20px;" id="btnSubmitWithdraw" onclick="submitWithdraw()">Confirm Withdrawal</button>
+          
+            <!-- Withdrawal Status List -->
+            <div class="wallet-status-section">
+               <h4 style="margin-bottom:10px;font-size:0.9rem;color:#fff;">Withdrawal History</h4>
+               <div id="userWithdrawalsList">
+                  <div class="empty-state-text" style="font-size:0.8rem;text-align:center;color:var(--text-muted);">No withdrawal requests yet</div>
+               </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INCOME SUMMARY SECTION -->
+      <section class="income-summary-card">
+        <div class="summary-card-header">
+          <h3 class="summary-card-title">INCOME SUMMARY</h3>
+          <select class="summary-time-select">
+            <option>This Month</option>
+            <option>All Time</option>
+          </select>
+        </div>
+
+        <div class="income-summary-grid">
+
+          <!-- Donut Chart -->
+          <div class="donut-chart-wrapper">
+            <svg class="donut-svg" viewBox="0 0 100 100">
+              <!-- Slices dynamically updated via JS according to category amounts -->
+              <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+              <!-- Direct Income (Purple) -->
+              <circle id="sliceDirect" cx="50" cy="50" r="38" fill="none" stroke="#9d4edd" stroke-width="12" stroke-dasharray="0 238.76" stroke-dashoffset="0"/>
+              <!-- Team Income (Blue) -->
+              <circle id="sliceTeam" cx="50" cy="50" r="38" fill="none" stroke="#3a86ff" stroke-width="12" stroke-dasharray="0 238.76" stroke-dashoffset="0"/>
+              <!-- Non-Working Income (Green) -->
+              <circle id="sliceNonWorking" cx="50" cy="50" r="38" fill="none" stroke="#00f5d4" stroke-width="12" stroke-dasharray="0 238.76" stroke-dashoffset="0"/>
+              <!-- Reward Income (Gold) -->
+              <circle id="sliceReward" cx="50" cy="50" r="38" fill="none" stroke="#ffd166" stroke-width="12" stroke-dasharray="0 238.76" stroke-dashoffset="0"/>
+            </svg>
+            <div class="donut-center-info">
+              <span class="donut-center-label">TOTAL INCOME</span>
+              <span class="donut-center-val" id="donutTotalVal">0.00</span>
+              <span class="donut-center-sub">USDT</span>
+            </div>
+          </div>
+
+          <!-- Income Category Breakdown List -->
+          <div class="income-breakdown-list">
+
+            <!-- 1. Direct Income (PURPLE) -->
+            <div class="income-cat-item cat-item direct">
+              <div class="cat-left-info">
+                <div class="cat-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="7" r="4" fill="#c77dff"/>
+                    <path d="M4,20 C4,16 7.5,13 12,13 C16.5,13 20,16 20,20" stroke="#e0aaff" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  </svg>
+                </div>
+                <div class="cat-name-desc">
+                  <h4>Direct Income</h4>
+                  <p>Income generated from direct referrals</p>
+                </div>
+              </div>
+              <div class="cat-right-values">
+                <div class="cat-amount-val" id="valCatDirect">0.00 USDT</div>
+                <div class="cat-pct-bar-wrap">
+                  <div class="cat-progress-track"><div class="cat-progress-fill" id="barCatDirect" style="width: 0%;"></div></div>
+                  <span class="cat-pct-text" id="pctCatDirect">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Team Income (BLUE) -->
+            <div class="income-cat-item cat-item team">
+              <div class="cat-left-info">
+                <div class="cat-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="7" r="3" fill="#3a86ff"/>
+                    <path d="M6,20 C6,16.7 8.7,14 12,14 C15.3,14 18,16.7 18,20" stroke="#74b3ff" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                    <circle cx="5" cy="9" r="2.2" fill="#3a86ff" opacity="0.6"/>
+                    <circle cx="19" cy="9" r="2.2" fill="#3a86ff" opacity="0.6"/>
+                  </svg>
+                </div>
+                <div class="cat-name-desc">
+                  <h4>Team Income</h4>
+                  <p>Income generated from team performance</p>
+                </div>
+              </div>
+              <div class="cat-right-values">
+                <div class="cat-amount-val" id="valCatTeam">0.00 USDT</div>
+                <div class="cat-pct-bar-wrap">
+                  <div class="cat-progress-track"><div class="cat-progress-fill" id="barCatTeam" style="width: 0%;"></div></div>
+                  <span class="cat-pct-text" id="pctCatTeam">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Non-Working Income (GREEN) -->
+            <div class="income-cat-item cat-item non-working">
+              <div class="cat-left-info">
+                <div class="cat-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20,11 A8,8 0 0,0 6,6 L3,9" stroke="#00f5d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <polyline points="3,4 3,9 8,9" stroke="#00f5d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <path d="M4,13 A8,8 0 0,0 18,18 L21,15" stroke="#00f5d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <polyline points="21,20 21,15 16,15" stroke="#00f5d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  </svg>
+                </div>
+                <div class="cat-name-desc">
+                  <h4>Non-Working Income</h4>
+                  <p>Income generated according to platform system</p>
+                </div>
+              </div>
+              <div class="cat-right-values">
+                <div class="cat-amount-val" id="valCatNonWorking">0.00 USDT</div>
+                <div class="cat-pct-bar-wrap">
+                  <div class="cat-progress-track"><div class="cat-progress-fill" id="barCatNonWorking" style="width: 0%;"></div></div>
+                  <span class="cat-pct-text" id="pctCatNonWorking">0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Reward Income (GOLD / YELLOW) -->
+            <div class="income-cat-item cat-item reward">
+              <div class="cat-left-info">
+                <div class="cat-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="8" width="18" height="13" rx="2" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="1.8"/>
+                    <path d="M12,8 L12,21" stroke="#ffd166" stroke-width="1.8"/>
+                    <path d="M3,12 L21,12" stroke="#ffd166" stroke-width="1.8"/>
+                    <path d="M12,8 C12,8 9,3 6,5 C4,6.5 6.5,8.5 12,8 Z" fill="#ffd166"/>
+                    <path d="M12,8 C12,8 15,3 18,5 C20,6.5 17.5,8.5 12,8 Z" fill="#ffd166"/>
+                  </svg>
+                </div>
+                <div class="cat-name-desc">
+                  <h4>Reward Income</h4>
+                  <p>Rewards and bonus income</p>
+                </div>
+              </div>
+              <div class="cat-right-values">
+                <div class="cat-amount-val" id="valCatReward">0.00 USDT</div>
+                <div class="cat-pct-bar-wrap">
+                  <div class="cat-progress-track"><div class="cat-progress-fill" id="barCatReward" style="width: 0%;"></div></div>
+                  <span class="cat-pct-text" id="pctCatReward">0%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+
+      <!-- REFERRAL LINK SECTION -->
+      <section class="referral-section-card">
+        <div class="ref-left-block">
+          <div class="ref-link-icon-wrap">🔗</div>
+          <div class="ref-text-title">
+            <h3>YOUR REFERRAL LINK</h3>
+            <p>Share your unique referral link to build your team and earn direct rewards.</p>
+          </div>
+        </div>
+        <div class="ref-input-copy-group">
+          <!-- DYNAMIC ORIGIN URL! -->
+          <input type="text" id="dashRefLinkInput" class="ref-url-input" readonly value="Loading referral link...">
+          <button type="button" class="btn-ref-copy" id="btnDashCopyRef">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="btnCopyText">Copy Link</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- RECENT ACTIVITY SECTION -->
+      <section class="recent-activity-card">
+        <div class="summary-card-header">
+          <h3 class="summary-card-title">RECENT ACTIVITY</h3>
+          <a href="#activities" onclick="alert('Viewing full transaction activity history.'); return false;" style="color: var(--primary-light); text-decoration: none; font-size: 0.88rem; font-weight: 700;">View All ➔</a>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="activity-table-wrapper">
+          <table class="activity-table">
+            <thead>
+              <tr>
+                <th>ACTIVITY</th>
+                <th>DETAILS</th>
+                <th>TIME</th>
+                <th>AMOUNT</th>
+              </tr>
+            </thead>
+            <tbody id="activityTableBody">
+              <!-- Dynamically populated or clean zero/empty state -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card List View (No horizontal scrolling!) -->
+        <div class="mobile-activity-list" id="mobileActivityList">
+          <!-- Dynamically populated for mobile -->
+        </div>
+
+      </section>
+
+      <!-- LOWER BRANDED WEB3 BANNER -->
+      <section class="grow-earn-banner">
+        <div class="banner-content-inner">
+          <h2 class="banner-motto-title">GROW TOGETHER <span>EARN TOGETHER</span></h2>
+          <p class="banner-subtext">Join thousands of members accelerating their digital growth asset portfolio on BITCHAIN PRO X.</p>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer style="margin-top: 20px; text-align: center; font-size: 0.84rem; color: var(--text-muted); padding: 20px 0; border-top: 1px solid rgba(199,125,255,0.1);">
+        <div>© 2026 BITCHAIN PRO X. All rights reserved. | <a href="privacy.html" style="color: var(--primary-light); text-decoration: none;">Privacy Policy</a> | <a href="privacy.html" style="color: var(--primary-light); text-decoration: none;">Terms &amp; Conditions</a>
+          <a href="admin.html" id="adminFooterLink" style="display:none; color: rgba(157,78,221,0.6); text-decoration: none; margin-left: 12px; font-size: 0.78rem; font-weight: 600; border: 1px solid rgba(157,78,221,0.3); padding: 2px 10px; border-radius: 20px; transition: all 0.2s ease;" onmouseover="this.style.color='#c77dff'" onmouseout="this.style.color='rgba(157,78,221,0.6)'">⚙ Admin</a>
+        </div>
+      </footer>
+
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/avatar.js"></script>
+  <!-- Cropper.js for avatar photo cropping -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+  <!-- Package / Rank Upgrade Engine -->
+  <script src="js/packages.js"></script>
+  <!-- Admin link visibility check -->
+  <script>
+    (async function checkAdminRole() {
+      try {
+        await new Promise(r => setTimeout(r, 1200));
+        const client = window.BitchainAuth && window.BitchainAuth.getSupabase();
+        if (!client) return;
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (profile && profile.role === 'admin') {
+          const adminLink = document.getElementById('adminFooterLink');
+          if (adminLink) adminLink.style.display = 'inline';
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <script>
+    // =========================================================================
+    // DYNAMIC AUTHENTICATED USER DASHBOARD ENGINE
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      const client = window.BitchainAuth.getSupabase();
+      if (!client) return;
+
+      // 1. Session Guard Protection
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const userId = session.user.id;
+      const userEmail = session.user.email;
+
+      // Helper: Format USDT numbers professionally (e.g. 1,245.80 USDT or 0.00 USDT)
+      function formatUsdt(num) {
+        const val = parseFloat(num) || 0;
+        return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USDT';
+      }
+
+      // Helper: Format Date
+      function formatDate(dateStr) {
+        if (!dateStr) return '01 Aug 2026';
+        try {
+          const d = new Date(dateStr);
+          return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch(e) {
+          return '01 Aug 2026';
+        }
+      }
+
+      try {
+        // 2. Fetch User Profile from Supabase
+        let profile = await window.BitchainAuth.getUserProfile(userId);
+
+        // Fallback to local profile / metadata if DB row not present yet
+        if (!profile) {
+          const meta = session.user.user_metadata || {};
+          const localCacheStr = localStorage.getItem('bitchain_user_profile');
+          const cache = localCacheStr ? JSON.parse(localCacheStr) : {};
+          profile = {
+            id: userId,
+            full_name: cache.full_name || meta.full_name || userEmail.split('@')[0],
+            username: cache.username || meta.username || userEmail.split('@')[0],
+            email: userEmail,
+            sponsor_username: cache.sponsor_username || meta.sponsor_username || 'BCP100001',
+            referral_code: cache.referral_code || meta.referral_code || ('BCP' + Math.floor(100000 + Math.random() * 900000)),
+            rank: 'STARTER',
+            package_name: 'No Package',
+            available_balance: 0,
+            total_income: 0,
+            today_income: 0,
+            total_team: 0,
+            direct_income: 0,
+            team_income: 0,
+            non_working_income: 0,
+            reward_income: 0,
+            created_at: session.user.created_at
+          };
+        }
+
+        // 3. Populate Profile Header
+        const fullName = profile.full_name || userEmail.split('@')[0];
+        const username = profile.username || userEmail.split('@')[0];
+        const userRefCode = profile.referral_code || ('BCP' + username.toUpperCase());
+        const rawSponsor = profile.sponsor_username ? profile.sponsor_username.trim() : '';
+        const hasSponsor = Boolean(rawSponsor && rawSponsor !== 'null' && rawSponsor !== 'undefined');
+        const sponsorDisplay = hasSponsor ? rawSponsor : 'DIRECT SIGNUP';
+        const rankName = profile.rank || 'STARTER';
+        const pkgName = profile.package_name || 'No Package';
+
+        document.getElementById('profAvatarInitial').textContent = fullName.charAt(0).toUpperCase();
+        document.getElementById('profUserFullName').textContent = fullName;
+        document.getElementById('dashHdrUserName').textContent = fullName;
+        const mobHdrName = document.getElementById('mobDashHdrUserName');
+        if (mobHdrName) mobHdrName.textContent = fullName;
+        document.getElementById('profUserRankBadge').textContent = '✦ ' + rankName;
+        document.getElementById('profUserIdVal').textContent = userRefCode;
+
+        const uplineEl = document.getElementById('profUplineIdVal');
+        const sponsorEl = document.getElementById('profSponsorIdVal');
+
+        if (uplineEl) {
+          uplineEl.textContent = sponsorDisplay;
+          if (!hasSponsor) {
+            uplineEl.style.color = '#c77dff';
+            uplineEl.style.fontSize = '0.78rem';
+            uplineEl.style.fontWeight = '700';
+          }
+        }
+        if (sponsorEl) {
+          sponsorEl.textContent = sponsorDisplay;
+          if (!hasSponsor) {
+            sponsorEl.style.color = '#c77dff';
+            sponsorEl.style.fontSize = '0.78rem';
+            sponsorEl.style.fontWeight = '700';
+          }
+        }
+
+        document.getElementById('profJoiningDateVal').textContent = formatDate(profile.created_at);
+
+        // Package UI is fully managed by packages.js
+
+        // 4. Populate Financial Overview Cards
+        const availBal = parseFloat(profile.available_balance) || 0;
+        const totalInc = parseFloat(profile.total_income) || 0;
+        const todayInc = parseFloat(profile.today_income) || 0;
+        const totalTeam = parseInt(profile.total_team) || 0;
+
+        document.getElementById('valAvailableBal').textContent = formatUsdt(availBal);
+        document.getElementById('valTotalInc').textContent = formatUsdt(totalInc);
+        document.getElementById('valTodayInc').textContent = formatUsdt(todayInc);
+        document.getElementById('valTotalTeam').textContent = totalTeam.toLocaleString('en-US');
+
+        // 5. Populate Income Summary & Donut Chart
+        const directInc = parseFloat(profile.direct_income) || 0;
+        const teamInc = parseFloat(profile.team_income) || 0;
+        const nonWorkInc = parseFloat(profile.non_working_income) || 0;
+        const rewardInc = parseFloat(profile.reward_income) || 0;
+
+        const calculatedTotal = directInc + teamInc + nonWorkInc + rewardInc;
+        const displayTotalInc = calculatedTotal > 0 ? calculatedTotal : totalInc;
+
+        document.getElementById('donutTotalVal').textContent = displayTotalInc.toFixed(2);
+        document.getElementById('valCatDirect').textContent = formatUsdt(directInc);
+        document.getElementById('valCatTeam').textContent = formatUsdt(teamInc);
+        document.getElementById('valCatNonWorking').textContent = formatUsdt(nonWorkInc);
+        document.getElementById('valCatReward').textContent = formatUsdt(rewardInc);
+
+        // Percentages calculation
+        const baseTotal = displayTotalInc > 0 ? displayTotalInc : 1;
+        const pctDirect = (directInc / baseTotal * 100);
+        const pctTeam = (teamInc / baseTotal * 100);
+        const pctNonWork = (nonWorkInc / baseTotal * 100);
+        const pctReward = (rewardInc / baseTotal * 100);
+
+        document.getElementById('pctCatDirect').textContent = (displayTotalInc > 0 ? pctDirect.toFixed(1) : '0') + '%';
+        document.getElementById('pctCatTeam').textContent = (displayTotalInc > 0 ? pctTeam.toFixed(1) : '0') + '%';
+        document.getElementById('pctCatNonWorking').textContent = (displayTotalInc > 0 ? pctNonWork.toFixed(1) : '0') + '%';
+        document.getElementById('pctCatReward').textContent = (displayTotalInc > 0 ? pctReward.toFixed(1) : '0') + '%';
+
+        document.getElementById('barCatDirect').style.width = (displayTotalInc > 0 ? pctDirect : 0) + '%';
+        document.getElementById('barCatTeam').style.width = (displayTotalInc > 0 ? pctTeam : 0) + '%';
+        document.getElementById('barCatNonWorking').style.width = (displayTotalInc > 0 ? pctNonWork : 0) + '%';
+        document.getElementById('barCatReward').style.width = (displayTotalInc > 0 ? pctReward : 0) + '%';
+
+        // Render Donut Slices
+        const circlePerimeter = 238.76;
+        if (displayTotalInc > 0) {
+          const directLen = (pctDirect / 100) * circlePerimeter;
+          const teamLen = (pctTeam / 100) * circlePerimeter;
+          const nonWorkLen = (pctNonWork / 100) * circlePerimeter;
+          const rewardLen = (pctReward / 100) * circlePerimeter;
+
+          let offset = 0;
+          document.getElementById('sliceDirect').setAttribute('stroke-dasharray', `${directLen} ${circlePerimeter - directLen}`);
+          document.getElementById('sliceDirect').setAttribute('stroke-dashoffset', -offset);
+          offset += directLen;
+
+          document.getElementById('sliceTeam').setAttribute('stroke-dasharray', `${teamLen} ${circlePerimeter - teamLen}`);
+          document.getElementById('sliceTeam').setAttribute('stroke-dashoffset', -offset);
+          offset += teamLen;
+
+          document.getElementById('sliceNonWorking').setAttribute('stroke-dasharray', `${nonWorkLen} ${circlePerimeter - nonWorkLen}`);
+          document.getElementById('sliceNonWorking').setAttribute('stroke-dashoffset', -offset);
+          offset += nonWorkLen;
+
+          document.getElementById('sliceReward').setAttribute('stroke-dasharray', `${rewardLen} ${circlePerimeter - rewardLen}`);
+          document.getElementById('sliceReward').setAttribute('stroke-dashoffset', -offset);
+        }
+
+        // 6. DYNAMIC REFERRAL LINK REQUIREMENT (Using window.location.origin!)
+        const currentOrigin = window.location.origin;
+        const dynamicRefUrl = `${currentOrigin}/register.html?ref=${userRefCode}`;
+        const refInput = document.getElementById('dashRefLinkInput');
+        if (refInput) refInput.value = dynamicRefUrl;
+
+        // Copy Referral Link Handler
+        const copyBtn = document.getElementById('btnDashCopyRef');
+        const copyText = document.getElementById('btnCopyText');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            refInput.select();
+            navigator.clipboard.writeText(dynamicRefUrl);
+            copyText.textContent = 'Copied!';
+            copyBtn.style.background = 'linear-gradient(135deg, #00f5d4 0%, #2ec4b6 100%)';
+            setTimeout(() => {
+              copyText.textContent = 'Copy Link';
+              copyBtn.style.background = '';
+            }, 2000);
+          });
+        }
+
+        // 7. Recent Activity Table & Mobile List
+        const activities = await window.BitchainAuth.getUserActivities(userId, 5);
+        renderActivities(activities);
+
+      } catch (err) {
+        console.error('Dashboard Data Fetch Error:', err);
+        showDashError('Unable to load dashboard data. Please try again.');
+      }
+
+      function renderActivities(list) {
+        const tbody = document.getElementById('activityTableBody');
+        const mobList = document.getElementById('mobileActivityList');
+
+        if (!list || list.length === 0) {
+          const emptyHtml = `
+            <tr>
+              <td colspan="4">
+                <div class="empty-state-box">
+                  <div class="empty-state-icon">📥</div>
+                  <div class="empty-state-text">NO RECENT ACTIVITY</div>
+                </div>
+              </td>
+            </tr>
+          `;
+          if (tbody) tbody.innerHTML = emptyHtml;
+          if (mobList) mobList.innerHTML = `
+            <div class="empty-state-box">
+              <div class="empty-state-icon">📥</div>
+              <div class="empty-state-text">NO RECENT ACTIVITY</div>
+            </div>
+          `;
+          return;
+        }
+
+        let rowsHtml = '';
+        let mobHtml = '';
+
+        list.forEach(act => {
+          const cat = (act.category || 'direct').toLowerCase();
+          const amt = formatUsdt(act.amount);
+          const icon = cat === 'direct' ? '👤' : (cat === 'team' ? '👥' : (cat === 'non_working' ? '🔄' : '🎁'));
+
+          rowsHtml += `
+            <tr>
+              <td>
+                <div class="activity-name-cell">
+                  <div class="act-icon-dot ${cat}">${icon}</div>
+                  <span>${act.title}</span>
+                </div>
+              </td>
+              <td style="color: var(--text-muted);">${act.details || '-'}</td>
+              <td style="color: var(--text-muted);">${formatDate(act.created_at)}</td>
+              <td><span class="act-amount-badge ${cat}">+${amt}</span></td>
+            </tr>
+          `;
+
+          mobHtml += `
+            <div class="mobile-activity-card">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="act-icon-dot ${cat}">${icon}</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.88rem;">${act.title}</div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted);">${act.details || '-'}</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div class="act-amount-badge ${cat}">+${amt}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">${formatDate(act.created_at)}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        if (tbody) tbody.innerHTML = rowsHtml;
+        if (mobList) mobList.innerHTML = mobHtml;
+      }
+
+      function showDashError(msg) {
+        const wrap = document.getElementById('dashErrorAlertWrap');
+        if (!wrap) return;
+        wrap.style.display = 'block';
+        wrap.innerHTML = `
+          <div class="auth-toast-alert error" style="margin-bottom: 20px;">
+            <span>🛑</span>
+            <div style="flex: 1;">${msg}</div>
+            <button onclick="window.location.reload();" style="background: rgba(255,255,255,0.2); border: none; padding: 4px 12px; color: white; border-radius: 6px; cursor: pointer;">Retry</button>
+          </div>
+        `;
+      }
+    });
+
+    // Particle Background
+    (function() {
+      const canvas = document.getElementById('authCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let w = canvas.width = window.innerWidth;
+      let h = canvas.height = window.innerHeight;
+      window.addEventListener('resize', () => {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      });
+      const particles = Array.from({ length: 45 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        color: ['#c77dff', '#9d4edd', '#e0aaff', '#3a86ff'][Math.floor(Math.random() * 4)]
+      }));
+      function loop() {
+        ctx.clearRect(0, 0, w, h);
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > w) p.vx *= -1;
+          if (p.y < 0 || p.y > h) p.vy *= -1;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        requestAnimationFrame(loop);
+      }
+      loop();
+    })();
+  </script>
+  <!-- ==========================================================================
+       PACKAGE CONFIRMATION MODAL
+       ========================================================================== -->
+  <div id="pkgConfirmBackdrop" class="pkg-confirm-backdrop">
+    <div class="pkg-confirm-card">
+      <button class="pkg-confirm-close" onclick="pkgCloseConfirm()" type="button">✕</button>
+      <div class="pkg-confirm-title-row">
+        <div class="pkg-confirm-icon-wrap" id="pkgConfirmIcon">⚡</div>
+        <div>
+          <h3 class="pkg-confirm-heading" id="pkgConfirmHeading">Confirm Upgrade</h3>
+          <p class="pkg-confirm-subhead">Review your package upgrade details below</p>
+        </div>
+      </div>
+      <div class="pkg-confirm-details">
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">PACKAGE</span>
+          <span class="pkg-confirm-row-val" id="pkgConfirmPackageName">—</span>
+        </div>
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">PRICE</span>
+          <span class="pkg-confirm-row-val price-val" id="pkgConfirmPrice">—</span>
+        </div>
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">CURRENT PACKAGE</span>
+          <span class="pkg-confirm-row-val" id="pkgConfirmCurrentPkg">—</span>
+        </div>
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">UPGRADING TO</span>
+          <span class="pkg-confirm-row-val" style="color:#06d6a0;" id="pkgConfirmNewPkg">—</span>
+        </div>
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">CURRENCY</span>
+          <span class="pkg-confirm-row-val" style="color:#00f5d4;">USDT (TRC20 / BEP20)</span>
+        </div>
+      </div>
+      <p class="pkg-confirm-note">This upgrade is final. Your package and rank will be updated immediately after confirmation.</p>
+      <div class="pkg-confirm-actions">
+        <button class="pkg-btn-cancel" onclick="pkgCloseConfirm()" type="button">Cancel</button>
+        <button class="pkg-btn-confirm" id="pkgConfirmBtn" onclick="pkgConfirmPurchase()" type="button">Confirm Upgrade ⚡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       CONGRATULATIONS POPUP
+       ========================================================================== -->
+  <div id="pkgCongratsBackdrop" class="pkg-congrats-backdrop">
+    <div class="pkg-congrats-card">
+      <canvas id="congratsParticles"></canvas>
+      <div class="pkg-congrats-content">
+        <span class="pkg-congrats-sparkle" id="pkgCongratsIcon">🌱</span>
+        <h2 class="pkg-congrats-heading" id="pkgCongratsTitle">🎉 CONGRATULATIONS! 🎉</h2>
+        <p class="pkg-congrats-welcome" id="pkgCongratsWelcome">WELCOME TO STARTER</p>
+        <p class="pkg-congrats-desc">Your package upgrade was successful. You have unlocked the next level of your journey.</p>
+        <div class="pkg-congrats-details">
+          <div class="pkg-congrats-detail-box">
+            <div class="pkg-congrats-detail-label">PACKAGE</div>
+            <div class="pkg-congrats-detail-val" id="pkgCongratsPackage">STARTER</div>
+          </div>
+          <div class="pkg-congrats-detail-box">
+            <div class="pkg-congrats-detail-label">VALUE</div>
+            <div class="pkg-congrats-detail-val" id="pkgCongratsValue">$5 USDT</div>
+          </div>
+        </div>
+        <button class="pkg-congrats-btn" onclick="pkgCloseCongrats()" type="button">✓ Continue to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ====================================================
+       PROFILE PICTURE CROP MODAL
+  ===================================================== -->
+  <div id="avatarCropModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; flex-direction:column;">
+    <div style="background:linear-gradient(135deg,#1a0533 0%,#0d001a 100%); border:1px solid rgba(199,125,255,0.3); border-radius:20px; padding:28px 24px 22px; max-width:420px; width:94vw; box-shadow:0 0 60px rgba(199,125,255,0.25);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:#e0aaff; letter-spacing:0.5px;">📷 Crop Your Photo</h3>
+        <button onclick="closeAvatarCropModal()" style="background:none; border:none; color:#aaa; font-size:1.4rem; cursor:pointer; line-height:1;" title="Close">&times;</button>
+      </div>
+      <!-- Cropper area -->
+      <div style="width:100%; max-height:320px; overflow:hidden; border-radius:12px; border:1px solid rgba(199,125,255,0.2);">
+        <img id="cropperImage" src="" alt="Crop" style="max-width:100%; display:block;">
+      </div>
+      <!-- Cropper controls -->
+      <div style="display:flex; gap:10px; margin-top:14px; justify-content:center; flex-wrap:wrap;">
+        <button onclick="cropperInstance && cropperInstance.rotate(-90)" style="background:rgba(199,125,255,0.15); border:1px solid rgba(199,125,255,0.3); color:#e0aaff; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.8rem;">↺ Rotate Left</button>
+        <button onclick="cropperInstance && cropperInstance.rotate(90)" style="background:rgba(199,125,255,0.15); border:1px solid rgba(199,125,255,0.3); color:#e0aaff; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.8rem;">↻ Rotate Right</button>
+        <button onclick="cropperInstance && cropperInstance.zoom(0.1)" style="background:rgba(199,125,255,0.15); border:1px solid rgba(199,125,255,0.3); color:#e0aaff; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.8rem;">🔍+</button>
+        <button onclick="cropperInstance && cropperInstance.zoom(-0.1)" style="background:rgba(199,125,255,0.15); border:1px solid rgba(199,125,255,0.3); color:#e0aaff; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.8rem;">🔍−</button>
+      </div>
+      <div style="display:flex; gap:12px; margin-top:16px;">
+        <button onclick="closeAvatarCropModal()" style="flex:1; padding:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#aaa; border-radius:10px; cursor:pointer; font-size:0.9rem; font-weight:600;">Cancel</button>
+        <button id="confirmCropBtn" onclick="confirmCropAndUpload()" style="flex:2; padding:12px; background:linear-gradient(135deg,#9d4edd,#c77dff); border:none; color:#fff; border-radius:10px; cursor:pointer; font-size:0.9rem; font-weight:800; letter-spacing:0.5px; box-shadow:0 4px 20px rgba(199,125,255,0.4);">✓ Apply & Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    //  PROFILE PICTURE UPLOAD + CROP SYSTEM
+    // ============================================================
+    let cropperInstance = null;
+
+    // Listen for file selection
+    document.getElementById('avatarFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validate it's an image
+      if (!file.type.startsWith('image/')) {
+        showAvatarToast('Please select a valid image file.', 'error');
+        return;
+      }
+      // Max 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        showAvatarToast('Image must be smaller than 5MB.', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        openAvatarCropModal(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      // Reset input so same file can be re-selected
+      this.value = '';
+    });
+
+    function openAvatarCropModal(imageSrc) {
+      const modal = document.getElementById('avatarCropModal');
+      const cropImg = document.getElementById('cropperImage');
+
+      modal.style.display = 'flex';
+      cropImg.src = imageSrc;
+
+      // Destroy previous instance if any
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+      }
+
+      // Initialize Cropper.js
+      setTimeout(() => {
+        cropperInstance = new Cropper(cropImg, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 0.85,
+          restore: false,
+          guides: true,
+          center: true,
+          highlight: true,
+          cropBoxMovable: true,
+          cropBoxResizable: true,
+          toggleDragModeOnDblclick: false,
+          background: false
+        });
+      }, 150);
+    }
+
+    function closeAvatarCropModal() {
+      const modal = document.getElementById('avatarCropModal');
+      modal.style.display = 'none';
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+      }
+    }
+
+    async function confirmCropAndUpload() {
+      if (!cropperInstance) return;
+
+      const btn = document.getElementById('confirmCropBtn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+
+      try {
+        // Get cropped canvas (300x300 for profile pics)
+        const canvas = cropperInstance.getCroppedCanvas({
+          width: 300,
+          height: 300,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        });
+
+        // Convert canvas to blob
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+
+        // Get current user
+        const client = window.BitchainAuth && window.BitchainAuth.getSupabase ? window.BitchainAuth.getSupabase() : null;
+        if (!client) throw new Error('Not connected to server.');
+
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) throw new Error('You must be logged in.');
+
+        const filePath = `${user.id}/profile.jpg`;
+
+        // Upload to Supabase Storage bucket "avatars"
+        const { error: uploadErr } = await client.storage
+          .from('avatars')
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadErr) throw uploadErr;
+
+        // Get public URL
+        const { data: urlData } = client.storage.from('avatars').getPublicUrl(filePath);
+        const publicUrl = urlData.publicUrl + '?t=' + Date.now(); // cache buster
+
+        // Save avatar_url to profiles table
+        await client.from('profiles').update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        }).eq('id', user.id);
+
+        // Update the UI immediately
+        applyAvatarToUI(publicUrl);
+        closeAvatarCropModal();
+        showAvatarToast('✅ Profile picture updated!', 'success');
+
+      } catch (err) {
+        console.error('Avatar upload error:', err);
+        showAvatarToast('Upload failed: ' + (err.message || 'Try again.'), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✓ Apply & Upload';
+      }
+    }
+
+    function applyAvatarToUI(url) {
+      // Apply to the large profile card avatar
+      const circle = document.getElementById('profAvatarInitial');
+      if (circle) {
+        circle.style.backgroundImage = `url('${url}')`;
+        circle.style.backgroundSize = 'cover';
+        circle.style.backgroundPosition = 'center';
+        circle.style.color = 'transparent';
+        circle.textContent = '';
+      }
+      // Also apply to navbar circle + every other global-avatar-target on this page
+      if (window.GlobalAvatar) window.GlobalAvatar.apply(url);
+    }
+
+    // Load saved avatar on page start
+    async function loadSavedAvatar() {
+      try {
+        const client = window.BitchainAuth && window.BitchainAuth.getSupabase ? window.BitchainAuth.getSupabase() : null;
+        if (!client) return;
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await client.from('profiles').select('avatar_url').eq('id', user.id).single();
+        if (profile && profile.avatar_url) {
+          applyAvatarToUI(profile.avatar_url);
+        }
+      } catch (e) {
+        // silent fail
+      }
+    }
+
+    // Simple toast notification
+    function showAvatarToast(msg, type = 'success') {
+      let toast = document.getElementById('avatarToastMsg');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'avatarToastMsg';
+        toast.style.cssText = `
+          position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+          padding:12px 24px; border-radius:50px; font-size:0.88rem; font-weight:700;
+          z-index:999999; pointer-events:none; transition:all 0.3s ease;
+          box-shadow:0 4px 30px rgba(0,0,0,0.5);
+        `;
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.background = type === 'success' ? 'linear-gradient(135deg,#06d6a0,#07c984)' : 'linear-gradient(135deg,#e63946,#c1121f)';
+      toast.style.color = '#fff';
+      toast.style.opacity = '1';
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+    }
+
+    // Run loadSavedAvatar after auth is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadSavedAvatar, 1500);
+    });
+  </script>
+
+  <script src="js/wallet.js"></script>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — BITCHAIN PRO X</title>
+  <meta name="description" content="BitChain Pro X Admin Control Panel">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="images/logo-circle.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══ LOADING OVERLAY ═══════════════════════════════════════════════════ -->
+<div id="adminLoadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="font-size:0.85rem;color:var(--text-muted)">Verifying admin access…</div>
+</div>
+
+<!-- ═══ ACCESS DENIED ═════════════════════════════════════════════════════ -->
+<div id="adminAccessDenied">
+  <div class="denied-icon">🔒</div>
+  <h2>Access Denied</h2>
+  <p id="deniedMessage">You do not have permission to view this page.</p>
+  <a href="dashboard.html" class="btn btn-primary">← Return to Dashboard</a>
+</div>
+
+<!-- ═══ CONFIRM DIALOG ════════════════════════════════════════════════════ -->
+<div id="confirmBackdrop" class="confirm-backdrop">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚡</div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-message" id="confirmMessage">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+      <button class="btn btn-primary" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MOBILE OVERLAY ════════════════════════════════════════════════════ -->
+<div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
+
+<!-- ═══ MAIN LAYOUT ═══════════════════════════════════════════════════════ -->
+<div class="admin-layout" id="adminLayout" style="display:none">
+
+  <!-- ─── SIDEBAR ──────────────────────────────────────────────────────── -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚡</div>
+      <div class="sidebar-logo-text">BITCHAIN<span>PROX</span> Admin</div>
+    </div>
+    <!-- Collapse button (desktop) -->
+    <div class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">‹</div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <div class="nav-item active" data-nav="dashboard" onclick="navigateTo('dashboard')">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-label">Dashboard</div>
+      </div>
+
+      <div class="nav-item" data-nav="users" onclick="navigateTo('users')">
+        <div class="nav-icon">👥</div>
+        <div class="nav-label">Users</div>
+      </div>
+
+      <div class="nav-section-label">Payments</div>
+
+      <div class="nav-item" onclick="toggleSubmenu('paymentsSubmenu')">
+        <div class="nav-icon">💳</div>
+        <div class="nav-label">Payments</div>
+        <div class="nav-arrow">›</div>
+      </div>
+      <div class="nav-submenu" id="paymentsSubmenu">
+        <div class="nav-sub-item" data-subnav="deposits" onclick="navigateTo('deposits')">
+          <span>💰</span> Deposits
+          <span class="nav-badge" id="badgeDeposits" style="display:none;margin-left:auto">0</span>
+        </div>
+        <div class="nav-sub-item" data-subnav="withdrawals" onclick="navigateTo('withdrawals')">
+          <span>💸</span> Withdrawals
+          <span class="nav-badge" id="badgeWithdrawals" style="display:none;margin-left:auto">0</span>
+        </div>
+      </div>
+
+      <div class="nav-section-label">Management</div>
+
+      <div class="nav-item" data-nav="packages" onclick="navigateTo('packages')">
+        <div class="nav-icon">📦</div>
+        <div class="nav-label">Packages & Ranks</div>
+      </div>
+
+      <div class="nav-item" data-nav="chat" onclick="navigateTo('chat')">
+        <div class="nav-icon">💬</div>
+        <div class="nav-label">Chat Support</div>
+        <span class="nav-badge" id="badgeChat" style="display:none">0</span>
+      </div>
+
+      <div class="nav-item" data-nav="reports" onclick="navigateTo('reports')">
+        <div class="nav-icon">📊</div>
+        <div class="nav-label">Reports</div>
+      </div>
+
+      <div class="nav-section-label">System</div>
+
+      <div class="nav-item" data-nav="audit" onclick="navigateTo('audit')">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">Audit Logs</div>
+      </div>
+
+      <div class="nav-item" data-nav="settings" onclick="navigateTo('settings')">
+        <div class="nav-icon">⚙️</div>
+        <div class="nav-label">Settings</div>
+      </div>
+    </nav>
+
+    <!-- Bottom profile -->
+    <div class="sidebar-bottom">
+      <div class="sidebar-admin-profile" onclick="navigateTo('settings')">
+        <div class="admin-avatar-sm" id="sidebarAdminAvatar">A</div>
+        <div class="admin-profile-info">
+          <div class="admin-profile-name" id="sidebarAdminName">Admin</div>
+          <div class="admin-profile-role">ADMINISTRATOR</div>
+        </div>
+      </div>
+      <div class="nav-item" onclick="adminLogout()" style="margin-top:4px">
+        <div class="nav-icon">🚪</div>
+        <div class="nav-label" style="color:var(--accent-red)">Logout</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─────────────────────────────────────────────────────────── -->
+  <main class="admin-main">
+    <!-- Topbar -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <button class="topbar-hamburger" onclick="toggleMobileSidebar()" id="hamburgerBtn">☰</button>
+        <div class="topbar-breadcrumb">Admin / <span id="topbarBreadcrumb">Dashboard</span></div>
+      </div>
+      <div class="topbar-right">
+        <a href="dashboard.html" class="topbar-btn">← User Dashboard</a>
+        <button class="topbar-btn topbar-logout" onclick="adminLogout()">🚪 Logout</button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="admin-content">
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- DASHBOARD SECTION                                               -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section active" id="section-dashboard">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">🏠</div> Dashboard</div>
+          <div style="font-size:0.8rem;color:var(--text-muted)" id="dashLastUpdate"></div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon purple">👥</div>
+              <span class="stat-trend neutral">All Time</span>
+            </div>
+            <div class="stat-value" id="statTotalUsers">—</div>
+            <div class="stat-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">✅</div>
+              <span class="stat-trend up">Active</span>
+            </div>
+            <div class="stat-value" id="statActiveUsers">—</div>
+            <div class="stat-label">Active Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">🌟</div>
+              <span class="stat-trend up">Today</span>
+            </div>
+            <div class="stat-value" id="statNewToday">—</div>
+            <div class="stat-label">New Today</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">💰</div>
+              <span class="stat-trend up">USDT</span>
+            </div>
+            <div class="stat-value" id="statTotalDep">—</div>
+            <div class="stat-label">Total Deposits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon yellow">⏳</div>
+              <span class="stat-trend neutral">Pending</span>
+            </div>
+            <div class="stat-value" id="statPendDep">—</div>
+            <div class="stat-label">Pending Deposits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">✓</div>
+              <span class="stat-trend up">Done</span>
+            </div>
+            <div class="stat-value" id="statAppDep">—</div>
+            <div class="stat-label">Approved Deposits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon red">⏳</div>
+              <span class="stat-trend neutral">Pending</span>
+            </div>
+            <div class="stat-value" id="statPendWd">—</div>
+            <div class="stat-label">Pending Withdrawals</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">💸</div>
+              <span class="stat-trend up">Done</span>
+            </div>
+            <div class="stat-value" id="statAppWd">—</div>
+            <div class="stat-label">Processed Withdrawals</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon red">📤</div>
+              <span class="stat-trend neutral">All Time</span>
+            </div>
+            <div class="stat-value" id="statOutgoingIncome">—</div>
+            <div class="stat-label">Outgoing Income</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon purple">📦</div>
+              <span class="stat-trend up">All Time</span>
+            </div>
+            <div class="stat-value" id="statTotalPkg">—</div>
+            <div class="stat-label">Package Purchases</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">⚡</div>
+              <span class="stat-trend up">Today</span>
+            </div>
+            <div class="stat-value" id="statTodayBusiness">—</div>
+            <div class="stat-label">Today Total Business</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">🌐</div>
+              <span class="stat-trend up">All Time</span>
+            </div>
+            <div class="stat-value" id="statTotalBusiness">—</div>
+            <div class="stat-label">Total Business</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">💰 Deposits — Last 7 Days</div>
+            <div style="height:220px"><canvas id="chartDeposits7d"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">👥 New Users — Last 7 Days</div>
+            <div style="height:220px"><canvas id="chartUsers7d"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <div class="glass-card-title">📋 Recent Admin Activity</div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Action</th><th>Admin ID</th><th>Target</th><th>Date</th></tr></thead>
+              <tbody id="recentActivityTbody">
+                <tr><td colspan="4" style="text-align:center;padding:30px"><div class="loading-spinner" style="margin:auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- USERS SECTION                                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-users">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">👥</div> Users</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="table-controls">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" class="search-input" id="usersSearchInput" placeholder="Search by name, email, username…" oninput="_usersSearch=this.value;loadUsers(1)">
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" id="usersFilterAll" onclick="setUsersFilter('all',this)">All</button>
+              <button class="filter-tab" onclick="setUsersFilter('active',this)">Active</button>
+              <button class="filter-tab" onclick="setUsersFilter('inactive',this)">Inactive</button>
+              <button class="filter-tab" onclick="setUsersFilter('admin',this)">Admin</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>User</th><th>Email</th><th>Package</th><th>Rank</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTbody"></tbody>
+            </table>
+          </div>
+          <div id="usersPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- DEPOSITS SECTION                                                -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-deposits">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">💰</div> Deposits</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="table-controls">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" class="search-input" id="depositsSearchInput" placeholder="Search by transaction ID…" oninput="_depositsSearch=this.value;loadDeposits(1)">
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" onclick="setDepositsFilter('all',this)">All</button>
+              <button class="filter-tab" onclick="setDepositsFilter('pending',this)">Pending</button>
+              <button class="filter-tab" onclick="setDepositsFilter('approved',this)">Approved</button>
+              <button class="filter-tab" onclick="setDepositsFilter('rejected',this)">Rejected</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>ID</th><th>User</th><th>Amount</th><th>Method</th><th>Tx ID</th><th>Date</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="depositsTbody"></tbody>
+            </table>
+          </div>
+          <div id="depositsPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- WITHDRAWALS SECTION                                             -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-withdrawals">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">💸</div> Withdrawals</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="table-controls">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" class="search-input" id="wdSearchInput" placeholder="Search by destination address…" oninput="_withdrawalsSearch=this.value;loadWithdrawals(1)">
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" onclick="setWdFilter('all',this)">All</button>
+              <button class="filter-tab" onclick="setWdFilter('pending',this)">Pending</button>
+              <button class="filter-tab" onclick="setWdFilter('approved',this)">Approved</button>
+              <button class="filter-tab" onclick="setWdFilter('rejected',this)">Rejected</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>ID</th><th>User</th><th>Amount</th><th>Method</th><th>Destination</th><th>Date</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="withdrawalsTbody"></tbody>
+            </table>
+          </div>
+          <div id="withdrawalsPagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PACKAGES SECTION                                                -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-packages">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">📦</div> Packages & Ranks</div>
+        </div>
+        <div class="pkg-admin-grid" id="packagesGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- CHAT SECTION                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-chat">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">💬</div> Chat Support</div>
+        </div>
+        <div class="chat-layout">
+          <div class="chat-list" id="chatConvList">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="chat-window" id="chatWindow" style="display:none;flex-direction:column">
+            <div class="chat-window-header" id="chatWindowHeader">
+              <div style="color:var(--text-muted);font-size:0.9rem">Select a conversation to start</div>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply…" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
+              <button class="btn btn-primary" onclick="sendAdminMessage()">Send ›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- REPORTS SECTION                                                 -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-reports">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">📊</div> Reports</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div class="filter-tabs">
+              <button class="filter-tab active" onclick="loadReports('1');setActiveReportTab(this)">Today</button>
+              <button class="filter-tab" onclick="loadReports('7');setActiveReportTab(this)">7 Days</button>
+              <button class="filter-tab" onclick="loadReports('30');setActiveReportTab(this)">30 Days</button>
+              <button class="filter-tab" onclick="loadReports('month');setActiveReportTab(this)">This Month</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV('all')">📥 Export CSV</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">👥 User Report</div></div>
+            <div id="reportUsers"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
+          </div>
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">💰 Financial Report</div></div>
+            <div id="reportFinancial"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
+          </div>
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">📦 Package Report</div></div>
+            <div id="reportPackages"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- AUDIT LOGS SECTION                                              -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-audit">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">📋</div> Audit Logs</div>
+        </div>
+        <div class="glass-card">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Admin ID</th><th>Action</th><th>Target User</th><th>Table</th><th>Date & Time</th></tr></thead>
+              <tbody id="auditTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- SETTINGS SECTION                                                -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-settings">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">⚙️</div> Settings</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px">
+          <!-- Profile -->
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">👤 Admin Profile</div></div>
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="settingsName" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="settingsEmail" readonly style="opacity:0.6">
+            </div>
+            <button class="btn btn-primary" onclick="saveAdminProfile()">💾 Save Profile</button>
+          </div>
+
+          <!-- Password -->
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">🔒 Change Password</div></div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="settingsNewPw" placeholder="Min 6 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="settingsNewPw2" placeholder="Repeat password">
+            </div>
+            <button class="btn btn-primary" onclick="changeAdminPassword()">🔒 Change Password</button>
+          </div>
+
+          <!-- Security Info -->
+          <div class="glass-card" style="margin:0">
+            <div class="glass-card-header"><div class="glass-card-title">🛡 Security Information</div></div>
+            <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7">
+              <p>✓ Role-based access control active</p>
+              <p>✓ Supabase Row Level Security enforced</p>
+              <p>✓ All admin actions are audit-logged</p>
+              <p>✓ No service-role credentials in frontend</p>
+              <p style="margin-top:12px;color:var(--text-muted);font-size:0.75rem">Normal users cannot access this panel even if they know the URL. Access is verified against the database on every load.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- end .admin-content -->
+  </main>
+</div><!-- end .admin-layout -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MODALS                                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- User Modal -->
+<div id="userModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('userModal')">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">👤 User Details</div>
+      <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div id="userModalBody"></div>
+  </div>
+</div>
+
+<!-- Deposit Modal -->
+<div id="depositModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('depositModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">💰 Deposit Review</div>
+      <button class="modal-close" onclick="closeModal('depositModal')">✕</button>
+    </div>
+    <div id="depositModalBody"></div>
+  </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div id="withdrawalModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('withdrawalModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">💸 Withdrawal Review</div>
+      <button class="modal-close" onclick="closeModal('withdrawalModal')">✕</button>
+    </div>
+    <div id="withdrawalModalBody"></div>
+  </div>
+</div>
+
+<!-- Package Modal -->
+<div id="pkgModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('pkgModal')">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title" id="pkgModalTitle">📦 Package Users</div>
+      <button class="modal-close" onclick="closeModal('pkgModal')">✕</button>
+    </div>
+    <div id="pkgModalBody"></div>
+  </div>
+</div>
+
+<!-- ═══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Filter helpers (must be global for onclick)
+  function setUsersFilter(f, btn) {
+    _usersFilter = f;
+    document.querySelectorAll('#section-users .filter-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadUsers(1);
+  }
+  function setDepositsFilter(f, btn) {
+    _depositsFilter = f;
+    document.querySelectorAll('#section-deposits .filter-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadDeposits(1);
+  }
+  function setWdFilter(f, btn) {
+    _withdrawalsFilter = f;
+    document.querySelectorAll('#section-withdrawals .filter-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadWithdrawals(1);
+  }
+  function setActiveReportTab(btn) {
+    document.querySelectorAll('#section-reports .filter-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+</script>
+<script src="js/admin.js"></script>
+</body>
+</html>
