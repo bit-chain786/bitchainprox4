@@ -9,8 +9,6 @@ let walletSettings = {
   withdrawal_fee: 1.00
 };
 
-let uploadedProofFile = null;
-
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.location.pathname.includes('dashboard.html')) {
     await fetchWalletSettings();
@@ -101,80 +99,6 @@ function copyDepositAddress() {
   }
 }
 
-function handleProofSelect(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Validate size
-  if (file.size > 5 * 1024 * 1024) {
-    if (window.toast) toast('File size exceeds 5MB limit.', 'error');
-    else alert('File size exceeds 5MB limit.');
-    return;
-  }
-
-  uploadedProofFile = file;
-  const nameEl = document.getElementById('proofFileName');
-  if (nameEl) {
-    nameEl.textContent = file.name;
-    nameEl.style.display = 'block';
-  }
-}
-
-// Allow drag and drop
-const dropZone = document.getElementById('proofDropZone');
-if (dropZone) {
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = '#c77dff';
-    dropZone.style.background = 'rgba(157, 78, 221, 0.08)';
-  });
-  dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = 'rgba(157, 78, 221, 0.4)';
-    dropZone.style.background = 'rgba(157, 78, 221, 0.03)';
-  });
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = 'rgba(157, 78, 221, 0.4)';
-    dropZone.style.background = 'rgba(157, 78, 221, 0.03)';
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      document.getElementById('proofFileInput').files = e.dataTransfer.files;
-      handleProofSelect({ target: { files: e.dataTransfer.files } });
-    }
-  });
-}
-
-async function uploadProofToStorage(file) {
-  const sb = window.BitchainAuth?.getSupabase();
-  if (!sb) throw new Error('Supabase not initialized');
-
-  const user = await window.BitchainAuth.getCurrentUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-  // Try the intended bucket first.
-  try {
-    const { data, error } = await sb.storage.from('deposit-proofs').upload(fileName, file);
-    if (error) throw error;
-    const { data: publicData } = sb.storage.from('deposit-proofs').getPublicUrl(fileName);
-    return publicData.publicUrl;
-  } catch (e) {
-    // If bucket missing, fall back to the default "public" bucket.
-    if (e.message && e.message.toLowerCase().includes('bucket not found')) {
-      const msg = "Bucket 'deposit-proofs' not found. Uploading to default 'public' bucket instead.";
-      if (window.toast) toast(msg, 'warning'); else alert(msg);
-      const { data, error } = await sb.storage.from('public').upload(fileName, file);
-      if (error) throw error;
-      const { data: publicData } = sb.storage.from('public').getPublicUrl(fileName);
-      return publicData.publicUrl;
-    }
-    // Re‑throw other errors.
-    throw e;
-  }
-}
-
 async function submitDeposit() {
   const amtInput = document.getElementById('depositAmount');
   const amt = parseFloat(amtInput.value);
@@ -182,12 +106,6 @@ async function submitDeposit() {
   if (isNaN(amt) || amt < walletSettings.min_deposit) {
     if (window.toast) toast(`Minimum deposit is ${walletSettings.min_deposit} USDT.`, 'error');
     else alert(`Minimum deposit is ${walletSettings.min_deposit} USDT.`);
-    return;
-  }
-
-  if (!uploadedProofFile) {
-    if (window.toast) toast('Please upload a payment screenshot.', 'error');
-    else alert('Please upload a payment screenshot.');
     return;
   }
 
@@ -200,13 +118,10 @@ async function submitDeposit() {
     const user = await window.BitchainAuth.getCurrentUser();
     if (!user) throw new Error('Not authenticated');
 
-    const proofUrl = await uploadProofToStorage(uploadedProofFile);
-
     const { error } = await sb.from('deposits').insert({
       user_id: user.id,
       amount: amt,
       payment_method: 'USDTBEP20',
-      proof_url: proofUrl,
       status: 'pending'
     });
 
@@ -217,12 +132,6 @@ async function submitDeposit() {
     
     // Reset form
     amtInput.value = '';
-    uploadedProofFile = null;
-    const nameEl = document.getElementById('proofFileName');
-    if (nameEl) {
-      nameEl.textContent = '';
-      nameEl.style.display = 'none';
-    }
     calcDepositReceive();
     loadDepositHistory();
   } catch (e) {

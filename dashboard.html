@@ -518,18 +518,6 @@
               <p class="qr-warning">Send only USDTBEP20 to this address via USDTBEP20 network.</p>
             </div>
 
-            <div class="wallet-form-group">
-              <label>Upload Payment Screenshot</label>
-              <div class="upload-drop-zone" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()">
-                <input type="file" id="proofFileInput" accept="image/png, image/jpeg, image/jpg" style="display:none;" onchange="handleProofSelect(event)">
-                <div class="upload-icon">
-                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#c77dff" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <div class="upload-text">Click to upload or drag and drop</div>
-                <div class="upload-sub">PNG, JPG, JPEG (Max 5MB)</div>
-                <div id="proofFileName" class="upload-file-name" style="display:none;color:#c77dff;margin-top:8px;font-weight:600;"></div>
-              </div>
-            </div>
 
             <button type="button" class="wallet-submit-btn btn-deposit-submit" id="btnSubmitDeposit" onclick="submitDeposit()">I Have Made a Deposit</button>
             
