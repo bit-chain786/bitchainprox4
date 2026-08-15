@@ -19,6 +19,13 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS reward_income NUMERIC(14,2) DEFAUL
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_team INTEGER DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS direct_referrals INTEGER DEFAULT 0;
 
+-- Enable RLS on profiles and create admin update policy
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins can update profiles" ON profiles;
+CREATE POLICY "Admins can update profiles" ON public.profiles FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
 -- 2. Package purchases table
 CREATE TABLE IF NOT EXISTS package_purchases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
