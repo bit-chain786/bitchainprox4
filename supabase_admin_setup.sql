@@ -22,7 +22,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS direct_referrals INTEGER DEFAULT 0
 -- 2. Package purchases table
 CREATE TABLE IF NOT EXISTS package_purchases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   package_key TEXT NOT NULL,
   package_name TEXT NOT NULL,
   rank_name TEXT NOT NULL,
@@ -43,7 +43,7 @@ CREATE POLICY "Admins can view all purchases" ON package_purchases FOR SELECT US
 -- 3. Deposits table
 CREATE TABLE IF NOT EXISTS deposits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   amount NUMERIC(14,2) NOT NULL,
   payment_method TEXT NOT NULL DEFAULT 'USDT',
   transaction_id TEXT,
@@ -72,7 +72,7 @@ CREATE POLICY "Admins can update deposits" ON deposits FOR UPDATE USING (
 -- 4. Withdrawals table
 CREATE TABLE IF NOT EXISTS withdrawals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   amount NUMERIC(14,2) NOT NULL,
   withdrawal_method TEXT NOT NULL DEFAULT 'USDT',
   destination TEXT NOT NULL,
@@ -101,7 +101,7 @@ CREATE POLICY "Admins can update withdrawals" ON withdrawals FOR UPDATE USING (
 -- 5. Support conversations
 CREATE TABLE IF NOT EXISTS support_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   subject TEXT,
   status TEXT NOT NULL DEFAULT 'open',
   unread_admin INTEGER DEFAULT 0,
