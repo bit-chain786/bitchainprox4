@@ -503,7 +503,7 @@
             <div class="wallet-form-group">
               <label>Deposit Address</label>
               <div class="address-copy-box">
-                <input type="text" id="bep20DepositAddress" value="TDsJx7GfR3mbX9jYkLBQwz6h1Kp8uN8z3c" readonly>
+                <input type="text" id="bep20DepositAddress" value="0xAad5D80043CEBb13cE4292F1Ea8f0615cF94D8c5" readonly>
                 <button type="button" class="btn-copy-address" onclick="copyDepositAddress()">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 </button>
@@ -512,8 +512,8 @@
 
             <div class="qr-code-box">
               <div class="qr-placeholder" id="bep20QrCodeWrapper" style="width:120px;height:120px;background:#fff;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;margin-right:16px;">
-                <img src="" alt="QR" id="bep20QrCode" style="max-width:100%;display:none;">
-                <span id="qrFallback" style="color:#000;font-size:0.8rem;text-align:center;">QR Code</span>
+                <img src="images/usdt_bep20_qr.png" alt="QR" id="bep20QrCode" style="max-width:100%;display:block;">
+                <span id="qrFallback" style="color:#000;font-size:0.8rem;text-align:center;display:none;">QR Code</span>
               </div>
               <p class="qr-warning">Send only USDTBEP20 to this address via USDTBEP20 network.</p>
             </div>

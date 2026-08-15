@@ -3,7 +3,7 @@
    ========================================================================== */
 
 let walletSettings = {
-  bep20_deposit_address: "TDsJx7GfR3mbX9jYkLBQwz6h1Kp8uN8z3c",
+  bep20_deposit_address: "0xAad5D80043CEBb13cE4292F1Ea8f0615cF94D8c5",
   min_deposit: 10.00,
   min_withdrawal: 10.00,
   withdrawal_fee: 1.00

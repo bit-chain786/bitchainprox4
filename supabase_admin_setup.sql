@@ -218,7 +218,7 @@ CREATE POLICY "Admins can update settings" ON system_settings FOR ALL USING (
 
 -- Insert default settings
 INSERT INTO system_settings (key, value, description) VALUES
-  ('wallet_settings', '{"bep20_deposit_address": "TDsJx7GfR3mbX9jYkLBQwz6h1Kp8uN8z3c", "min_deposit": 10.00, "min_withdrawal": 10.00, "withdrawal_fee": 1.00}', 'Wallet configuration settings')
+  ('wallet_settings', '{"bep20_deposit_address": "0xAad5D80043CEBb13cE4292F1Ea8f0615cF94D8c5", "min_deposit": 10.00, "min_withdrawal": 10.00, "withdrawal_fee": 1.00}', 'Wallet configuration settings')
 ON CONFLICT (key) DO NOTHING;
 
 -- 10. Deposit Proofs storage bucket
