@@ -752,7 +752,38 @@
 
 
       <!-- REFERRAL LINK SECTION -->
-      <section class="referral-section-card">
+      <!-- REFERRAL SECTION: shown/hidden by JS based on rank_value -->
+
+      <!-- 🔒 LOCKED STATE — shown for UNRANKED users (rank_value = 0) -->
+      <section class="referral-section-card" id="refLockedSection" style="display:none;">
+        <div class="ref-left-block">
+          <div class="ref-link-icon-wrap">🔒</div>
+          <div class="ref-text-title">
+            <h3>REFERRAL LINK LOCKED</h3>
+            <p>Your referral link is locked. Upgrade to <strong>Starter</strong> rank to unlock your referral link and start building your team.</p>
+          </div>
+        </div>
+        <div class="ref-input-copy-group">
+          <button type="button" class="btn-ref-copy" id="btnRefLockedUpgrade"
+            style="opacity:0.6; cursor:not-allowed; background:linear-gradient(135deg,#555 0%,#333 100%);"
+            onclick="document.getElementById('refLockedToast').style.opacity='1'; clearTimeout(window._refToastT); window._refToastT=setTimeout(()=>document.getElementById('refLockedToast').style.opacity='0',3500);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Locked</span>
+          </button>
+        </div>
+        <!-- Toast message -->
+        <div id="refLockedToast" style="
+          position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+          background:linear-gradient(135deg,#e63946,#c1121f);
+          color:#fff; padding:12px 28px; border-radius:50px;
+          font-size:0.88rem; font-weight:700; z-index:999999;
+          pointer-events:none; opacity:0; transition:opacity 0.3s ease;
+          box-shadow:0 4px 30px rgba(0,0,0,0.5); white-space:nowrap;
+        ">🔒 Upgrade to Starter rank to unlock your referral link.</div>
+      </section>
+
+      <!-- 🔓 UNLOCKED STATE — shown for STARTER+ users (rank_value >= 1) -->
+      <section class="referral-section-card" id="refUnlockedSection" style="display:none;">
         <div class="ref-left-block">
           <div class="ref-link-icon-wrap">🔗</div>
           <div class="ref-text-title">
@@ -1021,26 +1052,40 @@
           document.getElementById('sliceReward').setAttribute('stroke-dashoffset', -offset);
         }
 
-        // 6. DYNAMIC REFERRAL LINK REQUIREMENT (Using window.location.origin!)
+        // 6. REFERRAL LINK — show/hide based on rank_value
         const currentOrigin = window.location.origin;
         const dynamicRefUrl = `${currentOrigin}/register.html?ref=${userRefCode}`;
-        const refInput = document.getElementById('dashRefLinkInput');
-        if (refInput) refInput.value = dynamicRefUrl;
+        const rankValue = profile.rank_value !== undefined ? profile.rank_value : 0;
 
-        // Copy Referral Link Handler
-        const copyBtn = document.getElementById('btnDashCopyRef');
-        const copyText = document.getElementById('btnCopyText');
-        if (copyBtn) {
-          copyBtn.addEventListener('click', () => {
-            refInput.select();
-            navigator.clipboard.writeText(dynamicRefUrl);
-            copyText.textContent = 'Copied!';
-            copyBtn.style.background = 'linear-gradient(135deg, #00f5d4 0%, #2ec4b6 100%)';
-            setTimeout(() => {
-              copyText.textContent = 'Copy Link';
-              copyBtn.style.background = '';
-            }, 2000);
-          });
+        const refLockedSection   = document.getElementById('refLockedSection');
+        const refUnlockedSection = document.getElementById('refUnlockedSection');
+
+        if (rankValue >= 1) {
+          // ✅ STARTER or above — show the real referral link
+          if (refLockedSection)   refLockedSection.style.display   = 'none';
+          if (refUnlockedSection) refUnlockedSection.style.display = 'flex';
+
+          const refInput = document.getElementById('dashRefLinkInput');
+          if (refInput) refInput.value = dynamicRefUrl;
+
+          const copyBtn  = document.getElementById('btnDashCopyRef');
+          const copyText = document.getElementById('btnCopyText');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              if (refInput) refInput.select();
+              navigator.clipboard.writeText(dynamicRefUrl);
+              if (copyText) copyText.textContent = 'Copied!';
+              copyBtn.style.background = 'linear-gradient(135deg, #00f5d4 0%, #2ec4b6 100%)';
+              setTimeout(() => {
+                if (copyText) copyText.textContent = 'Copy Link';
+                copyBtn.style.background = '';
+              }, 2000);
+            });
+          }
+        } else {
+          // 🔒 UNRANKED — hide referral link, show locked state
+          if (refLockedSection)   refLockedSection.style.display   = 'flex';
+          if (refUnlockedSection) refUnlockedSection.style.display = 'none';
         }
 
         // 7. Recent Activity Table & Mobile List
