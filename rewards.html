@@ -3,162 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BITCHAIN PRO X — Rewards</title>
-  <meta name="description" content="Rewards — BITCHAIN PRO X. Unlock exclusive bonuses and rewards for your activity. Coming soon.">
+  <title>BITCHAIN PRO X — Direct Business Rewards (60-Day Period)</title>
+  <meta name="description" content="Earn milestone rewards by building your direct referral business during the active 60-day reward cycle.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/rewards.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <style>
-    .uc-page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 24px;
-      position: relative;
-      z-index: 2;
-      text-align: center;
-    }
-
-    .uc-icon-ring {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(0,245,212,0.2) 0%, rgba(94,21,230,0.3) 100%);
-      border: 2px solid rgba(0,245,212,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3.2rem;
-      margin-bottom: 32px;
-      box-shadow: 0 0 40px rgba(0,245,212,0.2), 0 0 80px rgba(0,245,212,0.08);
-      animation: ucPulse 3s ease-in-out infinite;
-    }
-
-    @keyframes ucPulse {
-      0%, 100% { box-shadow: 0 0 40px rgba(0,245,212,0.2), 0 0 80px rgba(0,245,212,0.08); }
-      50%       { box-shadow: 0 0 65px rgba(0,245,212,0.4), 0 0 130px rgba(0,245,212,0.15); }
-    }
-
-    .uc-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 20px;
-      background: rgba(0,245,212,0.1);
-      border: 1px solid rgba(0,245,212,0.35);
-      border-radius: 100px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      color: #00F5D4;
-      margin-bottom: 24px;
-    }
-
-    .uc-title {
-      font-size: clamp(2rem, 8vw, 3.2rem);
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      color: #fff;
-      margin: 0 0 16px;
-      line-height: 1.1;
-    }
-
-    .uc-title span {
-      background: linear-gradient(90deg, #00F5D4, #C77DFF);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .uc-subtitle {
-      font-size: 1rem;
-      color: rgba(224,170,255,0.7);
-      line-height: 1.7;
-      max-width: 480px;
-      margin: 0 auto 40px;
-    }
-
-    .uc-progress-track {
-      width: min(360px, 90vw);
-      height: 6px;
-      background: rgba(0,245,212,0.1);
-      border-radius: 100px;
-      overflow: hidden;
-      margin: 0 auto 40px;
-    }
-
-    .uc-progress-fill {
-      height: 100%;
-      width: 35%;
-      background: linear-gradient(90deg, #00F5D4, #9D4EDD);
-      border-radius: 100px;
-      animation: ucFill 2.5s ease-in-out infinite alternate;
-    }
-
-    @keyframes ucFill {
-      from { width: 30%; }
-      to   { width: 48%; }
-    }
-
-    .uc-features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 44px;
-      max-width: 520px;
-    }
-
-    .uc-feature-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      background: rgba(0,20,26,0.7);
-      border: 1px solid rgba(0,245,212,0.2);
-      border-radius: 50px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #b2fff4;
-      letter-spacing: 0.5px;
-    }
-
-    .uc-feature-chip .chip-icon {
-      font-size: 1rem;
-    }
-
-    .uc-back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 32px;
-      background: linear-gradient(135deg, #007a69, #00c4a7);
-      border: none;
-      border-radius: 100px;
-      color: #fff;
-      font-family: inherit;
-      font-size: 0.95rem;
-      font-weight: 800;
-      letter-spacing: 1px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: opacity 0.25s, transform 0.2s;
-      box-shadow: 0 6px 24px rgba(0,245,212,0.3);
-    }
-
-    .uc-back-btn:hover {
-      opacity: 0.88;
-      transform: translateY(-2px);
-    }
-  </style>
 </head>
 <body>
 
-  <!-- Ambient Background -->
+  <!-- SVG Gradient Definitions -->
+  <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true">
+    <defs>
+      <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#9d4edd" />
+        <stop offset="100%" stop-color="#00f5d4" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- Ambient Dynamic Canvas Background -->
   <div class="auth-bg-wrapper">
     <div class="auth-bg-gradient"></div>
     <canvas id="authCanvas"></canvas>
@@ -183,65 +48,495 @@
       </ul>
 
       <div class="nav-actions">
-        <!-- populated by auth.js -->
+        <!-- populated via auth.js -->
       </div>
 
+      <!-- Hamburger Button (Mobile only) -->
       <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle Navigation">
-        <span></span><span></span><span></span>
+        <span></span>
+        <span></span>
+        <span></span>
       </button>
     </div>
 
+    <!-- Mobile Slide-Down Menu (Context-aware: My Team & Rewards) -->
     <div class="mobile-menu" id="mobileMenu">
-      <ul class="mobile-nav-links">
-        <li><a href="index.html#about" class="mob-nav-link">About Us</a></li>
-        <li><a href="index.html#packages" class="mob-nav-link">Package Plans</a></li>
-        <li><a href="index.html#income" class="mob-nav-link">Income</a></li>
-        <li><a href="dashboard.html" class="mob-nav-link">Dashboard</a></li>
+      <ul class="mobile-nav-links dash-mob-nav">
+        <li>
+          <a href="my-team.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🏆</span>
+            My Team
+          </a>
+        </li>
+        <li>
+          <a href="rewards.html" class="mob-nav-link dash-mob-nav-link" style="color:#00f5d4;">
+            <span class="dash-mob-emoji">🎁</span>
+            Rewards
+          </a>
+        </li>
+        <li>
+          <a href="dashboard.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">📊</span>
+            Dashboard
+          </a>
+        </li>
       </ul>
+      <div class="mobile-menu-actions">
+        <div class="mob-btn-register" id="mobRewardsLogoutBtn" style="cursor:pointer;text-align:center;">Logout</div>
+      </div>
     </div>
   </header>
 
-  <!-- Page Content -->
-  <div class="uc-page">
+  <!-- MAIN REWARDS PAGE CONTENT -->
+  <main class="rewards-page-container">
 
-    <div class="uc-icon-ring">🎁</div>
-
-    <div class="uc-tag">
-      <span>🚧</span> Under Construction
+    <!-- 1. Top Header Banner -->
+    <div class="rewards-header-banner">
+      <div class="rewards-title-group">
+        <a href="dashboard.html" class="btn-back-dashboard" title="Return to Dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Dashboard</span>
+        </a>
+        <h1>Rewards</h1>
+        <p>Earn more rewards by increasing your total direct business.</p>
+      </div>
+      <div class="rewards-header-gift-box">
+        <div class="gift-icon-glow">🎁</div>
+      </div>
     </div>
 
-    <h1 class="uc-title">Re<span>wards</span></h1>
+    <!-- 2. Top Overview Grid: Total Direct Business & Progress Dial -->
+    <section class="rewards-overview-grid">
+      
+      <!-- Left Card: Your Direct Business & 60-Day Window -->
+      <div class="rewards-business-card">
+        <div class="card-top-lbl">
+          <span>📊</span> YOUR TOTAL DIRECT BUSINESS – CURRENT 60 DAYS
+        </div>
+        
+        <div class="business-amount-display">
+          <span style="font-size: 1.8rem; color: #00f5d4; font-weight: 800;">$</span>
+          <span class="business-amount-val" id="valDirectBusiness">0.00</span>
+          <span class="business-amount-cur">USDT</span>
+        </div>
 
-    <p class="uc-subtitle">
-      Your exclusive bonus hub is on its way. Earn special rewards, milestone bonuses, and loyalty perks
-      as you grow on BITCHAIN PRO X. Stay tuned for the launch.
-    </p>
+        <div class="cycle-period-badge">
+          <span>📅</span> REWARD PERIOD: 60 DAYS (INDIVIDUAL)
+        </div>
 
-    <div class="uc-progress-track">
-      <div class="uc-progress-fill"></div>
-    </div>
+        <div class="cycle-dates-strip">
+          <div class="date-node">
+            <span class="date-lbl">Start Date (Activation)</span>
+            <span class="date-val" id="lblCycleStart">—</span>
+          </div>
 
-    <div class="uc-features">
-      <div class="uc-feature-chip"><span class="chip-icon">🥇</span> Milestone Bonuses</div>
-      <div class="uc-feature-chip"><span class="chip-icon">🎯</span> Loyalty Points</div>
-      <div class="uc-feature-chip"><span class="chip-icon">✨</span> Exclusive Perks</div>
-      <div class="uc-feature-chip"><span class="chip-icon">📈</span> Rank Rewards</div>
-    </div>
+          <div class="date-arrow">➔</div>
 
-    <a href="dashboard.html" class="uc-back-btn">
-      ← Back to Dashboard
-    </a>
+          <div class="date-node">
+            <span class="date-lbl">End Date</span>
+            <span class="date-val" id="lblCycleEnd">—</span>
+          </div>
 
-  </div>
+          <div class="days-left-pill" id="lblDaysRemaining">
+            60 Days Left
+          </div>
+        </div>
 
+        <div style="font-size: 0.76rem; color: rgba(224, 170, 255, 0.5); margin-top: 10px;">
+          * Only confirmed deposits from your direct (Level-1) members count toward your active 60-day reward cycle.
+        </div>
+      </div>
+
+      <!-- Right Card: Your Progress -->
+      <div class="rewards-progress-card">
+        <div class="progress-circle-wrap">
+          <svg class="progress-svg" viewBox="0 0 100 100">
+            <circle class="progress-bg-circle" cx="50" cy="50" r="42"></circle>
+            <circle class="progress-fill-circle" id="progressFillCircle" cx="50" cy="50" r="42" stroke-dasharray="263.89" stroke-dashoffset="263.89"></circle>
+          </svg>
+          <div class="progress-center-text" id="lblProgressPct">0%</div>
+        </div>
+
+        <div class="progress-desc-title">YOUR PROGRESS</div>
+        <p style="font-size:0.8rem; color:rgba(255,255,255,0.6); margin:0 0 4px;" id="lblProgressSub">
+          You have achieved 0% of your target
+        </p>
+        <div class="progress-amount-ratio" id="lblProgressRatio">$ 0 / $ 500</div>
+      </div>
+
+    </section>
+
+    <!-- 3. TOP REWARD ACHIEVERS – CURRENT PERIOD -->
+    <section class="rewards-achievers-section">
+      <div class="section-hdr-row">
+        <h2 class="section-title">🏆 TOP REWARD ACHIEVERS – CURRENT PERIOD</h2>
+        <span style="font-size:0.8rem; color:rgba(224,170,255,0.7);">Direct Members</span>
+      </div>
+
+      <div class="achievers-cards-row" id="achieversCardsRow">
+        <!-- Dynamically populated via JS -->
+      </div>
+    </section>
+
+    <!-- 4. REWARD TARGETS – 60 DAYS PERIOD (INDIVIDUAL) -->
+    <section class="rewards-targets-section">
+      <div class="section-hdr-row">
+        <h2 class="section-title">🎯 REWARD TARGETS – 60 DAYS PERIOD (INDIVIDUAL)</h2>
+      </div>
+
+      <div class="targets-table-wrapper">
+        <table class="targets-table">
+          <thead>
+            <tr>
+              <th>LEVEL</th>
+              <th>DIRECT BUSINESS TARGET (60 DAYS)</th>
+              <th>REWARD (USDT)</th>
+              <th>YOUR ACHIEVEMENT</th>
+              <th>STATUS</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="rewardTargetsTableBody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. HOW REWARD PERIOD WORKS? (High-Fidelity Match to Reference) -->
+    <section class="rewards-how-section">
+      <div class="how-inner-flex">
+        
+        <!-- Left Side: Neon Purple Calendar & Explanatory Text -->
+        <div class="how-left-info">
+          <div class="how-calendar-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" width="46" height="46" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="18" height="18" rx="4" stroke="#9d4edd" stroke-width="2" fill="rgba(157,78,221,0.06)"/>
+              <line x1="3" y1="10" x2="21" y2="10" stroke="#9d4edd" stroke-width="2"/>
+              <line x1="8" y1="2" x2="8" y2="6" stroke="#c77dff" stroke-width="2.2" stroke-linecap="round"/>
+              <line x1="16" y1="2" x2="16" y2="6" stroke="#c77dff" stroke-width="2.2" stroke-linecap="round"/>
+              <line x1="7" y1="15" x2="12" y2="15" stroke="#c77dff" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="how-text-block">
+            <h3 class="how-title-text">HOW REWARD PERIOD WORKS?</h3>
+            <p class="how-desc-text">
+              Your reward period is 60 days from your activation date. Complete the target within this period to claim your reward.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Side: 3 Interactive Visual Milestone Steps with Connector Arrows -->
+        <div class="how-steps-visual-flow">
+          
+          <!-- Step 1: User Add / Activate -->
+          <div class="how-step-node">
+            <div class="step-badge-number">1</div>
+            <div class="step-icon-stage green-glow">
+              <svg viewBox="0 0 24 24" fill="none" width="38" height="38">
+                <circle cx="10" cy="7" r="4.5" fill="#2ec4b6"/>
+                <path d="M2 19c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="#2ec4b6" stroke-width="2.5" stroke-linecap="round" fill="#2ec4b6" fill-opacity="0.9"/>
+                <circle cx="18" cy="15" r="4" fill="#00f5d4"/>
+                <path d="M18 13v4M16 15h4" stroke="#080414" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="step-caption-title">Join / Activate<br><span class="step-caption-sub">Your Package</span></span>
+          </div>
+
+          <!-- Connector Arrow 1 -->
+          <div class="step-flow-arrow">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c77dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+
+          <!-- Step 2: 60 Days Calendar -->
+          <div class="how-step-node">
+            <div class="step-badge-number">2</div>
+            <div class="step-icon-stage purple-glow">
+              <div class="step-mini-calendar">
+                <div class="mini-cal-top">
+                  <span class="cal-ring"></span>
+                  <span class="cal-ring"></span>
+                </div>
+                <div class="mini-cal-body">
+                  <span class="mini-cal-num">60</span>
+                </div>
+              </div>
+            </div>
+            <span class="step-caption-title">60 Days<br><span class="step-caption-sub">Reward Period</span></span>
+          </div>
+
+          <!-- Connector Arrow 2 -->
+          <div class="step-flow-arrow">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c77dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+
+          <!-- Step 3: Golden Gift / Achieve & Claim -->
+          <div class="how-step-node">
+            <div class="step-badge-number">3</div>
+            <div class="step-icon-stage gold-glow">
+              <svg viewBox="0 0 24 24" fill="none" width="38" height="38">
+                <rect x="3" y="8" width="18" height="13" rx="2" stroke="#ffd166" stroke-width="2" fill="rgba(255,209,102,0.1)"/>
+                <line x1="12" y1="8" x2="12" y2="21" stroke="#ffd166" stroke-width="2"/>
+                <line x1="3" y1="13" x2="21" y2="13" stroke="#ffd166" stroke-width="2"/>
+                <path d="M12 8c-2-3-5.5-3-5.5 0 0 1.5 2 2.5 5.5 3z" stroke="#ffd166" stroke-width="1.8" fill="#ffd166" fill-opacity="0.3"/>
+                <path d="M12 8c2-3 5.5-3 5.5 0 0 1.5-2 2.5-5.5 3z" stroke="#ffd166" stroke-width="1.8" fill="#ffd166" fill-opacity="0.3"/>
+              </svg>
+            </div>
+            <span class="step-caption-title">Achieve Target &<br><span class="step-caption-sub">Claim Reward</span></span>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Alert -->
+  <div id="rewardToast" style="
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #007a69, #00c4a7);
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    z-index: 999999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+  "></div>
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/rewards.js"></script>
+
+  <!-- Rewards Page Controller -->
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      if (typeof initHamburgerMenu === 'function') initHamburgerMenu();
+    let activeUserId = null;
+    let rewardsDataState = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initMobileMenu();
+      await loadRewardsPageData();
     });
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('rewardToast');
+      if (!t) return;
+      t.textContent = msg;
+      t.style.background = isError 
+        ? 'linear-gradient(135deg, #e63946, #c1121f)' 
+        : 'linear-gradient(135deg, #007a69, #00c4a7)';
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 3800);
+    }
+
+    function initMobileMenu() {
+      const btn = document.getElementById('hamburgerBtn');
+      const menu = document.getElementById('mobileMenu');
+      const logoutBtn = document.getElementById('mobRewardsLogoutBtn');
+
+      if (btn && menu) {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('open');
+          menu.classList.toggle('open');
+        });
+
+        menu.querySelectorAll('.mob-nav-link').forEach(link => {
+          link.addEventListener('click', () => {
+            btn.classList.remove('open');
+            menu.classList.remove('open');
+          });
+        });
+      }
+
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (window.BitchainAuth && window.BitchainAuth.signOutUser) {
+            window.BitchainAuth.signOutUser();
+          } else {
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    }
+
+    async function loadRewardsPageData() {
+      const client = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
+      if (!client) return;
+
+      const { data: { session } } = await client.auth.getSession();
+      if (!session || !session.user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      activeUserId = session.user.id;
+
+      try {
+        rewardsDataState = await window.BitchainRewards.computeUserRewardsData(activeUserId);
+        renderOverview();
+        renderAchievers();
+        renderTargetsTable();
+      } catch (err) {
+        console.error('Rewards load error:', err);
+        showToast(err.message || 'Failed to load rewards data.', true);
+      }
+    }
+
+    function renderOverview() {
+      if (!rewardsDataState) return;
+      const { directBusinessTotal, cycle, overallProgressPct, firstUnachieved } = rewardsDataState;
+
+      // 1. Direct Business
+      document.getElementById('valDirectBusiness').textContent = directBusinessTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('lblCycleStart').textContent = window.BitchainRewards.formatDate(cycle.startDate);
+      document.getElementById('lblCycleEnd').textContent = window.BitchainRewards.formatDate(cycle.endDate);
+      document.getElementById('lblDaysRemaining').textContent = `${cycle.daysRemaining} Days Left`;
+
+      // 2. Circular Progress
+      document.getElementById('lblProgressPct').textContent = `${overallProgressPct}%`;
+      document.getElementById('lblProgressSub').textContent = `You have achieved ${overallProgressPct}% of your target`;
+      document.getElementById('lblProgressRatio').textContent = `$ ${directBusinessTotal.toLocaleString()} / $ ${firstUnachieved.target.toLocaleString()}`;
+
+      // Calculate circle stroke offset: circumference = 2 * PI * 42 = 263.89
+      const perimeter = 263.89;
+      const offset = perimeter - (overallProgressPct / 100) * perimeter;
+      const fillEl = document.getElementById('progressFillCircle');
+      if (fillEl) {
+        fillEl.style.strokeDashoffset = offset;
+      }
+    }
+
+    function renderAchievers() {
+      if (!rewardsDataState) return;
+      const container = document.getElementById('achieversCardsRow');
+      const achievers = rewardsDataState.topAchievers || [];
+
+      if (achievers.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: rgba(224,170,255,0.6); font-size: 0.88rem;">
+            No direct members have made confirmed deposits yet during this 60-day cycle.
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      achievers.slice(0, 5).forEach((achiever, index) => {
+        const initial = (achiever.fullName || achiever.username || 'U').charAt(0).toUpperCase();
+        const avatarStyle = achiever.avatarUrl ? `style="background-image:url('${achiever.avatarUrl}')"` : '';
+        const initialDisplay = achiever.avatarUrl ? '' : initial;
+
+        html += `
+          <div class="achiever-card">
+            <div class="achiever-rank-pill">#${index + 1}</div>
+            <div class="achiever-avatar" ${avatarStyle}>${initialDisplay}</div>
+            <div class="achiever-name">${achiever.fullName}</div>
+            <div class="achiever-amount">$ ${achiever.businessAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+            <div class="achiever-badge">${achiever.rank}</div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderTargetsTable() {
+      if (!rewardsDataState) return;
+      const tbody = document.getElementById('rewardTargetsTableBody');
+      const milestones = rewardsDataState.milestonesStatus || [];
+
+      let html = '';
+      milestones.forEach(ms => {
+        let statusClass = 'pending';
+        let statusIcon = '🕒';
+        let statusText = 'PENDING';
+        let actionBtn = `<button type="button" class="btn-claim-reward" disabled>Claim</button>`;
+
+        if (ms.status === 'CLAIMED') {
+          statusClass = 'claimed';
+          statusIcon = '✓';
+          statusText = 'CLAIMED';
+          actionBtn = `<button type="button" class="btn-claim-reward" disabled style="background:rgba(157,78,221,0.25); color:#e0aaff;">Claimed ✓</button>`;
+        } else if (ms.status === 'ACHIEVED') {
+          statusClass = 'achieved';
+          statusIcon = '✅';
+          statusText = 'ACHIEVED';
+          actionBtn = `<button type="button" class="btn-claim-reward" onclick="handleClaimReward(${ms.level})">🎁 Claim</button>`;
+        } else if (ms.status === 'IN PROGRESS') {
+          statusClass = 'in-progress';
+          statusIcon = '🔄';
+          statusText = 'IN PROGRESS';
+        }
+
+        html += `
+          <tr>
+            <td>
+              <div class="target-level-pill">${ms.level}</div>
+            </td>
+            <td>
+              <div class="target-amount-cell">$ ${ms.target.toLocaleString()}</div>
+              <div class="target-amount-sub">Direct Business</div>
+            </td>
+            <td>
+              <div class="reward-amount-cell">$ ${ms.reward} USDT</div>
+            </td>
+            <td>
+              <div class="achieve-col-wrap">
+                <div class="achieve-pct-text">${ms.percentage}%</div>
+                <div class="achieve-progress-bar">
+                  <div class="achieve-fill-bar" style="width: ${ms.percentage}%;"></div>
+                </div>
+                <div class="achieve-ratio-text">$ ${ms.currentBusiness.toLocaleString()} / $ ${ms.target.toLocaleString()}</div>
+              </div>
+            </td>
+            <td>
+              <div class="status-pill ${statusClass}">
+                <span>${statusIcon}</span> ${statusText}
+              </div>
+            </td>
+            <td>
+              ${actionBtn}
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    async function handleClaimReward(level) {
+      if (!activeUserId) return;
+      try {
+        const res = await window.BitchainRewards.claimReward(activeUserId, level);
+        if (res && res.success) {
+          showToast(`🎉 Level ${level} Reward of $${res.rewardAmount} USDT successfully claimed!`);
+          await loadRewardsPageData();
+        }
+      } catch (err) {
+        console.error('Claim reward error:', err);
+        showToast(err.message || 'Failed to claim reward.', true);
+      }
+    }
   </script>
 </body>
 </html>

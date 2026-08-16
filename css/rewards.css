@@ -1,0 +1,949 @@
+/* ==========================================================================
+   BITCHAIN PRO X — REWARDS PAGE STYLING
+   Dark luxury theme matching the reference layout, circular charts & target tables.
+   ========================================================================== */
+
+/* ── Keyframe Animations ── */
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(200%) rotate(45deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(157, 78, 221, 0.25), 0 0 30px rgba(0, 245, 212, 0.1); }
+  50% { box-shadow: 0 0 25px rgba(157, 78, 221, 0.5), 0 0 45px rgba(0, 245, 212, 0.25); }
+}
+
+@keyframes neonBorderPulse {
+  0%, 100% { border-color: rgba(199, 125, 255, 0.25); }
+  50% { border-color: rgba(0, 245, 212, 0.5); }
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+/* ── Page Container ── */
+.rewards-page-container {
+  max-width: 1200px;
+  margin: 24px auto 60px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  animation: cardEntrance 0.4s ease-out;
+}
+
+/* ── Top Header Banner ── */
+.rewards-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(26, 5, 51, 0.95) 0%, rgba(13, 0, 26, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.3);
+  border-radius: 20px;
+  padding: 26px 34px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(157, 78, 221, 0.15);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+}
+
+.rewards-header-banner::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(199, 125, 255, 0.08) 50%,
+    rgba(0, 245, 212, 0.03) 55%,
+    transparent 60%
+  );
+  animation: shimmerSweep 8s linear infinite;
+  pointer-events: none;
+}
+
+.rewards-header-banner::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: 120px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(157, 78, 221, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.rewards-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-back-dashboard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px 14px;
+  background: rgba(157, 78, 221, 0.15);
+  border: 1px solid rgba(199, 125, 255, 0.35);
+  border-radius: 50px;
+  color: #00f5d4;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-back-dashboard:hover {
+  background: rgba(157, 78, 221, 0.35);
+  border-color: #00f5d4;
+  color: #ffffff;
+  transform: translateX(-4px);
+  box-shadow: 0 0 15px rgba(0, 245, 212, 0.35);
+}
+
+.btn-back-dashboard svg {
+  transition: transform 0.2s ease;
+}
+
+.btn-back-dashboard:hover svg {
+  transform: translateX(-2px);
+}
+
+.rewards-title-group h1 {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  margin: 0 0 6px;
+}
+
+.rewards-title-group p {
+  font-size: 0.92rem;
+  color: rgba(224, 170, 255, 0.75);
+  margin: 0;
+}
+
+.rewards-header-gift-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gift-icon-glow {
+  font-size: 3.5rem;
+  filter: drop-shadow(0 0 20px rgba(157, 78, 221, 0.6));
+  animation: floatGift 3s ease-in-out infinite alternate;
+}
+
+@keyframes floatGift {
+  from { transform: translateY(0px) rotate(0deg); }
+  to   { transform: translateY(-6px) rotate(4deg); }
+}
+
+/* ── Top Overview Grid (Direct Business + Progress Circle) ── */
+.rewards-overview-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Left Card: Direct Business & Cycle Dates */
+.rewards-business-card {
+  background: linear-gradient(135deg, rgba(20, 4, 40, 0.95) 0%, rgba(10, 1, 20, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.22);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.card-top-lbl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: rgba(224, 170, 255, 0.7);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.business-amount-display {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.business-amount-val {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.business-amount-cur {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #00f5d4;
+}
+
+.cycle-period-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0, 245, 212, 0.1);
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #00f5d4;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+}
+
+.cycle-dates-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(199, 125, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.date-node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-lbl {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.date-val {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+}
+
+.date-arrow {
+  color: rgba(199, 125, 255, 0.6);
+  font-size: 1.1rem;
+}
+
+.days-left-pill {
+  background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(157, 78, 221, 0.4);
+}
+
+/* Right Card: Your Progress */
+.rewards-progress-card {
+  background: linear-gradient(135deg, rgba(20, 4, 40, 0.95) 0%, rgba(10, 1, 20, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.22);
+  border-radius: 18px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.progress-circle-wrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin-bottom: 14px;
+}
+
+.progress-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-bg-circle {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 8;
+}
+
+.progress-fill-circle {
+  fill: none;
+  stroke: url(#progressGrad);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.progress-center-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.progress-desc-title {
+  font-size: 0.85rem;
+  color: rgba(224, 170, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.progress-amount-ratio {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #00f5d4;
+}
+
+/* ── Top Reward Achievers Section ── */
+.rewards-achievers-section {
+  background: linear-gradient(135deg, rgba(20, 4, 40, 0.95) 0%, rgba(10, 1, 20, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.2);
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.section-hdr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.achievers-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.achiever-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(199, 125, 255, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  position: relative;
+  transition: all 0.22s ease;
+}
+
+.achiever-card:hover {
+  background: rgba(157, 78, 221, 0.1);
+  border-color: rgba(199, 125, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.achiever-rank-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ffd166, #ffbe0b);
+  color: #000;
+  font-weight: 900;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.achiever-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #7b2cbf;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  border: 2px solid rgba(199, 125, 255, 0.5);
+  background-size: cover;
+  background-position: center;
+}
+
+.achiever-name {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.achiever-amount {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ffd166;
+  margin-bottom: 2px;
+}
+
+.achiever-badge {
+  font-size: 0.72rem;
+  color: rgba(224, 170, 255, 0.7);
+  font-weight: 600;
+}
+
+/* ── Reward Targets Table / Cards ── */
+.rewards-targets-section {
+  background: linear-gradient(135deg, rgba(20, 4, 40, 0.95) 0%, rgba(10, 1, 20, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.2);
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.targets-table-wrapper {
+  overflow-x: auto;
+}
+
+.targets-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.targets-table th {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(224, 170, 255, 0.65);
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(199, 125, 255, 0.15);
+}
+
+.targets-table td {
+  padding: 16px;
+  border-bottom: 1px solid rgba(199, 125, 255, 0.08);
+  vertical-align: middle;
+}
+
+.target-level-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #5e15e6, #9d4edd);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.88rem;
+}
+
+.target-amount-cell {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-weight: 800;
+  font-size: 0.96rem;
+  color: #ffffff;
+}
+
+.target-amount-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.reward-amount-cell {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #00f5d4;
+}
+
+/* Achievement Progress Cell */
+.achieve-col-wrap {
+  min-width: 150px;
+}
+
+.achieve-pct-text {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #e0aaff;
+  margin-bottom: 4px;
+}
+
+.achieve-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.achieve-fill-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #9d4edd, #00f5d4);
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+.achieve-ratio-text {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: monospace;
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-pill.achieved {
+  background: rgba(0, 245, 212, 0.15);
+  color: #00f5d4;
+  border: 1px solid rgba(0, 245, 212, 0.35);
+}
+
+.status-pill.in-progress {
+  background: rgba(112, 214, 255, 0.15);
+  color: #70d6ff;
+  border: 1px solid rgba(112, 214, 255, 0.35);
+}
+
+.status-pill.pending {
+  background: rgba(255, 209, 102, 0.12);
+  color: #ffd166;
+  border: 1px solid rgba(255, 209, 102, 0.3);
+}
+
+.status-pill.claimed {
+  background: rgba(157, 78, 221, 0.2);
+  color: #c77dff;
+  border: 1px solid rgba(199, 125, 255, 0.4);
+}
+
+/* Claim Buttons */
+.btn-claim-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #007a69, #00c4a7);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 245, 212, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-claim-reward:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 245, 212, 0.45);
+}
+
+.btn-claim-reward:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── How Reward Period Works Section (Matching Reference Image) ── */
+.rewards-how-section {
+  background: linear-gradient(135deg, rgba(20, 4, 40, 0.95) 0%, rgba(10, 1, 20, 0.98) 100%);
+  border: 1px solid rgba(199, 125, 255, 0.22);
+  border-radius: 18px;
+  padding: 24px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.how-inner-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.how-left-info {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.how-calendar-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: rgba(157, 78, 221, 0.12);
+  border: 1px solid rgba(199, 125, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.25);
+}
+
+.how-title-text {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.how-desc-text {
+  font-size: 0.84rem;
+  color: rgba(224, 170, 255, 0.7);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 380px;
+}
+
+.how-steps-visual-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.how-step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  width: 100px;
+}
+
+.step-badge-number {
+  position: absolute;
+  top: -8px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.step-icon-stage {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: transform 0.22s ease;
+}
+
+.how-step-node:hover .step-icon-stage {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.step-icon-stage.green-glow {
+  background: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  box-shadow: 0 0 18px rgba(0, 245, 212, 0.2);
+  transition: all 0.25s ease;
+}
+
+.step-icon-stage.purple-glow {
+  background: rgba(157, 78, 221, 0.12);
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  box-shadow: 0 0 18px rgba(157, 78, 221, 0.25);
+  transition: all 0.25s ease;
+}
+
+.step-icon-stage.gold-glow {
+  background: rgba(255, 209, 102, 0.08);
+  border: 1px solid rgba(255, 209, 102, 0.35);
+  box-shadow: 0 0 18px rgba(255, 209, 102, 0.2);
+  transition: all 0.25s ease;
+}
+
+/* 60 Days Mini Calendar Icon */
+.step-mini-calendar {
+  width: 38px;
+  height: 42px;
+  border: 2px solid #c77dff;
+  border-radius: 6px;
+  background: rgba(13, 0, 26, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(157, 78, 221, 0.3);
+}
+
+.mini-cal-top {
+  height: 8px;
+  background: #9d4edd;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.cal-ring {
+  width: 3px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.mini-cal-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.mini-cal-num {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #080414;
+  line-height: 1;
+}
+
+.step-caption-title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.step-caption-sub {
+  font-weight: 600;
+  color: rgba(224, 170, 255, 0.7);
+}
+
+.step-flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c77dff;
+  margin-top: -16px;
+  filter: drop-shadow(0 0 8px rgba(199, 125, 255, 0.6));
+  animation: arrowBounce 2.5s ease-in-out infinite;
+}
+
+.how-step-text p {
+  font-size: 0.76rem;
+  color: rgba(224, 170, 255, 0.65);
+  margin: 0;
+}
+
+.step-arrow-divider {
+  color: rgba(199, 125, 255, 0.4);
+  font-size: 1.3rem;
+}
+
+/* ── Mobile Responsiveness (Screen <= 768px) ── */
+@media (max-width: 768px) {
+  .rewards-page-container {
+    padding: 0 14px;
+    margin: 12px auto 40px;
+  }
+
+  .rewards-header-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .rewards-overview-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .achievers-cards-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Compact & perfectly fitted How Reward Period Works on mobile */
+  .rewards-how-section {
+    padding: 18px 16px;
+  }
+
+  .how-inner-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .how-left-info {
+    width: 100%;
+    gap: 14px;
+  }
+
+  .how-calendar-icon-wrap {
+    width: 48px;
+    height: 48px;
+  }
+
+  .how-calendar-icon-wrap svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .how-title-text {
+    font-size: 0.95rem;
+  }
+
+  .how-desc-text {
+    font-size: 0.78rem;
+    max-width: 100%;
+  }
+
+  .how-steps-visual-flow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 4px;
+    padding-top: 8px;
+  }
+
+  .how-step-node {
+    width: 82px;
+    flex: 1;
+    max-width: 96px;
+  }
+
+  .step-badge-number {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    top: -6px;
+  }
+
+  .step-icon-stage {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+  }
+
+  .step-icon-stage svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .step-mini-calendar {
+    width: 30px;
+    height: 34px;
+  }
+
+  .mini-cal-top {
+    height: 6px;
+  }
+
+  .mini-cal-num {
+    font-size: 0.85rem;
+  }
+
+  .step-caption-title {
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+
+  .step-caption-sub {
+    font-size: 0.62rem;
+  }
+
+  .step-flow-arrow {
+    margin-top: -12px;
+    flex-shrink: 0;
+  }
+
+  .step-flow-arrow svg {
+    width: 18px;
+    height: 18px;
+  }
+}
