@@ -758,6 +758,20 @@
         <span></span>
       </button>
     </div>
+
+    <!-- Mobile Slide-Down Menu (Dashboard) -->
+    <div class="mobile-menu" id="mobileMenu">
+      <ul class="mobile-nav-links">
+        <li><a href="index.html" class="mob-nav-link">Home</a></li>
+        <li><a href="index.html#about" class="mob-nav-link">About Us</a></li>
+        <li><a href="index.html#packages" class="mob-nav-link">Package Plans</a></li>
+        <li><a href="index.html#income" class="mob-nav-link">Income</a></li>
+        <li><a href="settings.html" class="mob-nav-link">Settings</a></li>
+      </ul>
+      <div class="mobile-menu-actions">
+        <div class="mob-btn-register" id="mobDashLogoutBtn" style="cursor:pointer;text-align:center;">Logout</div>
+      </div>
+    </div>
   </header>
 
   <!-- Main Dashboard Wrapper (Sidebar + Content) -->
@@ -2337,5 +2351,55 @@
   </script>
 
   <script src="js/wallet.js"></script>
+
+  <!-- Dashboard Mobile Hamburger Toggle -->
+  <script>
+    (function() {
+      function initDashHamburger() {
+        var btn  = document.getElementById('hamburgerBtn');
+        var menu = document.getElementById('mobileMenu');
+        if (!btn || !menu) return;
+
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('open');
+          menu.classList.toggle('open');
+        });
+
+        // Close when any link tapped
+        menu.querySelectorAll('.mob-nav-link').forEach(function(link) {
+          link.addEventListener('click', function() {
+            btn.classList.remove('open');
+            menu.classList.remove('open');
+          });
+        });
+
+        // Logout button inside mobile menu
+        var logoutBtn = document.getElementById('mobDashLogoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', function() {
+            btn.classList.remove('open');
+            menu.classList.remove('open');
+            // Use the same logout used by the dropdown
+            var dropLogout = document.getElementById('dropdownLogoutBtn');
+            if (dropLogout) { dropLogout.click(); return; }
+            // Fallback
+            if (window.BitchainAuth && window.BitchainAuth.getSupabase) {
+              window.BitchainAuth.getSupabase().auth.signOut().then(function() {
+                window.location.href = 'login.html';
+              });
+            } else {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashHamburger);
+      } else {
+        initDashHamburger();
+      }
+    })();
+  </script>
 </body>
 </html>

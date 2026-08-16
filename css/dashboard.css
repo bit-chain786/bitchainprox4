@@ -1373,6 +1373,11 @@
 }
 
 @media (max-width: 768px) {
+  /* Hide profile avatar icon in top navbar on mobile — profile is shown in the dashboard card */
+  .navbar .nav-actions {
+    display: none !important;
+  }
+
   .dash-main-content {
     display: flex;
     flex-direction: column;
