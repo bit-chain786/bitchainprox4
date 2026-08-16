@@ -63,6 +63,21 @@ function truncate(s, n=24) { return s && s.length > n ? s.slice(0, n) + '…' : 
 function initials(name) { return (name || '?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function el(id) { return document.getElementById(id); }
 
+/**
+ * Render user avatar circle with custom photo or fallback initials
+ */
+function renderUserAvatar(p, size = 'xs') {
+  const avatarUrl = p && (p.avatar_url || p.profile_image);
+  const name = (p && (p.full_name || p.username)) || 'User';
+  const init = initials(name);
+  const sizeStyle = size === 'lg' ? 'width:56px;height:56px;font-size:1.2rem;' : '';
+
+  if (avatarUrl) {
+    return `<div class="user-avatar-${size}" style="${sizeStyle}background-image:url('${avatarUrl}');background-size:cover;background-position:center;color:transparent;text-indent:-9999px;"></div>`;
+  }
+  return `<div class="user-avatar-${size}" style="${sizeStyle}">${init}</div>`;
+}
+
 function toast(msg, type='success') {
   let t = el('adminToast');
   if (!t) { t = document.createElement('div'); t.id = 'adminToast'; t.className = 'admin-toast'; document.body.appendChild(t); }
@@ -422,7 +437,7 @@ async function loadUsers(page=1) {
         <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(u.id,12)}</td>
         <td>
           <div class="user-cell">
-            <div class="user-avatar-xs" style="${u.avatar_url ? `background-image:url('${u.avatar_url}');background-size:cover;background-position:center` : ''}">${u.avatar_url ? '' : initials(u.full_name)}</div>
+            ${renderUserAvatar(u, 'xs')}
             <div>
               <div class="user-name-sm">${u.full_name || '—'}</div>
               <div class="user-email-sm">@${u.username || '—'}</div>
@@ -471,7 +486,7 @@ async function openUserModal(userId) {
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <div class="user-avatar-xs" style="width:56px;height:56px;font-size:1.2rem;${u.avatar_url ? `background-image:url('${u.avatar_url}');background-size:cover;background-position:center` : ''}">${u.avatar_url ? '' : initials(u.full_name)}</div>
+      ${renderUserAvatar(u, 'lg')}
       <div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary)">${u.full_name || '—'}</div>
         <div style="font-size:0.8rem;color:var(--text-muted)">@${u.username || '—'} · ${u.email}</div>
@@ -616,7 +631,7 @@ async function loadDeposits(page=1) {
     let profilesMap = {};
     if (userIds.length > 0) {
       try {
-        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email').in('id', userIds);
+        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email, avatar_url').in('id', userIds);
         if (profiles) {
           profiles.forEach(p => { profilesMap[p.id] = p; });
         }
@@ -634,7 +649,7 @@ async function loadDeposits(page=1) {
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(d.id,12)}</td>
           <td>
             <div class="user-cell">
-              <div class="user-avatar-xs">${initials(displayName)}</div>
+              ${renderUserAvatar(p, 'xs')}
               <div><div class="user-name-sm">${displayName}</div><div class="user-email-sm">${displaySub}</div></div>
             </div>
           </td>
@@ -669,13 +684,20 @@ async function openDepositModal(depositId) {
 
   let p = {};
   if (d.user_id) {
-    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance').eq('id', d.user_id).maybeSingle();
+    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance, avatar_url').eq('id', d.user_id).maybeSingle();
     p = userProf || {};
   }
 
   const isPending = d.status === 'pending';
 
   body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--admin-border);">
+      ${renderUserAvatar(p, 'lg')}
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">${p.full_name || '—'}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);">@${p.username || '—'} · ${p.email || '—'}</div>
+      </div>
+    </div>
     <div class="info-grid">
       ${infoRow('Deposit ID', truncate(d.id,24))}
       ${infoRow('User', p.full_name || '—')}
@@ -791,7 +813,7 @@ async function loadWithdrawals(page=1) {
     let profilesMap = {};
     if (userIds.length > 0) {
       try {
-        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email, available_balance').in('id', userIds);
+        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email, available_balance, avatar_url').in('id', userIds);
         if (profiles) {
           profiles.forEach(p => { profilesMap[p.id] = p; });
         }
@@ -809,7 +831,7 @@ async function loadWithdrawals(page=1) {
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(w.id,12)}</td>
           <td>
             <div class="user-cell">
-              <div class="user-avatar-xs">${initials(displayName)}</div>
+              ${renderUserAvatar(p, 'xs')}
               <div><div class="user-name-sm">${displayName}</div><div class="user-email-sm">${displaySub}</div></div>
             </div>
           </td>
@@ -844,7 +866,7 @@ async function openWithdrawalModal(wdId) {
 
   let p = {};
   if (w.user_id) {
-    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance').eq('id', w.user_id).maybeSingle();
+    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance, avatar_url').eq('id', w.user_id).maybeSingle();
     p = userProf || {};
   }
 
@@ -852,6 +874,13 @@ async function openWithdrawalModal(wdId) {
   const canProcess = parseFloat(p.available_balance || 0) >= parseFloat(w.amount);
 
   body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--admin-border);">
+      ${renderUserAvatar(p, 'lg')}
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">${p.full_name || '—'}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);">@${p.username || '—'} · ${p.email || '—'}</div>
+      </div>
+    </div>
     <div class="info-grid">
       ${infoRow('Withdrawal ID', truncate(w.id,24))}
       ${infoRow('User', p.full_name||'—')}
