@@ -611,15 +611,30 @@ async function loadDeposits(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('deposits').select('*').order('created_at', {ascending:false});
-    if (_depositsFilter !== 'all') query = query.eq('status', _depositsFilter);
-    if (_depositsSearch) query = query.ilike('transaction_id', `%${_depositsSearch}%`);
+    // Build base query for data
+    let dataQuery = db.from('deposits').select('*').order('created_at', {ascending:false});
+    if (_depositsFilter !== 'all') dataQuery = dataQuery.eq('status', _depositsFilter);
+    if (_depositsSearch) dataQuery = dataQuery.ilike('transaction_id', `%${_depositsSearch}%`);
 
+    // Build count query with same filters
+    let countQuery = db.from('deposits').select('id', { count: 'exact', head: true });
+    if (_depositsFilter !== 'all') countQuery = countQuery.eq('status', _depositsFilter);
+    if (_depositsSearch) countQuery = countQuery.ilike('transaction_id', `%${_depositsSearch}%`);
+
+    // Pagination for data
     const from = (page-1)*PAGE_SIZE;
-    query = query.range(from, from+PAGE_SIZE-1);
-    const { data, error } = await query;
+    dataQuery = dataQuery.range(from, from+PAGE_SIZE-1);
 
-    if (error) throw error;
+    // Execute both queries in parallel
+    const [{ data, error: dataErr }, { count, error: countErr }] = await Promise.all([
+      dataQuery, // returns { data, error }
+      countQuery // returns { count, error }
+    ]);
+
+    if (dataErr) throw dataErr;
+    if (countErr) throw countErr;
+
+// error check removed – using dataErr/countErr above
     if (!data || data.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">💳</div><div class="empty-state-text">No deposit requests found</div></div></td></tr>`;
       el('depositsPagination').innerHTML = '';
@@ -663,7 +678,7 @@ async function loadDeposits(page=1) {
       `;
     }).join('');
 
-    renderPagination('depositsPagination', count, page, p => loadDeposits(p));
+    renderPagination('depositsPagination', count || 0, page, p => loadDeposits(p));
   } catch(e) {
     console.error('Deposits load error:', e);
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load deposits: ${e.message||''}</div></div></td></tr>`;
