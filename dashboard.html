@@ -1737,10 +1737,27 @@
         const rawSponsor = profile.sponsor_username ? profile.sponsor_username.trim() : '';
         const hasSponsor = Boolean(rawSponsor && rawSponsor !== 'null' && rawSponsor !== 'undefined');
         const sponsorDisplay = hasSponsor ? rawSponsor : 'DIRECT SIGNUP';
-        const rankName = profile.rank || 'UNRANKED';
-        const pkgName = profile.package_name || 'No Package';
+        const initialLetter = fullName.charAt(0).toUpperCase();
+        const avatarCircle = document.getElementById('profAvatarInitial');
+        if (profile.avatar_url && profile.avatar_url.trim() !== '') {
+          if (avatarCircle) {
+            const cacheBusted = profile.avatar_url.includes('?t=') ? profile.avatar_url : `${profile.avatar_url}?t=${Date.now()}`;
+            avatarCircle.style.backgroundImage = `url('${cacheBusted}')`;
+            avatarCircle.style.backgroundSize = 'cover';
+            avatarCircle.style.backgroundPosition = 'center';
+            avatarCircle.style.color = 'transparent';
+            avatarCircle.textContent = '';
+          }
+          if (window.GlobalAvatar) window.GlobalAvatar.apply(profile.avatar_url, userId);
+        } else {
+          if (avatarCircle) {
+            avatarCircle.style.backgroundImage = 'none';
+            avatarCircle.style.color = '';
+            avatarCircle.textContent = initialLetter;
+          }
+          if (window.GlobalAvatar) window.GlobalAvatar.clear(userId);
+        }
 
-        document.getElementById('profAvatarInitial').textContent = fullName.charAt(0).toUpperCase();
         document.getElementById('profUserFullName').textContent = fullName;
         document.getElementById('dashHdrUserName').textContent = fullName;
         const mobHdrName = document.getElementById('mobDashHdrUserName');
@@ -2222,7 +2239,7 @@
         }).eq('id', user.id);
 
         // Update the UI immediately
-        applyAvatarToUI(publicUrl);
+        applyAvatarToUI(publicUrl, user.id);
         closeAvatarCropModal();
         showAvatarToast('✅ Profile picture updated!', 'success');
 
@@ -2235,30 +2252,46 @@
       }
     }
 
-    function applyAvatarToUI(url) {
-      // Apply to the large profile card avatar
+    function applyAvatarToUI(url, userId) {
       const circle = document.getElementById('profAvatarInitial');
       if (circle) {
-        circle.style.backgroundImage = `url('${url}')`;
-        circle.style.backgroundSize = 'cover';
-        circle.style.backgroundPosition = 'center';
-        circle.style.color = 'transparent';
-        circle.textContent = '';
+        if (url && url.trim() !== '') {
+          const cacheBusted = url.includes('?t=') ? url : `${url}?t=${Date.now()}`;
+          circle.style.backgroundImage = `url('${cacheBusted}')`;
+          circle.style.backgroundSize = 'cover';
+          circle.style.backgroundPosition = 'center';
+          circle.style.color = 'transparent';
+          circle.textContent = '';
+        } else {
+          circle.style.backgroundImage = 'none';
+          circle.style.color = '';
+        }
       }
       // Also apply to navbar circle + every other global-avatar-target on this page
-      if (window.GlobalAvatar) window.GlobalAvatar.apply(url);
+      if (window.GlobalAvatar) {
+        if (url && url.trim() !== '') {
+          window.GlobalAvatar.apply(url, userId);
+        } else {
+          window.GlobalAvatar.clear(userId);
+        }
+      }
     }
 
-    // Load saved avatar on page start
+    // Load saved avatar on page start for current user
     async function loadSavedAvatar() {
       try {
         const client = window.BitchainAuth && window.BitchainAuth.getSupabase ? window.BitchainAuth.getSupabase() : null;
         if (!client) return;
         const { data: { user } } = await client.auth.getUser();
         if (!user) return;
-        const { data: profile } = await client.from('profiles').select('avatar_url').eq('id', user.id).single();
-        if (profile && profile.avatar_url) {
-          applyAvatarToUI(profile.avatar_url);
+        const { data: profile } = await client.from('profiles').select('avatar_url, full_name, username').eq('id', user.id).single();
+        if (profile && profile.avatar_url && profile.avatar_url.trim() !== '') {
+          applyAvatarToUI(profile.avatar_url, user.id);
+        } else {
+          applyAvatarToUI(null, user.id);
+          const name = (profile && profile.full_name) || (profile && profile.username) || (user.email ? user.email.split('@')[0] : 'U');
+          const circle = document.getElementById('profAvatarInitial');
+          if (circle) circle.textContent = name.charAt(0).toUpperCase();
         }
       } catch (e) {
         // silent fail

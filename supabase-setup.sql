@@ -69,7 +69,8 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 4. Add Financial & Rank Columns to Profiles table (if not exists)
+-- 4. Add Financial, Rank & Avatar Columns to Profiles table (if not exists)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT DEFAULT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rank TEXT DEFAULT 'UNRANKED';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rank_value INTEGER DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS package_name TEXT DEFAULT 'No Package';

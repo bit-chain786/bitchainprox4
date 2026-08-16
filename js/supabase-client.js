@@ -266,6 +266,15 @@ async function getUserProfile(userId) {
 async function signOutUser() {
   const client = getSupabase();
   localStorage.removeItem('bitchain_user_profile');
+  if (window.GlobalAvatar && typeof window.GlobalAvatar.clear === 'function') {
+    window.GlobalAvatar.clear();
+  }
+  // Clear any residual user storage
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('bitchain_avatar_') || key.startsWith('bitchain_user_')) {
+      localStorage.removeItem(key);
+    }
+  });
   if (client) {
     await client.auth.signOut();
   }

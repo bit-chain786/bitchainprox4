@@ -1,29 +1,38 @@
 /* ==========================================================================
-   BITCHAIN PRO X — GLOBAL AVATAR LOADER
-   Runs on every page. Fetches avatar_url from Supabase profiles table
-   and applies the profile photo to ALL avatar elements across the site:
-     - Navbar top-right circle (#navAvatarCircle)
-     - Dashboard profile card (#profAvatarInitial)
-     - Any element with class .global-avatar-target
+   BITCHAIN PRO X — USER-SPECIFIC GLOBAL AVATAR SYSTEM
+   Ensures 100% user-scoped profile photo isolation.
+   - Account A's photo is tied ONLY to Account A (user.id).
+   - Account B's photo is tied ONLY to Account B (user.id).
+   - Never shares or leaks avatar cache between different accounts.
+   - Cleanly resets UI to user's initial when an account has no custom photo.
    ========================================================================== */
 
 (function () {
   'use strict';
 
-  // Cache key so we don't re-fetch on every page navigation
-  const CACHE_KEY = 'bitchain_avatar_url';
-  const CACHE_TS_KEY = 'bitchain_avatar_ts';
+  // Helper to generate a user-specific cache key
+  function getCacheKey(userId) {
+    return userId ? `bitchain_avatar_url_${userId}` : null;
+  }
+  function getCacheTsKey(userId) {
+    return userId ? `bitchain_avatar_ts_${userId}` : null;
+  }
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  // Clean legacy/global non-user-specific keys if they exist
+  try {
+    localStorage.removeItem('bitchain_avatar_url');
+    localStorage.removeItem('bitchain_avatar_ts');
+  } catch (e) {}
+
   /* -----------------------------------------------------------------------
-     Apply a photo URL to every known avatar spot on the current page
+     Apply profile photo to all avatar elements on the current page
   ----------------------------------------------------------------------- */
   function applyAvatarEverywhere(url) {
     if (!url) return;
+    const cacheBustedUrl = url.includes('?t=') ? url : `${url}?t=${Date.now()}`;
 
-    const cacheBustedUrl = url.includes('?t=') ? url : url + '?t=' + Date.now();
-
-    // 1. Navbar circle badge (rendered by auth.js as #navAvatarCircle)
+    // 1. Navbar avatar circle (#navAvatarCircle)
     const navCircle = document.getElementById('navAvatarCircle');
     if (navCircle) {
       navCircle.style.backgroundImage = `url('${cacheBustedUrl}')`;
@@ -33,7 +42,7 @@
       navCircle.textContent = '';
     }
 
-    // 2. Dashboard large profile avatar (#profAvatarInitial)
+    // 2. Dashboard large profile card avatar (#profAvatarInitial)
     const profCircle = document.getElementById('profAvatarInitial');
     if (profCircle) {
       profCircle.style.backgroundImage = `url('${cacheBustedUrl}')`;
@@ -43,7 +52,7 @@
       profCircle.textContent = '';
     }
 
-    // 3. Any other element tagged with class "global-avatar-target"
+    // 3. Any element with class .global-avatar-target
     document.querySelectorAll('.global-avatar-target').forEach(el => {
       el.style.backgroundImage = `url('${cacheBustedUrl}')`;
       el.style.backgroundSize = 'cover';
@@ -54,93 +63,155 @@
   }
 
   /* -----------------------------------------------------------------------
-     Load avatar_url from Supabase (with local cache)
+     Reset avatar elements to default state (initial letter)
+  ----------------------------------------------------------------------- */
+  function resetAvatarEverywhere(initialLetter) {
+    const letter = (initialLetter || '').toUpperCase();
+
+    // 1. Navbar avatar circle
+    const navCircle = document.getElementById('navAvatarCircle');
+    if (navCircle) {
+      navCircle.style.backgroundImage = 'none';
+      navCircle.style.color = '';
+      if (letter) navCircle.textContent = letter;
+    }
+
+    // 2. Dashboard profile card avatar
+    const profCircle = document.getElementById('profAvatarInitial');
+    if (profCircle) {
+      profCircle.style.backgroundImage = 'none';
+      profCircle.style.color = '';
+      if (letter) profCircle.textContent = letter;
+    }
+
+    // 3. Any element with class .global-avatar-target
+    document.querySelectorAll('.global-avatar-target').forEach(el => {
+      el.style.backgroundImage = 'none';
+      el.style.color = '';
+      if (letter) el.textContent = letter;
+    });
+  }
+
+  /* -----------------------------------------------------------------------
+     Load avatar for the CURRENT authenticated user only
   ----------------------------------------------------------------------- */
   async function loadGlobalAvatar(forceRefresh) {
     try {
-      // Check local cache first (unless forced refresh)
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(CACHE_KEY);
-        const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
-        if (cached && (Date.now() - ts < CACHE_TTL)) {
-          applyAvatarEverywhere(cached);
-          return;
-        }
-      }
-
-      // Get Supabase client
       const client = window.BitchainAuth && window.BitchainAuth.getSupabase
         ? window.BitchainAuth.getSupabase()
         : null;
       if (!client) return;
 
       const { data: { user } } = await client.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        // No user logged in -> clear all avatars
+        resetAvatarEverywhere('');
+        return;
+      }
 
-      const { data: profile } = await client
+      const userCacheKey = getCacheKey(user.id);
+      const userCacheTsKey = getCacheTsKey(user.id);
+
+      // Check user-scoped cache first if not forced refresh
+      if (!forceRefresh && userCacheKey) {
+        const cached = localStorage.getItem(userCacheKey);
+        const ts = parseInt(localStorage.getItem(userCacheTsKey) || '0');
+        if (cached && (Date.now() - ts < CACHE_TTL)) {
+          applyAvatarEverywhere(cached);
+          return;
+        }
+      }
+
+      // Fetch fresh profile record from Supabase for this specific user ID
+      const { data: profile, error } = await client
         .from('profiles')
-        .select('avatar_url')
+        .select('avatar_url, full_name, username')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile && profile.avatar_url) {
-        // Cache it
-        localStorage.setItem(CACHE_KEY, profile.avatar_url);
-        localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+      if (error) {
+        console.warn('Avatar profile query note:', error.message);
+        return;
+      }
+
+      const fallbackName = (profile && profile.full_name) || (profile && profile.username) || (user.email ? user.email.split('@')[0] : 'U');
+      const initial = fallbackName.charAt(0).toUpperCase();
+
+      if (profile && profile.avatar_url && profile.avatar_url.trim() !== '') {
+        // User has a photo -> Cache with user-specific key and apply
+        if (userCacheKey) {
+          localStorage.setItem(userCacheKey, profile.avatar_url);
+          localStorage.setItem(userCacheTsKey, Date.now().toString());
+        }
         applyAvatarEverywhere(profile.avatar_url);
+      } else {
+        // User has NO photo -> Clear user cache and reset UI to user's initial
+        if (userCacheKey) {
+          localStorage.removeItem(userCacheKey);
+          localStorage.removeItem(userCacheTsKey);
+        }
+        resetAvatarEverywhere(initial);
       }
     } catch (e) {
-      // Silent fail — avatar is cosmetic
+      console.warn('GlobalAvatar load error:', e);
     }
   }
 
   /* -----------------------------------------------------------------------
-     Public API — exposed on window so dashboard.html can call it after upload
+     Public API
   ----------------------------------------------------------------------- */
   window.GlobalAvatar = {
     /**
-     * Force-refresh avatar from Supabase and apply to all spots
+     * Force refresh the avatar from Supabase for current user
      */
     refresh: function () {
       loadGlobalAvatar(true);
     },
 
     /**
-     * Immediately apply a URL to all spots (called right after upload,
-     * no network round-trip needed)
+     * Immediately apply a user-specific photo URL
      */
-    apply: function (url) {
-      // Bust the cache so next page load re-fetches
-      localStorage.setItem(CACHE_KEY, url);
-      localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+    apply: function (url, userId) {
+      if (!url) return;
+      if (userId) {
+        localStorage.setItem(getCacheKey(userId), url);
+        localStorage.setItem(getCacheTsKey(userId), Date.now().toString());
+      }
       applyAvatarEverywhere(url);
     },
 
     /**
-     * Clear cached avatar (e.g. on logout)
+     * Reset UI and purge avatar cache for specified user or all users
      */
-    clear: function () {
-      localStorage.removeItem(CACHE_KEY);
-      localStorage.removeItem(CACHE_TS_KEY);
+    clear: function (userId) {
+      if (userId) {
+        localStorage.removeItem(getCacheKey(userId));
+        localStorage.removeItem(getCacheTsKey(userId));
+      } else {
+        // Clear all avatar cache items from localStorage
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('bitchain_avatar_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      resetAvatarEverywhere('');
     }
   };
 
   /* -----------------------------------------------------------------------
-     Auto-run: wait for auth.js to finish rendering the navbar, then apply
+     Auto-initialization on page ready & auth state changes
   ----------------------------------------------------------------------- */
-  function waitForAuthAndApply() {
-    // Try immediately
+  function initAvatarWatcher() {
     loadGlobalAvatar(false);
-
-    // Also retry after 1s and 2.5s to cover slow auth render
-    setTimeout(() => loadGlobalAvatar(false), 1000);
-    setTimeout(() => loadGlobalAvatar(false), 2500);
+    setTimeout(() => loadGlobalAvatar(false), 800);
+    setTimeout(() => loadGlobalAvatar(false), 2000);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitForAuthAndApply);
+    document.addEventListener('DOMContentLoaded', initAvatarWatcher);
   } else {
-    waitForAuthAndApply();
+    initAvatarWatcher();
   }
 
 })();
