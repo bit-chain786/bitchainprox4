@@ -1758,8 +1758,8 @@
           if (window.GlobalAvatar) window.GlobalAvatar.clear(userId);
         }
 
-        const rankName = profile.rank || 'UNRANKED';
-        const pkgName = profile.package_name || 'No Package';
+        const rankName = profile.rank || profile.current_rank || 'UNRANKED';
+        const pkgName = (profile.current_package ? profile.current_package.toUpperCase() : null) || profile.package_name || 'No Package';
 
         document.getElementById('profUserFullName').textContent = fullName;
         document.getElementById('dashHdrUserName').textContent = fullName;

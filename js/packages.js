@@ -146,13 +146,13 @@ async function pkgLoadUserState() {
     if (!profile) {
       const { data } = await client
         .from('profiles')
-        .select('current_package, current_rank, package_name, rank, rank_value, available_balance')
+        .select('current_package, current_rank, rank, rank_value, available_balance')
         .eq('id', userId)
         .maybeSingle();
       profile = data;
     }
 
-    const rawPkg = (profile && (profile.current_package || profile.package_name)) || null;
+    const rawPkg = (profile && (profile.current_package || profile.current_rank)) || null;
     pkgCurrentIndex = pkgKeyToIndex(rawPkg);
 
     if (pkgCurrentIndex < 0 && profile && profile.rank_value > 0) {
@@ -378,7 +378,7 @@ async function pkgConfirmPurchase() {
       profile = data;
     }
 
-    const serverPkg = (profile && (profile.current_package || profile.package_name)) || null;
+    const serverPkg = (profile && (profile.current_package || profile.current_rank)) || null;
     let serverCurrentIdx = pkgKeyToIndex(serverPkg);
     if (serverCurrentIdx < 0 && profile && profile.rank_value > 0) {
       serverCurrentIdx = Math.min(PKG_TIERS.length - 1, profile.rank_value - 1);
@@ -421,20 +421,36 @@ async function pkgConfirmPurchase() {
     }
 
     // 2. Update the user's profile with new package + rank AND DEDUCT BALANCE
-    const { error: updateErr } = await client
+    const updatePayload = {
+      current_package:   tier.key,
+      current_rank:      tier.rank,
+      rank:              tier.rank,
+      rank_value:        tier.id,
+      available_balance: newBalance,
+      updated_at:        new Date().toISOString()
+    };
+
+    let { error: updateErr } = await client
       .from('profiles')
-      .update({
-        current_package:   tier.key,
-        current_rank:      tier.rank,
-        package_name:      tier.name,
-        rank:              tier.rank,
-        rank_value:        tier.id,
-        available_balance: newBalance,
-        updated_at:        new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', userId);
 
-    if (updateErr) throw new Error('Failed to update your package: ' + updateErr.message);
+    if (updateErr) {
+      console.warn('Full profile update note, retrying with core columns:', updateErr.message);
+      const corePayload = {
+        current_package:   tier.key,
+        current_rank:      tier.rank,
+        available_balance: newBalance,
+        updated_at:        new Date().toISOString()
+      };
+      const fallbackRes = await client
+        .from('profiles')
+        .update(corePayload)
+        .eq('id', userId);
+      if (fallbackRes.error) {
+        throw new Error('Failed to update your package: ' + fallbackRes.error.message);
+      }
+    }
 
     // 3. Record activity log
     try {
