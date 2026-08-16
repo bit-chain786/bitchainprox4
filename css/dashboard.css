@@ -1412,20 +1412,24 @@
     order: 5;
   }
 
-  .income-summary-card {
+  #dashWalletSection {
     order: 6;
   }
 
-  .referral-section-card {
+  .income-summary-card {
     order: 7;
   }
 
-  .recent-activity-card {
+  .referral-section-card {
     order: 8;
   }
 
-  .grow-earn-banner {
+  .recent-activity-card {
     order: 9;
+  }
+
+  .grow-earn-banner {
+    order: 10;
   }
 
   .dash-footer {
