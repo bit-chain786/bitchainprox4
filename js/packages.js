@@ -1,6 +1,6 @@
 /* ==========================================================================
    BITCHAIN PRO X — PACKAGE / RANK UPGRADE SYSTEM
-   Sequential Progression Engine with Supabase Integration
+   Sequential Progression Engine with Live Supabase Balance Synchronization
    ========================================================================== */
 
 'use strict';
@@ -22,6 +22,7 @@ let pkgPanelOpen = false;
 let pkgCurrentIndex = -1;   // -1 = no package; 0..7 = index into PKG_TIERS
 let pkgPendingIndex = null; // index of package being confirmed
 let pkgUserId = null;
+let isPurchasing = false;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getSupabase() {
@@ -50,7 +51,7 @@ function pkgShowToast(msg, type = 'success') {
 // ─── Determine current package index from DB value ───────────────────────────
 function pkgKeyToIndex(pkgKey) {
   if (!pkgKey) return -1;
-  const idx = PKG_TIERS.findIndex(p => p.key === pkgKey.toLowerCase().trim());
+  const idx = PKG_TIERS.findIndex(p => p.key === pkgKey.toLowerCase().trim() || p.name.toLowerCase() === pkgKey.toLowerCase().trim() || p.rank.toLowerCase() === pkgKey.toLowerCase().trim());
   return idx; // -1 if not found
 }
 
@@ -70,24 +71,28 @@ async function pkgLoadUserState() {
 
     const { data: profile, error } = await client
       .from('profiles')
-      .select('current_package, current_rank')
+      .select('current_package, current_rank, package_name, rank, rank_value, available_balance')
       .eq('id', user.id)
       .maybeSingle();
 
     if (error) {
-      // If column doesn't exist yet (SQL not run), just show defaults gracefully
       console.warn('pkg load error (column may not exist yet):', error.message);
       return;
     }
 
-    const rawPkg = (profile && profile.current_package) || null;
+    const rawPkg = (profile && (profile.current_package || profile.package_name)) || null;
     pkgCurrentIndex = pkgKeyToIndex(rawPkg);
+
+    // If still -1 but rank_value > 0, map index from rank_value
+    if (pkgCurrentIndex < 0 && profile && profile.rank_value > 0) {
+      pkgCurrentIndex = Math.min(PKG_TIERS.length - 1, profile.rank_value - 1);
+    }
 
     // Sync display with real DB values
     pkgUpdateCardDisplay();
+    pkgRenderPanel();
   } catch (e) {
     console.warn('pkgLoadUserState exception:', e);
-    // Still safe — defaults were already rendered above
   }
 }
 
@@ -110,8 +115,6 @@ function pkgUpdateCardDisplay() {
   const actionBottom = document.getElementById('upgradeActionBottom');
 
   if (pkgCurrentIndex < 0) {
-    // Do NOT overwrite rank badge here — rank is set by the dashboard from the real DB value
-    // if (badgeEl) badgeEl.textContent = '✦ UNRANKED';  // managed by dashboard.html
     if (curNameEl) curNameEl.textContent = 'No Package';
     if (curPriceEl) curPriceEl.textContent = '';
     if (curIconEl) curIconEl.textContent = '🛡️';
@@ -172,7 +175,7 @@ function pkgUpdateCardDisplay() {
   }
 }
 
-// ─── Open confirmation modal ─────────────────────────────────────────────────
+// ─── Open confirmation modal with LIVE Supabase balance check ────────────────
 async function pkgOpenConfirm(idx) {
   if (idx !== pkgCurrentIndex + 1) {
     if (idx <= pkgCurrentIndex) {
@@ -184,7 +187,7 @@ async function pkgOpenConfirm(idx) {
   }
 
   const btn = document.getElementById('pkgUpgradeTriggerBtn');
-  if (btn) btn.innerHTML = '<span class="pkg-spinner"></span> Checking...';
+  if (btn) btn.innerHTML = '<span class="pkg-spinner"></span> Checking Balance...';
 
   pkgPendingIndex = idx;
   const tier = PKG_TIERS[idx];
@@ -195,33 +198,40 @@ async function pkgOpenConfirm(idx) {
   
   try {
     const client = getSupabase();
-    if (client && pkgUserId) {
-      const { data: profile } = await client
-        .from('profiles')
-        .select('available_balance')
-        .eq('id', pkgUserId)
-        .maybeSingle();
-      if (profile && profile.available_balance) {
-        availableBal = parseFloat(profile.available_balance) || 0;
+    if (client) {
+      // Always get fresh authenticated user
+      const { data: { user }, error: userErr } = await client.auth.getUser();
+      if (!userErr && user) {
+        pkgUserId = user.id;
+        const { data: profile } = await client
+          .from('profiles')
+          .select('available_balance, current_package, package_name, rank_value')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (profile && profile.available_balance !== null && profile.available_balance !== undefined) {
+          availableBal = parseFloat(profile.available_balance) || 0;
+        }
       }
     }
   } catch(e) {
-    console.warn("Could not fetch balance", e);
+    console.warn("Could not fetch balance for package confirmation:", e);
   }
 
   if (btn) btn.innerHTML = `<span class="btn-icon">⚡</span> <span id="pkgUpgradeBtnText">${currentTier ? 'UPGRADE TO ' : 'PURCHASE '} ${tier.name} — $${tier.price}</span>`;
 
-  // Populate modal
+  // Populate modal fields
   const el = (id) => document.getElementById(id);
-  if (el('pkgConfirmPackageName'))  el('pkgConfirmPackageName').textContent  = tier.name;
-  if (el('pkgConfirmPrice'))        el('pkgConfirmPrice').textContent        = '$' + tier.price + ' USDT';
-  if (el('pkgConfirmCurrentPkg'))   el('pkgConfirmCurrentPkg').textContent   = currentTier ? currentTier.name : 'None';
-  if (el('pkgConfirmNewPkg'))       el('pkgConfirmNewPkg').textContent       = tier.name;
-  if (el('pkgConfirmIcon'))         el('pkgConfirmIcon').textContent         = tier.icon;
+  if (el('pkgConfirmPackageName')) el('pkgConfirmPackageName').textContent = tier.name;
+  if (el('pkgConfirmPrice'))       el('pkgConfirmPrice').textContent       = '$' + tier.price.toFixed(2) + ' USDT';
+  if (el('pkgConfirmAvailBal'))    el('pkgConfirmAvailBal').textContent    = '$' + availableBal.toFixed(2) + ' USDT';
+  if (el('pkgConfirmCurrentPkg'))  el('pkgConfirmCurrentPkg').textContent  = currentTier ? currentTier.name : 'None';
+  if (el('pkgConfirmNewPkg'))      el('pkgConfirmNewPkg').textContent      = tier.name;
+  if (el('pkgConfirmIcon'))        el('pkgConfirmIcon').textContent        = tier.icon;
   
   const confirmBtn = document.getElementById('pkgConfirmBtn');
-  const headingEl = document.getElementById('pkgConfirmHeading');
-  const noteEl = document.querySelector('.pkg-confirm-note');
+  const headingEl  = document.getElementById('pkgConfirmHeading');
+  const noteEl     = document.querySelector('.pkg-confirm-note');
   
   if (availableBal < canonicalPrice) {
     // Insufficient Balance State
@@ -230,28 +240,38 @@ async function pkgOpenConfirm(idx) {
       headingEl.style.color = '#ff6b6b';
     }
     if (noteEl) {
-      noteEl.innerHTML = `You need <b>$${canonicalPrice}</b> to upgrade to ${tier.name}.<br>Available Balance: <b>$${availableBal.toFixed(2)}</b><br>Required: <b>$${canonicalPrice.toFixed(2)}</b>`;
+      noteEl.innerHTML = `Available Balance: <b style="color:#ff6b6b;">$${availableBal.toFixed(2)} USDT</b><br>Required: <b>$${canonicalPrice.toFixed(2)} USDT</b><br>Shortfall: <b>$${(canonicalPrice - availableBal).toFixed(2)} USDT</b>`;
       noteEl.style.color = '#ff6b6b';
     }
     if (confirmBtn) {
       confirmBtn.textContent = 'ADD FUNDS';
       confirmBtn.style.background = 'linear-gradient(135deg, #e63946, #c1121f)';
-      confirmBtn.onclick = () => { window.location.href = '#'; pkgCloseConfirm(); pkgShowToast('Redirecting to deposits...', 'warning'); };
+      confirmBtn.onclick = () => {
+        pkgCloseConfirm();
+        if (window.WalletModule && typeof window.WalletModule.openDepositModal === 'function') {
+          window.WalletModule.openDepositModal();
+        } else {
+          window.location.href = '#dashWalletSection';
+          pkgShowToast('Please deposit funds to continue.', 'warning');
+        }
+      };
+      confirmBtn.disabled = false;
     }
   } else {
-    // Normal Confirmation State
+    // Sufficient Balance — Allow Upgrade
     if (headingEl) {
       headingEl.textContent = 'Confirm Upgrade';
-      headingEl.style.color = '#fff';
+      headingEl.style.color = '#ffffff';
     }
     if (noteEl) {
-      noteEl.textContent = 'This upgrade is final. Your package and rank will be updated immediately after confirmation.';
-      noteEl.style.color = 'rgba(255,255,255,0.28)';
+      noteEl.innerHTML = `Available Balance: <b style="color:#00f5d4;">$${availableBal.toFixed(2)} USDT</b> (Sufficient)<br>Amount to deduct: <b>$${canonicalPrice.toFixed(2)} USDT</b><br>Balance after upgrade: <b>$${(availableBal - canonicalPrice).toFixed(2)} USDT</b>`;
+      noteEl.style.color = 'rgba(255,255,255,0.7)';
     }
     if (confirmBtn) {
-      confirmBtn.textContent = 'Confirm Upgrade ⚡';
+      confirmBtn.textContent = `Confirm Upgrade ($${canonicalPrice} USDT) ⚡`;
       confirmBtn.style.background = 'linear-gradient(135deg, #7b2cbf, #c77dff)';
       confirmBtn.onclick = pkgConfirmPurchase;
+      confirmBtn.disabled = false;
     }
   }
 
@@ -265,62 +285,71 @@ function pkgCloseConfirm() {
   pkgPendingIndex = null;
 }
 
-// ─── Execute the purchase (server-validated) ─────────────────────────────────
+// ─── Execute the purchase (server-validated & atomic) ─────────────────────────
 async function pkgConfirmPurchase() {
-  if (pkgPendingIndex === null) return;
+  if (pkgPendingIndex === null || isPurchasing) return;
+  isPurchasing = true;
+
   const idx = pkgPendingIndex;
   const tier = PKG_TIERS[idx];
 
   // Double-check sequential rule on client
   if (idx !== pkgCurrentIndex + 1) {
     pkgShowToast('🔒 Invalid upgrade sequence.', 'error');
+    isPurchasing = false;
     return;
   }
 
   const btn = document.getElementById('pkgConfirmBtn');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span class="pkg-spinner"></span>Processing…';
+    btn.innerHTML = '<span class="pkg-spinner"></span> Processing Upgrade…';
   }
 
   try {
     const client = getSupabase();
     if (!client) throw new Error('Connection unavailable. Please refresh.');
 
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) throw new Error('You must be signed in to upgrade.');
+    const { data: { user }, error: userErr } = await client.auth.getUser();
+    if (userErr || !user) throw new Error('You must be signed in to upgrade.');
 
-    // Fetch current profile to confirm current_package and available_balance
+    // Fetch live profile from Supabase to confirm current_package and available_balance
     const { data: profile, error: profileErr } = await client
       .from('profiles')
-      .select('current_package, available_balance')
+      .select('current_package, package_name, available_balance, rank, rank_value')
       .eq('id', user.id)
-      .maybeSingle();
+      .single();
 
-    if (profileErr && profileErr.code !== 'PGRST116') {
-      console.warn('Profile fetch warning:', profileErr.message);
+    if (profileErr) {
+      throw new Error('Could not verify account balance. ' + profileErr.message);
     }
 
-    const serverPkg = (profile && profile.current_package) || null;
-    const serverCurrentIdx = pkgKeyToIndex(serverPkg);
-    const availableBal = (profile && profile.available_balance) ? parseFloat(profile.available_balance) : 0;
+    const serverPkg = (profile && (profile.current_package || profile.package_name)) || null;
+    let serverCurrentIdx = pkgKeyToIndex(serverPkg);
+    if (serverCurrentIdx < 0 && profile && profile.rank_value > 0) {
+      serverCurrentIdx = Math.min(PKG_TIERS.length - 1, profile.rank_value - 1);
+    }
+
+    const availableBal = (profile && profile.available_balance !== null && profile.available_balance !== undefined)
+      ? parseFloat(profile.available_balance)
+      : 0;
 
     // Security check: sequence
     if (idx !== serverCurrentIdx + 1) {
-      throw new Error('Package sequence violation. Please refresh the page.');
+      throw new Error('Package sequence mismatch. Please refresh the page.');
     }
 
-    const canonicalPrice = PKG_TIERS[idx].price;
+    const canonicalPrice = tier.price;
 
     // Security check: balance
     if (availableBal < canonicalPrice) {
-      throw new Error('Insufficient balance to complete upgrade.');
+      throw new Error(`Insufficient balance ($${availableBal.toFixed(2)} USDT available, $${canonicalPrice.toFixed(2)} required).`);
     }
 
-    // Deduct balance securely
-    const newBalance = availableBal - canonicalPrice;
+    // Deduct balance
+    const newBalance = Math.max(0, availableBal - canonicalPrice);
 
-    // Record the purchase
+    // 1. Record the package purchase
     try {
       await client
         .from('package_purchases')
@@ -333,28 +362,33 @@ async function pkgConfirmPurchase() {
           status:       'completed',
           purchased_at: new Date().toISOString()
         });
-    } catch (_) { }
+    } catch (purchaseErr) {
+      console.warn('Purchase log note:', purchaseErr);
+    }
 
-    // Update the user's profile with new package + rank AND DEDUCT BALANCE
+    // 2. Update the user's profile with new package + rank AND DEDUCT BALANCE
     const { error: updateErr } = await client
       .from('profiles')
       .update({
-        current_package: tier.key,
-        current_rank:    tier.rank,
+        current_package:   tier.key,
+        current_rank:      tier.rank,
+        package_name:      tier.name,
+        rank:              tier.rank,
+        rank_value:        tier.id,
         available_balance: newBalance,
-        updated_at:      new Date().toISOString()
+        updated_at:        new Date().toISOString()
       })
       .eq('id', user.id);
 
     if (updateErr) throw new Error('Failed to update your package: ' + updateErr.message);
 
-    // Record activity
+    // 3. Record activity log
     try {
       await client.from('activities').insert({
         user_id:     user.id,
-        type:        'package_upgrade',
+        category:    'package',
         title:       `Upgraded to ${tier.name}`,
-        description: `Package upgraded to ${tier.name} (-$${canonicalPrice} USDT)`,
+        details:     `Package upgrade to ${tier.name} (-$${canonicalPrice.toFixed(2)} USDT)`,
         amount:      -canonicalPrice,
         created_at:  new Date().toISOString()
       });
@@ -364,18 +398,43 @@ async function pkgConfirmPurchase() {
     pkgCurrentIndex = idx;
     pkgCloseConfirm();
 
-    // Update card display
+    // Re-render package cards
     pkgUpdateCardDisplay();
+    pkgRenderPanel();
     
-    // Globally update the available balance if loadProfileData exists
-    if (typeof loadProfileData === 'function') {
-      loadProfileData(); 
-    } else {
-      // Just visually update the dashboard elements if loadProfileData isn't exposed
-      const balEls = document.querySelectorAll('#valAvailableBal, #dashAvailBal');
-      balEls.forEach(el => {
-        el.textContent = '$' + newBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-      });
+    // Update all live balance and rank elements across the dashboard
+    const formattedBal = `$${newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
+    const numBal = newBalance.toFixed(2);
+    
+    const availBalEl = document.getElementById('valAvailableBal');
+    if (availBalEl) availBalEl.textContent = formattedBal;
+
+    const mainBalEl = document.getElementById('walletMainBalance');
+    if (mainBalEl) mainBalEl.textContent = numBal;
+
+    const usdValEl = document.getElementById('walletUsdValue');
+    if (usdValEl) usdValEl.textContent = `≈ $${numBal}`;
+
+    const withBalEl = document.getElementById('withdrawAvailableBal');
+    if (withBalEl) withBalEl.textContent = `${numBal} USDT`;
+
+    const withCardBalEl = document.getElementById('withdrawCardAvailableBal');
+    if (withCardBalEl) withCardBalEl.textContent = `${numBal} USDT`;
+
+    const rankBadgeEl = document.getElementById('profUserRankBadge');
+    if (rankBadgeEl) rankBadgeEl.textContent = '✦ ' + tier.rank.toUpperCase();
+
+    // If upgraded from UNRANKED (tier.id >= 1), unlock referral link section immediately
+    if (tier.id >= 1) {
+      const refLockedSection = document.getElementById('refLockedSection');
+      const refUnlockedSection = document.getElementById('refUnlockedSection');
+      if (refLockedSection) refLockedSection.style.display = 'none';
+      if (refUnlockedSection) refUnlockedSection.style.display = 'flex';
+    }
+
+    // Refresh entire dashboard data silently if available
+    if (typeof window.initDashboard === 'function') {
+      window.initDashboard();
     }
 
     // Show congratulations popup
@@ -385,6 +444,7 @@ async function pkgConfirmPurchase() {
     console.error('Package upgrade error:', err);
     pkgShowToast('⚠ ' + (err.message || 'Upgrade failed. Please try again.'), 'error');
   } finally {
+    isPurchasing = false;
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Confirm Upgrade ⚡';
@@ -447,55 +507,121 @@ function pkgRunCongratsParticles() {
   }
 
   for (let i = 0; i < 25; i++) {
-    const p = createParticle();
-    p.y = Math.random() * canvas.height;
-    particles.push(p);
+    particles.push(createParticle());
   }
 
-  function loop() {
+  function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (Math.random() < 0.35) particles.push(createParticle());
-
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx;
       p.y += p.vy;
       p.alpha -= p.decay;
-      if (p.alpha <= 0) { particles.splice(i, 1); continue; }
 
-      ctx.save();
-      ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = p.color;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      if (p.alpha <= 0 || p.y < -10) {
+        particles.splice(i, 1);
+        particles.push(createParticle());
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
     }
-
-    // Keep max 60 particles for performance
-    if (particles.length > 60) particles.splice(0, particles.length - 60);
-
-    window._pkgParticleRaf = requestAnimationFrame(loop);
+    ctx.globalAlpha = 1;
+    window._pkgParticleRaf = requestAnimationFrame(draw);
   }
 
-  if (window._pkgParticleRaf) cancelAnimationFrame(window._pkgParticleRaf);
-  loop();
+  draw();
 }
 
-// ─── Bootstrap: wait for auth then load state ────────────────────────────────
+// ─── Slide-over Panel: Toggle ─────────────────────────────────────────────────
+function pkgTogglePanel() {
+  pkgPanelOpen = !pkgPanelOpen;
+  const overlay  = document.getElementById('pkgPanelOverlay');
+  const panel    = document.getElementById('pkgPanel');
+  const openBtn  = document.getElementById('pkgOpenPanelBtn');
+
+  if (pkgPanelOpen) {
+    pkgRenderPanel();
+    if (overlay)  overlay.classList.add('active');
+    if (panel)    panel.classList.add('active');
+    if (openBtn)  openBtn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  } else {
+    if (overlay)  overlay.classList.remove('active');
+    if (panel)    panel.classList.remove('active');
+    if (openBtn)  openBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+}
+
+// ─── Slide-over Panel: Render all 8 tiers ─────────────────────────────────────
+function pkgRenderPanel() {
+  const container = document.getElementById('pkgTiersList');
+  if (!container) return;
+
+  const total = PKG_TIERS.length;
+  const current = pkgCurrentIndex; // -1 .. 7
+
+  // Update progress bar
+  const progressPct = current < 0 ? 0 : Math.round(((current + 1) / total) * 100);
+  const fillEl = document.getElementById('pkgProgressFill');
+  const textEl = document.getElementById('pkgProgressText');
+  if (fillEl) fillEl.style.width = progressPct + '%';
+  if (textEl) textEl.textContent = `${current < 0 ? 0 : current + 1} of ${total} Packages Achieved`;
+
+  // Render cards
+  container.innerHTML = PKG_TIERS.map((tier, idx) => {
+    let statusClass = 'tier-locked';
+    let badgeHtml   = '<span class="tier-badge badge-locked">🔒 LOCKED</span>';
+    let btnHtml     = `<button class="tier-action-btn btn-locked" disabled>Locked</button>`;
+
+    if (idx <= current) {
+      statusClass = 'tier-achieved';
+      badgeHtml   = '<span class="tier-badge badge-achieved">✓ ACHIEVED</span>';
+      btnHtml     = `<button class="tier-action-btn btn-achieved" disabled>Active</button>`;
+    } else if (idx === current + 1) {
+      statusClass = 'tier-available';
+      badgeHtml   = '<span class="tier-badge badge-available">★ NEXT UPGRADE</span>';
+      btnHtml     = `<button class="tier-action-btn btn-upgrade" onclick="pkgOpenConfirm(${idx})">Upgrade — $${tier.price}</button>`;
+    }
+
+    return `
+      <div class="pkg-tier-card ${statusClass}">
+        <div class="tier-card-left">
+          <div class="tier-icon-box">${tier.icon}</div>
+          <div class="tier-info">
+            <div class="tier-name">${tier.name}</div>
+            <div class="tier-rank">Rank: ${tier.rank}</div>
+          </div>
+        </div>
+        <div class="tier-card-right">
+          <div class="tier-price">$${tier.price} <span class="tier-currency">USDT</span></div>
+          <div class="tier-status-wrap">
+            ${badgeHtml}
+            ${btnHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Global export & auto-initialization ──────────────────────────────────────
+window.PkgSystem = {
+  openConfirm: pkgOpenConfirm,
+  closeConfirm: pkgCloseConfirm,
+  confirmPurchase: pkgConfirmPurchase,
+  togglePanel: pkgTogglePanel,
+  closeCongrats: pkgCloseCongrats,
+  loadUserState: pkgLoadUserState,
+  updateCardDisplay: pkgUpdateCardDisplay
+};
+
+// Auto-run when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  // Render defaults immediately — no more stuck "Loading…"
-  pkgUpdateCardDisplay();
-
-  // Then try to load real data from Supabase after auth is ready
-  setTimeout(pkgLoadUserState, 600);
-
-  // Retry once more in case auth took longer
-  setTimeout(() => {
-    if (pkgUserId === null) pkgLoadUserState();
-  }, 2500);
+  pkgLoadUserState();
+  setTimeout(pkgLoadUserState, 1000);
 });
-

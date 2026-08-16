@@ -1669,8 +1669,8 @@
     // =========================================================================
     // DYNAMIC AUTHENTICATED USER DASHBOARD ENGINE
     // =========================================================================
-    document.addEventListener('DOMContentLoaded', async () => {
-      const client = window.BitchainAuth.getSupabase();
+    async function initDashboard() {
+      const client = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
       if (!client) return;
 
       // 1. Session Guard Protection
@@ -1985,7 +1985,10 @@
           </div>
         `;
       }
-    });
+    }
+
+    window.initDashboard = initDashboard;
+    document.addEventListener('DOMContentLoaded', initDashboard);
 
     // Particle Background
     (function() {
@@ -2043,6 +2046,10 @@
         <div class="pkg-confirm-row">
           <span class="pkg-confirm-row-label">PRICE</span>
           <span class="pkg-confirm-row-val price-val" id="pkgConfirmPrice">—</span>
+        </div>
+        <div class="pkg-confirm-row">
+          <span class="pkg-confirm-row-label">AVAILABLE BALANCE</span>
+          <span class="pkg-confirm-row-val" id="pkgConfirmAvailBal" style="color:#00f5d4; font-weight:700;">$0.00 USDT</span>
         </div>
         <div class="pkg-confirm-row">
           <span class="pkg-confirm-row-label">CURRENT PACKAGE</span>
