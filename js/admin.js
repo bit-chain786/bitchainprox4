@@ -596,13 +596,13 @@ async function loadDeposits(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('deposits').select('*', {count:'exact'}).order('created_at', {ascending:false});
+    let query = db.from('deposits').select('*').order('created_at', {ascending:false});
     if (_depositsFilter !== 'all') query = query.eq('status', _depositsFilter);
-    if (_depositsSearch) query = query.or(`transaction_id.ilike.%${_depositsSearch}%`);
+    if (_depositsSearch) query = query.ilike('transaction_id', `%${_depositsSearch}%`);
 
     const from = (page-1)*PAGE_SIZE;
     query = query.range(from, from+PAGE_SIZE-1);
-    const { data, count, error } = await query;
+    const { data, error } = await query;
 
     if (error) throw error;
     if (!data || data.length === 0) {
@@ -771,13 +771,13 @@ async function loadWithdrawals(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('withdrawals').select('*', {count:'exact'}).order('created_at', {ascending:false});
+    let query = db.from('withdrawals').select('*').order('created_at', {ascending:false});
     if (_withdrawalsFilter !== 'all') query = query.eq('status', _withdrawalsFilter);
     if (_withdrawalsSearch) query = query.ilike('destination', `%${_withdrawalsSearch}%`);
 
     const from = (page-1)*PAGE_SIZE;
     query = query.range(from, from+PAGE_SIZE-1);
-    const { data, count, error } = await query;
+    const { data, error } = await query;
 
     if (error) throw error;
     if (!data || data.length === 0) {
