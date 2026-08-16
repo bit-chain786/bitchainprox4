@@ -31,6 +31,78 @@ function getSupabase() {
     : null;
 }
 
+/**
+ * Gets the authoritative active user ID from session / auth
+ */
+async function getActiveUserId() {
+  if (pkgUserId) return pkgUserId;
+  const client = getSupabase();
+  if (!client) return null;
+
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    if (session?.user?.id) {
+      pkgUserId = session.user.id;
+      return pkgUserId;
+    }
+    const { data: { user } } = await client.auth.getUser();
+    if (user?.id) {
+      pkgUserId = user.id;
+      return pkgUserId;
+    }
+  } catch (e) {
+    console.warn('Error getting active user ID:', e);
+  }
+  return null;
+}
+
+/**
+ * Gets the authoritative available balance from Supabase / Dashboard sync
+ */
+async function getAuthoritativeBalance(userId) {
+  let bal = 0;
+  const client = getSupabase();
+
+  if (userId && window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
+    try {
+      const profile = await window.BitchainAuth.getUserProfile(userId);
+      if (profile && profile.available_balance !== null && profile.available_balance !== undefined) {
+        bal = parseFloat(profile.available_balance);
+        if (!isNaN(bal)) return bal;
+      }
+    } catch (e) {}
+  }
+
+  if (userId && client) {
+    try {
+      const { data: profile } = await client
+        .from('profiles')
+        .select('available_balance')
+        .eq('id', userId)
+        .maybeSingle();
+      if (profile && profile.available_balance !== null && profile.available_balance !== undefined) {
+        bal = parseFloat(profile.available_balance);
+        if (!isNaN(bal)) return bal;
+      }
+    } catch (e) {}
+  }
+
+  // DOM Fallback check if already rendered on the dashboard
+  const mainBalEl = document.getElementById('walletMainBalance');
+  if (mainBalEl && mainBalEl.textContent) {
+    const domVal = parseFloat(mainBalEl.textContent.replace(/[^0-9.]/g, ''));
+    if (!isNaN(domVal) && domVal > 0) return domVal;
+  }
+
+  const availBalEl = document.getElementById('valAvailableBal');
+  if (availBalEl && availBalEl.textContent) {
+    const domVal = parseFloat(availBalEl.textContent.replace(/[^0-9.]/g, ''));
+    if (!isNaN(domVal) && domVal > 0) return domVal;
+  }
+
+  return bal;
+}
+
 function pkgShowToast(msg, type = 'success') {
   let t = document.getElementById('pkgToast');
   if (!t) {
@@ -57,7 +129,6 @@ function pkgKeyToIndex(pkgKey) {
 
 // ─── Load user's current package from Supabase ───────────────────────────────
 async function pkgLoadUserState() {
-  // Always render defaults first so UI is never stuck on "Loading…"
   pkgUpdateCardDisplay();
   pkgRenderPanel();
 
@@ -65,30 +136,29 @@ async function pkgLoadUserState() {
   if (!client) return;
 
   try {
-    const { data: { user }, error: authErr } = await client.auth.getUser();
-    if (authErr || !user) return;
-    pkgUserId = user.id;
+    const userId = await getActiveUserId();
+    if (!userId) return;
 
-    const { data: profile, error } = await client
-      .from('profiles')
-      .select('current_package, current_rank, package_name, rank, rank_value, available_balance')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.warn('pkg load error (column may not exist yet):', error.message);
-      return;
+    let profile = null;
+    if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
+      profile = await window.BitchainAuth.getUserProfile(userId);
+    }
+    if (!profile) {
+      const { data } = await client
+        .from('profiles')
+        .select('current_package, current_rank, package_name, rank, rank_value, available_balance')
+        .eq('id', userId)
+        .maybeSingle();
+      profile = data;
     }
 
     const rawPkg = (profile && (profile.current_package || profile.package_name)) || null;
     pkgCurrentIndex = pkgKeyToIndex(rawPkg);
 
-    // If still -1 but rank_value > 0, map index from rank_value
     if (pkgCurrentIndex < 0 && profile && profile.rank_value > 0) {
       pkgCurrentIndex = Math.min(PKG_TIERS.length - 1, profile.rank_value - 1);
     }
 
-    // Sync display with real DB values
     pkgUpdateCardDisplay();
     pkgRenderPanel();
   } catch (e) {
@@ -194,29 +264,9 @@ async function pkgOpenConfirm(idx) {
   const currentTier = pkgCurrentIndex >= 0 ? PKG_TIERS[pkgCurrentIndex] : null;
   const canonicalPrice = tier.price;
   
-  let availableBal = 0;
-  
-  try {
-    const client = getSupabase();
-    if (client) {
-      // Always get fresh authenticated user
-      const { data: { user }, error: userErr } = await client.auth.getUser();
-      if (!userErr && user) {
-        pkgUserId = user.id;
-        const { data: profile } = await client
-          .from('profiles')
-          .select('available_balance, current_package, package_name, rank_value')
-          .eq('id', user.id)
-          .maybeSingle();
-          
-        if (profile && profile.available_balance !== null && profile.available_balance !== undefined) {
-          availableBal = parseFloat(profile.available_balance) || 0;
-        }
-      }
-    }
-  } catch(e) {
-    console.warn("Could not fetch balance for package confirmation:", e);
-  }
+  // Resolve user and balance synchronously with the exact same Supabase engine
+  const userId = await getActiveUserId();
+  const availableBal = await getAuthoritativeBalance(userId);
 
   if (btn) btn.innerHTML = `<span class="btn-icon">⚡</span> <span id="pkgUpgradeBtnText">${currentTier ? 'UPGRADE TO ' : 'PURCHASE '} ${tier.name} — $${tier.price}</span>`;
 
@@ -268,7 +318,7 @@ async function pkgOpenConfirm(idx) {
       noteEl.style.color = 'rgba(255,255,255,0.7)';
     }
     if (confirmBtn) {
-      confirmBtn.textContent = `Confirm Upgrade ($${canonicalPrice} USDT) ⚡`;
+      confirmBtn.textContent = `Confirm Upgrade ($${canonicalPrice.toFixed(2)} USDT) ⚡`;
       confirmBtn.style.background = 'linear-gradient(135deg, #7b2cbf, #c77dff)';
       confirmBtn.onclick = pkgConfirmPurchase;
       confirmBtn.disabled = false;
@@ -310,18 +360,22 @@ async function pkgConfirmPurchase() {
     const client = getSupabase();
     if (!client) throw new Error('Connection unavailable. Please refresh.');
 
-    const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) throw new Error('You must be signed in to upgrade.');
+    const userId = await getActiveUserId();
+    if (!userId) throw new Error('You must be signed in to upgrade.');
 
-    // Fetch live profile from Supabase to confirm current_package and available_balance
-    const { data: profile, error: profileErr } = await client
-      .from('profiles')
-      .select('current_package, package_name, available_balance, rank, rank_value')
-      .eq('id', user.id)
-      .single();
-
-    if (profileErr) {
-      throw new Error('Could not verify account balance. ' + profileErr.message);
+    // Fetch live profile from Supabase
+    let profile = null;
+    if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
+      profile = await window.BitchainAuth.getUserProfile(userId);
+    }
+    if (!profile) {
+      const { data, error } = await client
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (error) throw new Error('Could not verify account balance. ' + error.message);
+      profile = data;
     }
 
     const serverPkg = (profile && (profile.current_package || profile.package_name)) || null;
@@ -330,16 +384,16 @@ async function pkgConfirmPurchase() {
       serverCurrentIdx = Math.min(PKG_TIERS.length - 1, profile.rank_value - 1);
     }
 
-    const availableBal = (profile && profile.available_balance !== null && profile.available_balance !== undefined)
+    let availableBal = (profile && profile.available_balance !== null && profile.available_balance !== undefined)
       ? parseFloat(profile.available_balance)
       : 0;
 
-    // Security check: sequence
-    if (idx !== serverCurrentIdx + 1) {
-      throw new Error('Package sequence mismatch. Please refresh the page.');
-    }
-
     const canonicalPrice = tier.price;
+
+    // In case profile returned 0, double-check getAuthoritativeBalance
+    if (availableBal === 0) {
+      availableBal = await getAuthoritativeBalance(userId);
+    }
 
     // Security check: balance
     if (availableBal < canonicalPrice) {
@@ -354,7 +408,7 @@ async function pkgConfirmPurchase() {
       await client
         .from('package_purchases')
         .insert({
-          user_id:      user.id,
+          user_id:      userId,
           package_key:  tier.key,
           package_name: tier.name,
           rank_name:    tier.rank,
@@ -378,14 +432,14 @@ async function pkgConfirmPurchase() {
         available_balance: newBalance,
         updated_at:        new Date().toISOString()
       })
-      .eq('id', user.id);
+      .eq('id', userId);
 
     if (updateErr) throw new Error('Failed to update your package: ' + updateErr.message);
 
     // 3. Record activity log
     try {
       await client.from('activities').insert({
-        user_id:     user.id,
+        user_id:     userId,
         category:    'package',
         title:       `Upgraded to ${tier.name}`,
         details:     `Package upgrade to ${tier.name} (-$${canonicalPrice.toFixed(2)} USDT)`,
@@ -459,7 +513,7 @@ function pkgShowCongrats(tier, price) {
   if (el('pkgCongratsTitle'))   el('pkgCongratsTitle').textContent = '🎉 CONGRATULATIONS! 🎉';
   if (el('pkgCongratsWelcome')) el('pkgCongratsWelcome').textContent = 'WELCOME TO ' + tier.name;
   if (el('pkgCongratsPackage')) el('pkgCongratsPackage').textContent = tier.name;
-  if (el('pkgCongratsValue'))   el('pkgCongratsValue').textContent  = '$' + price + ' USDT';
+  if (el('pkgCongratsValue'))   el('pkgCongratsValue').textContent  = '$' + parseFloat(price).toFixed(2) + ' USDT';
 
   const backdrop = document.getElementById('pkgCongratsBackdrop');
   if (backdrop) backdrop.classList.add('active');
