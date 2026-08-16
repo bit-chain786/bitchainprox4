@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BITCHAIN PRO X — Rewards</title>
+  <meta name="description" content="Rewards — BITCHAIN PRO X. Unlock exclusive bonuses and rewards for your activity. Coming soon.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    .uc-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .uc-icon-ring {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0,245,212,0.2) 0%, rgba(94,21,230,0.3) 100%);
+      border: 2px solid rgba(0,245,212,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.2rem;
+      margin-bottom: 32px;
+      box-shadow: 0 0 40px rgba(0,245,212,0.2), 0 0 80px rgba(0,245,212,0.08);
+      animation: ucPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes ucPulse {
+      0%, 100% { box-shadow: 0 0 40px rgba(0,245,212,0.2), 0 0 80px rgba(0,245,212,0.08); }
+      50%       { box-shadow: 0 0 65px rgba(0,245,212,0.4), 0 0 130px rgba(0,245,212,0.15); }
+    }
+
+    .uc-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 20px;
+      background: rgba(0,245,212,0.1);
+      border: 1px solid rgba(0,245,212,0.35);
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #00F5D4;
+      margin-bottom: 24px;
+    }
+
+    .uc-title {
+      font-size: clamp(2rem, 8vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+      margin: 0 0 16px;
+      line-height: 1.1;
+    }
+
+    .uc-title span {
+      background: linear-gradient(90deg, #00F5D4, #C77DFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .uc-subtitle {
+      font-size: 1rem;
+      color: rgba(224,170,255,0.7);
+      line-height: 1.7;
+      max-width: 480px;
+      margin: 0 auto 40px;
+    }
+
+    .uc-progress-track {
+      width: min(360px, 90vw);
+      height: 6px;
+      background: rgba(0,245,212,0.1);
+      border-radius: 100px;
+      overflow: hidden;
+      margin: 0 auto 40px;
+    }
+
+    .uc-progress-fill {
+      height: 100%;
+      width: 35%;
+      background: linear-gradient(90deg, #00F5D4, #9D4EDD);
+      border-radius: 100px;
+      animation: ucFill 2.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes ucFill {
+      from { width: 30%; }
+      to   { width: 48%; }
+    }
+
+    .uc-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 44px;
+      max-width: 520px;
+    }
+
+    .uc-feature-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: rgba(0,20,26,0.7);
+      border: 1px solid rgba(0,245,212,0.2);
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #b2fff4;
+      letter-spacing: 0.5px;
+    }
+
+    .uc-feature-chip .chip-icon {
+      font-size: 1rem;
+    }
+
+    .uc-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #007a69, #00c4a7);
+      border: none;
+      border-radius: 100px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.25s, transform 0.2s;
+      box-shadow: 0 6px 24px rgba(0,245,212,0.3);
+    }
+
+    .uc-back-btn:hover {
+      opacity: 0.88;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Background -->
+  <div class="auth-bg-wrapper">
+    <div class="auth-bg-gradient"></div>
+    <canvas id="authCanvas"></canvas>
+  </div>
+
+  <!-- Header Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-content-wrap">
+      <a href="index.html" class="brand-logo">
+        <div class="logo-anim-wrapper">
+          <div class="logo-glow-bg"></div>
+          <img src="images/logo-circle.png" alt="BitchainProx Logo" class="brand-logo-img anim-logo-pulse" onerror="this.src='images/logo.png'">
+        </div>
+        <div class="brand-name">BITCHAIN<span>PROX</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html#about">About Us</a></li>
+        <li><a href="index.html#packages">Package Plans</a></li>
+        <li><a href="index.html#income">Income</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- populated by auth.js -->
+      </div>
+
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle Navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <ul class="mobile-nav-links">
+        <li><a href="index.html#about" class="mob-nav-link">About Us</a></li>
+        <li><a href="index.html#packages" class="mob-nav-link">Package Plans</a></li>
+        <li><a href="index.html#income" class="mob-nav-link">Income</a></li>
+        <li><a href="dashboard.html" class="mob-nav-link">Dashboard</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <div class="uc-page">
+
+    <div class="uc-icon-ring">🎁</div>
+
+    <div class="uc-tag">
+      <span>🚧</span> Under Construction
+    </div>
+
+    <h1 class="uc-title">Re<span>wards</span></h1>
+
+    <p class="uc-subtitle">
+      Your exclusive bonus hub is on its way. Earn special rewards, milestone bonuses, and loyalty perks
+      as you grow on BITCHAIN PRO X. Stay tuned for the launch.
+    </p>
+
+    <div class="uc-progress-track">
+      <div class="uc-progress-fill"></div>
+    </div>
+
+    <div class="uc-features">
+      <div class="uc-feature-chip"><span class="chip-icon">🥇</span> Milestone Bonuses</div>
+      <div class="uc-feature-chip"><span class="chip-icon">🎯</span> Loyalty Points</div>
+      <div class="uc-feature-chip"><span class="chip-icon">✨</span> Exclusive Perks</div>
+      <div class="uc-feature-chip"><span class="chip-icon">📈</span> Rank Rewards</div>
+    </div>
+
+    <a href="dashboard.html" class="uc-back-btn">
+      ← Back to Dashboard
+    </a>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof initHamburgerMenu === 'function') initHamburgerMenu();
+    });
+  </script>
+</body>
+</html>

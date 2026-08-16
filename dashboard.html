@@ -759,14 +759,21 @@
       </button>
     </div>
 
-    <!-- Mobile Slide-Down Menu (Dashboard) -->
+    <!-- Mobile Slide-Down Menu (Dashboard) — My Team & Rewards only -->
     <div class="mobile-menu" id="mobileMenu">
-      <ul class="mobile-nav-links">
-        <li><a href="index.html" class="mob-nav-link">Home</a></li>
-        <li><a href="index.html#about" class="mob-nav-link">About Us</a></li>
-        <li><a href="index.html#packages" class="mob-nav-link">Package Plans</a></li>
-        <li><a href="index.html#income" class="mob-nav-link">Income</a></li>
-        <li><a href="settings.html" class="mob-nav-link">Settings</a></li>
+      <ul class="mobile-nav-links dash-mob-nav">
+        <li>
+          <a href="my-team.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🏆</span>
+            My Team
+          </a>
+        </li>
+        <li>
+          <a href="rewards.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🎁</span>
+            Rewards
+          </a>
+        </li>
       </ul>
       <div class="mobile-menu-actions">
         <div class="mob-btn-register" id="mobDashLogoutBtn" style="cursor:pointer;text-align:center;">Logout</div>
@@ -1083,7 +1090,7 @@
         </div>
 
         <!-- Card 4: Total Team -->
-        <div class="fin-card total-team">
+        <div class="fin-card total-team" style="cursor:pointer;" onclick="window.location.href='my-team.html';" title="View 10-Level Team Structure">
           <div class="fin-card-top">
             <div class="fin-icon-wrap">
               <!-- People / team SVG icon -->
@@ -1661,6 +1668,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
   <!-- Package / Rank Upgrade Engine -->
   <script src="js/packages.js"></script>
+  <!-- Team Hierarchy Calculation Engine -->
+  <script src="js/team.js"></script>
   <!-- Admin link visibility check -->
   <script>
     (async function checkAdminRole() {
@@ -1810,7 +1819,19 @@
         const availBal = parseFloat(profile.available_balance) || 0;
         const totalInc = parseFloat(profile.total_income) || 0;
         const todayInc = parseFloat(profile.today_income) || 0;
-        const totalTeam = parseInt(profile.total_team) || 0;
+        let totalTeam = parseInt(profile.total_team) || 0;
+
+        // Authoritatively calculate dynamic 10-level total team count
+        if (window.BitchainTeam && typeof window.BitchainTeam.computeTeamHierarchy === 'function') {
+          try {
+            const hierarchy = await window.BitchainTeam.computeTeamHierarchy(userId);
+            if (hierarchy) {
+              totalTeam = hierarchy.totalTeamCount;
+            }
+          } catch(te) {
+            console.warn('Dynamic team calc note:', te);
+          }
+        }
 
         document.getElementById('valAvailableBal').textContent = formatUsdt(availBal);
         document.getElementById('valTotalInc').textContent = formatUsdt(totalInc);

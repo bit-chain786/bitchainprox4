@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BITCHAIN PRO X — Team Structure (10-Level Downline)</title>
+  <meta name="description" content="Explore your 10-level referral network and team downline hierarchy with live real-time statistics.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/team.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+
+  <!-- Ambient Dynamic Canvas Background -->
+  <div class="auth-bg-wrapper">
+    <div class="auth-bg-gradient"></div>
+    <canvas id="authCanvas"></canvas>
+  </div>
+
+  <!-- Header Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-content-wrap">
+      <a href="index.html" class="brand-logo">
+        <div class="logo-anim-wrapper">
+          <div class="logo-glow-bg"></div>
+          <img src="images/logo-circle.png" alt="BitchainProx Logo" class="brand-logo-img anim-logo-pulse" onerror="this.src='images/logo.png'">
+        </div>
+        <div class="brand-name">BITCHAIN<span>PROX</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html#about">About Us</a></li>
+        <li><a href="index.html#packages">Package Plans</a></li>
+        <li><a href="index.html#income">Income</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- populated via auth.js -->
+      </div>
+
+      <!-- Hamburger Button (Mobile only) -->
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle Navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <!-- Mobile Slide-Down Menu (Context-aware: My Team & Rewards) -->
+    <div class="mobile-menu" id="mobileMenu">
+      <ul class="mobile-nav-links dash-mob-nav">
+        <li>
+          <a href="my-team.html" class="mob-nav-link dash-mob-nav-link" style="color:#00f5d4;">
+            <span class="dash-mob-emoji">🏆</span>
+            My Team
+          </a>
+        </li>
+        <li>
+          <a href="rewards.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🎁</span>
+            Rewards
+          </a>
+        </li>
+        <li>
+          <a href="dashboard.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">📊</span>
+            Dashboard
+          </a>
+        </li>
+      </ul>
+      <div class="mobile-menu-actions">
+        <div class="mob-btn-register" id="mobTeamLogoutBtn" style="cursor:pointer;text-align:center;">Logout</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN TEAM STRUCTURE PAGE -->
+  <main class="team-page-container">
+
+    <!-- 1. Top Section Header -->
+    <div class="team-header-card">
+      <div class="team-header-titles">
+        <h1 class="team-main-title">TEAM STRUCTURE</h1>
+        <p class="team-sub-title">10 Level Team Network</p>
+      </div>
+
+      <!-- View Switcher (Tree View vs List View) -->
+      <div class="team-view-toggle-group">
+        <button type="button" class="btn-view-toggle" id="btnSwitchTree">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Tree View
+        </button>
+        <button type="button" class="btn-view-toggle active" id="btnSwitchList">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          List View
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Metric Stat Cards (Direct Team & Total Team) -->
+    <section class="team-metrics-grid">
+      <!-- Direct Team Card -->
+      <div class="metric-stat-card">
+        <div class="metric-icon-box">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="metric-data-wrap">
+          <span class="metric-label">DIRECT TEAM (L1)</span>
+          <div class="metric-value-row">
+            <span class="metric-number" id="valDirectTeamCount">0</span>
+            <span class="metric-sub">Members</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Team Card -->
+      <div class="metric-stat-card">
+        <div class="metric-icon-box cyan-tint">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="19" cy="11" r="3"/><path d="M19 8v1"/><path d="M22 19v-1a3 3 0 0 0-3-3h-1"/></svg>
+        </div>
+        <div class="metric-data-wrap">
+          <span class="metric-label">TOTAL TEAM</span>
+          <div class="metric-value-row">
+            <span class="metric-number" id="valTotalTeamCount">0</span>
+            <span class="metric-sub">Members</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TEAM DOWNLINE (LEVEL WISE) -->
+    <section class="team-downline-section">
+      <div class="downline-header-row">
+        <h2 class="downline-title">
+          <span>👥</span> TEAM DOWNLINE (LEVEL WISE)
+        </h2>
+        <button type="button" class="btn-view-all-levels" id="btnOpenLevelPicker">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          View All Levels (1-10)
+        </button>
+      </div>
+
+      <!-- Quick Level Navigation Tabs (Level 1..5) -->
+      <div class="level-tabs-scroll-wrap" id="levelTabsContainer">
+        <!-- Populated dynamically via JS -->
+      </div>
+
+      <!-- LIST VIEW -->
+      <div id="listViewContainer">
+        <div class="members-list-wrapper" id="membersListWrapper">
+          <!-- Member Cards populated via JS -->
+        </div>
+
+        <div class="view-all-level-bar" id="viewAllLevelBar" style="display:none;">
+          <button type="button" class="btn-expand-level" id="btnExpandCurrentLevel">
+            View All Level <span id="lblCurrentLevelNum">1</span> Members &gt;
+          </button>
+        </div>
+      </div>
+
+      <!-- TREE VIEW -->
+      <div id="treeViewContainer" style="display:none;">
+        <div class="team-tree-wrapper" id="teamTreeWrapper">
+          <!-- Tree Nodes populated via JS -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: 10-LEVEL PICKER POPUP -->
+  <div class="team-modal-backdrop" id="levelPickerModal">
+    <div class="team-modal-card">
+      <button type="button" class="modal-close-btn" onclick="closeLevelPickerModal()">&times;</button>
+      <h3 class="modal-header-title">Select Team Level</h3>
+      <p class="modal-header-sub">Jump to any specific level within your 10-level hierarchy.</p>
+
+      <div class="level-picker-grid" id="levelPickerGrid">
+        <!-- 10 level items populated via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: MEMBER DETAILS POPUP -->
+  <div class="team-modal-backdrop" id="memberDetailsModal">
+    <div class="team-modal-card">
+      <button type="button" class="modal-close-btn" onclick="closeMemberDetailsModal()">&times;</button>
+      
+      <div class="member-popup-profile-header">
+        <div class="member-popup-avatar" id="modalAvatar">A</div>
+        <div>
+          <h3 class="modal-header-title" id="modalMemberName" style="margin-bottom:2px;">Member Name</h3>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="modalMemberRank" style="font-size:0.82rem; font-weight:800; color:#c77dff;">UNRANKED</span>
+            <span id="modalLevelBadge" style="font-size:0.75rem; background:rgba(157,78,221,0.3); padding:2px 8px; border-radius:10px; color:#e0aaff;">Level 1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="member-popup-meta-grid">
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">User ID / Code</div>
+          <div class="popup-meta-val" id="modalUserId">-</div>
+        </div>
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">Phone Number</div>
+          <div class="popup-meta-val" id="modalUserPhone">-</div>
+        </div>
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">Joining Date</div>
+          <div class="popup-meta-val" id="modalJoiningDate">-</div>
+        </div>
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">Sponsor / Upline</div>
+          <div class="popup-meta-val" id="modalSponsorVal">-</div>
+        </div>
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">Direct Referrals</div>
+          <div class="popup-meta-val" id="modalDirectCount" style="color:#00f5d4;">0</div>
+        </div>
+        <div class="popup-meta-card">
+          <div class="popup-meta-lbl">Total Sub-Team</div>
+          <div class="popup-meta-val" id="modalTotalTeamCount" style="color:#ffd166;">0 Members</div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:14px;">
+        <button type="button" class="btn-expand-level" onclick="closeMemberDetailsModal()" style="border-radius:50px;">
+          Close Details
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/team.js"></script>
+
+  <!-- Page Interaction & Render Controller -->
+  <script>
+    let teamDataState = null;
+    let selectedLevelIndex = 0; // 0 = Level 1, 9 = Level 10
+    let currentViewMode = 'list'; // 'list' | 'tree'
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initMobileMenu();
+      initViewSwitcher();
+      await loadTeamData();
+    });
+
+    /**
+     * Context-aware Mobile Menu Toggle
+     */
+    function initMobileMenu() {
+      const btn = document.getElementById('hamburgerBtn');
+      const menu = document.getElementById('mobileMenu');
+      const logoutBtn = document.getElementById('mobTeamLogoutBtn');
+
+      if (btn && menu) {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('open');
+          menu.classList.toggle('open');
+        });
+
+        menu.querySelectorAll('.mob-nav-link').forEach(link => {
+          link.addEventListener('click', () => {
+            btn.classList.remove('open');
+            menu.classList.remove('open');
+          });
+        });
+      }
+
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (window.BitchainAuth && window.BitchainAuth.signOutUser) {
+            window.BitchainAuth.signOutUser();
+          } else {
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    }
+
+    /**
+     * View Switcher (Tree vs List)
+     */
+    function initViewSwitcher() {
+      const btnTree = document.getElementById('btnSwitchTree');
+      const btnList = document.getElementById('btnSwitchList');
+      const listWrap = document.getElementById('listViewContainer');
+      const treeWrap = document.getElementById('treeViewContainer');
+
+      btnTree.addEventListener('click', () => {
+        currentViewMode = 'tree';
+        btnTree.classList.add('active');
+        btnList.classList.remove('active');
+        listWrap.style.display = 'none';
+        treeWrap.style.display = 'block';
+        renderTreeView();
+      });
+
+      btnList.addEventListener('click', () => {
+        currentViewMode = 'list';
+        btnList.classList.add('active');
+        btnTree.classList.remove('active');
+        treeWrap.style.display = 'none';
+        listWrap.style.display = 'block';
+        renderListView();
+      });
+
+      document.getElementById('btnOpenLevelPicker').addEventListener('click', () => {
+        openLevelPickerModal();
+      });
+    }
+
+    /**
+     * Main Data Loader from Supabase
+     */
+    async function loadTeamData() {
+      const client = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
+      if (!client) return;
+
+      // 1. Session Guard Protection
+      const { data: { session } } = await client.auth.getSession();
+      if (!session || !session.user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const userId = session.user.id;
+
+      try {
+        // Show loading states
+        document.getElementById('membersListWrapper').innerHTML = `
+          <div class="team-empty-box">
+            <div class="empty-icon-glyph">⏳</div>
+            <div class="empty-title-text">CALCULATING 10-LEVEL HIERARCHY...</div>
+            <div class="empty-desc-text">Fetching real-time team downline from Supabase database.</div>
+          </div>
+        `;
+
+        // 2. Authoritative 10-Level Downline Calculation
+        teamDataState = await window.BitchainTeam.computeTeamHierarchy(userId);
+
+        // 3. Render Top Metrics
+        document.getElementById('valDirectTeamCount').textContent = teamDataState.directTeamCount.toLocaleString('en-US');
+        document.getElementById('valTotalTeamCount').textContent = teamDataState.totalTeamCount.toLocaleString('en-US');
+
+        // 4. Render Level Navigation Tabs
+        renderLevelTabs();
+
+        // 5. Render Initial List View
+        renderListView();
+
+      } catch (err) {
+        console.error('Failed to load team data:', err);
+        document.getElementById('membersListWrapper').innerHTML = `
+          <div class="team-empty-box">
+            <div class="empty-icon-glyph">⚠️</div>
+            <div class="empty-title-text">UNABLE TO LOAD TEAM STRUCTURE</div>
+            <div class="empty-desc-text">${err.message || 'Please check your connection and refresh.'}</div>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * Render Level Tabs (Levels 1 to 5 + picker)
+     */
+    function renderLevelTabs() {
+      if (!teamDataState) return;
+      const tabsContainer = document.getElementById('levelTabsContainer');
+      let html = '';
+
+      // Tabs 1 to 5 for quick access
+      for (let i = 0; i < 5; i++) {
+        const count = teamDataState.levels[i].length;
+        const isActive = selectedLevelIndex === i;
+        html += `
+          <button type="button" class="level-tab-btn ${isActive ? 'active' : ''}" onclick="selectLevel(${i})">
+            Level ${i + 1} <span class="level-count-pill">(${count})</span>
+          </button>
+        `;
+      }
+
+      // If active level is > 5, display it dynamically as active tab
+      if (selectedLevelIndex >= 5) {
+        const activeCount = teamDataState.levels[selectedLevelIndex].length;
+        html += `
+          <button type="button" class="level-tab-btn active" onclick="selectLevel(${selectedLevelIndex})">
+            Level ${selectedLevelIndex + 1} <span class="level-count-pill">(${activeCount})</span>
+          </button>
+        `;
+      }
+
+      tabsContainer.innerHTML = html;
+    }
+
+    /**
+     * Select a specific Level
+     */
+    function selectLevel(lvlIdx) {
+      selectedLevelIndex = lvlIdx;
+      renderLevelTabs();
+      renderListView();
+      closeLevelPickerModal();
+    }
+
+    /**
+     * Render Member Cards List for the Selected Level
+     */
+    function renderListView() {
+      if (!teamDataState) return;
+      const wrapper = document.getElementById('membersListWrapper');
+      const levelMembers = teamDataState.levels[selectedLevelIndex] || [];
+      const currentLevelNum = selectedLevelIndex + 1;
+
+      document.getElementById('lblCurrentLevelNum').textContent = currentLevelNum;
+
+      if (levelMembers.length === 0) {
+        wrapper.innerHTML = `
+          <div class="team-empty-box">
+            <div class="empty-icon-glyph">👥</div>
+            <div class="empty-title-text">NO MEMBERS IN LEVEL ${currentLevelNum}</div>
+            <div class="empty-desc-text">
+              ${currentLevelNum === 1
+                ? 'Share your unique referral link to sponsor new direct members and start building your team.'
+                : `Your Level ${currentLevelNum - 1} members haven't referred any new partners yet.`}
+            </div>
+          </div>
+        `;
+        document.getElementById('viewAllLevelBar').style.display = 'none';
+        return;
+      }
+
+      let cardsHtml = '';
+      levelMembers.forEach((member, idx) => {
+        const seqNum = idx + 1;
+        const initial = (member.full_name || member.username || 'U').charAt(0).toUpperCase();
+        const avatarStyle = member.avatar_url ? `style="background-image: url('${member.avatar_url}')"` : '';
+        const initialDisplay = member.avatar_url ? '' : initial;
+        const rankInfo = member.rankInfo;
+
+        cardsHtml += `
+          <div class="member-row-card" onclick="openMemberDetailsModal('${member.id}')">
+            <!-- 1. Index Badge -->
+            <div class="member-seq-badge">${seqNum}</div>
+
+            <!-- 2. Avatar Circle -->
+            <div class="member-avatar-box" ${avatarStyle}>${initialDisplay}</div>
+
+            <!-- 3. Name & Phone -->
+            <div class="member-ident-col">
+              <div class="member-name-text">${member.full_name || member.username}</div>
+              <div class="member-phone-text">${member.formattedPhone}</div>
+            </div>
+
+            <!-- 4. Rank & Joining Date -->
+            <div class="member-rank-date-col">
+              <div class="member-rank-row" style="color:${rankInfo.color};">
+                <span class="member-rank-icon">${rankInfo.icon}</span>
+                <span>${rankInfo.name}</span>
+              </div>
+              <div class="member-date-row">
+                <span>📅</span>
+                <span>${member.formattedJoiningDate}</span>
+              </div>
+            </div>
+
+            <!-- 5. Downline Team Count -->
+            <div class="member-team-col">
+              <span class="team-count-icon">👥</span>
+              <div class="team-count-text">
+                <span class="team-count-val">${member.downlineTeamCount}</span>
+                <span class="team-count-lbl">Members</span>
+              </div>
+            </div>
+
+            <!-- 6. Chevron -->
+            <div class="member-chevron-col">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+        `;
+      });
+
+      wrapper.innerHTML = cardsHtml;
+      document.getElementById('viewAllLevelBar').style.display = levelMembers.length > 10 ? 'block' : 'none';
+    }
+
+    /**
+     * Render Interactive Tree View
+     */
+    function renderTreeView() {
+      if (!teamDataState) return;
+      const treeWrapper = document.getElementById('teamTreeWrapper');
+      const root = teamDataState.rootProfile;
+      const level1 = teamDataState.levels[0] || [];
+
+      const rootName = root.full_name || root.username || 'YOU';
+      const rootInitial = rootName.charAt(0).toUpperCase();
+      const rootAvatarStyle = root.avatar_url ? `style="background-image:url('${root.avatar_url}')"` : '';
+      const rootInitialDisplay = root.avatar_url ? '' : rootInitial;
+      const rootRankInfo = window.BitchainTeam.getRankInfo(root.rank || root.current_rank, root.current_package);
+
+      let l1NodesHtml = '';
+      if (level1.length === 0) {
+        l1NodesHtml = `
+          <div class="team-empty-box" style="margin-top:20px;">
+            <div class="empty-desc-text">No direct members registered yet under your referral link.</div>
+          </div>
+        `;
+      } else {
+        level1.forEach(child => {
+          const cInitial = (child.full_name || child.username || 'U').charAt(0).toUpperCase();
+          const cAvatarStyle = child.avatar_url ? `style="background-image:url('${child.avatar_url}')"` : '';
+          const cInitialDisplay = child.avatar_url ? '' : cInitial;
+          
+          l1NodesHtml += `
+            <div class="tree-node-card" onclick="openMemberDetailsModal('${child.id}')">
+              <div class="tree-node-avatar" ${cAvatarStyle}>${cInitialDisplay}</div>
+              <div class="tree-node-name">${child.full_name || child.username}</div>
+              <div class="tree-node-rank">${child.rankInfo.icon} ${child.rankInfo.name}</div>
+              <div class="tree-node-meta">👥 ${child.downlineTeamCount} Sub-Members</div>
+            </div>
+          `;
+        });
+      }
+
+      treeWrapper.innerHTML = `
+        <div class="tree-root-container">
+          <!-- Root User Node -->
+          <div class="tree-node-card root-node">
+            <div class="tree-node-avatar" ${rootAvatarStyle}>${rootInitialDisplay}</div>
+            <div class="tree-node-name">${rootName} (You)</div>
+            <div class="tree-node-rank">${rootRankInfo.icon} ${rootRankInfo.name}</div>
+            <div class="tree-node-meta" style="color:#ffd166;">👥 ${teamDataState.totalTeamCount} Total Team</div>
+          </div>
+
+          <div class="tree-connector-line"></div>
+
+          <!-- Level 1 Children Row -->
+          <div class="tree-children-row">
+            ${l1NodesHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Level Picker Modal (Levels 1 to 10)
+     */
+    function openLevelPickerModal() {
+      if (!teamDataState) return;
+      const modal = document.getElementById('levelPickerModal');
+      const grid = document.getElementById('levelPickerGrid');
+
+      let html = '';
+      for (let i = 0; i < 10; i++) {
+        const count = teamDataState.levels[i].length;
+        const isCurrent = selectedLevelIndex === i;
+        html += `
+          <div class="level-picker-item ${isCurrent ? 'active' : ''}" onclick="selectLevel(${i})">
+            <span class="level-picker-name">LEVEL ${i + 1}</span>
+            <span class="level-picker-count">${count} ${count === 1 ? 'Member' : 'Members'}</span>
+          </div>
+        `;
+      }
+
+      grid.innerHTML = html;
+      modal.classList.add('active');
+    }
+
+    function closeLevelPickerModal() {
+      document.getElementById('levelPickerModal').classList.remove('active');
+    }
+
+    /**
+     * Member Details Popup Modal
+     */
+    function openMemberDetailsModal(memberId) {
+      if (!teamDataState) return;
+      const member = teamDataState.membersWithHierarchyData.get(memberId);
+      if (!member) return;
+
+      const modal = document.getElementById('memberDetailsModal');
+      const initial = (member.full_name || member.username || 'U').charAt(0).toUpperCase();
+
+      const avatarEl = document.getElementById('modalAvatar');
+      if (member.avatar_url) {
+        avatarEl.style.backgroundImage = `url('${member.avatar_url}')`;
+        avatarEl.textContent = '';
+      } else {
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.textContent = initial;
+      }
+
+      document.getElementById('modalMemberName').textContent = member.full_name || member.username;
+      document.getElementById('modalMemberRank').textContent = `${member.rankInfo.icon} ${member.rankInfo.name}`;
+      document.getElementById('modalMemberRank').style.color = member.rankInfo.color;
+      document.getElementById('modalLevelBadge').textContent = `Level ${member.level}`;
+
+      document.getElementById('modalUserId').textContent = member.referral_code || member.username || '-';
+      document.getElementById('modalUserPhone').textContent = member.formattedPhone;
+      document.getElementById('modalJoiningDate').textContent = member.formattedJoiningDate;
+      document.getElementById('modalSponsorVal').textContent = member.sponsor_username || 'Direct Signup';
+      document.getElementById('modalDirectCount').textContent = member.directTeamCount;
+      document.getElementById('modalTotalTeamCount').textContent = `${member.downlineTeamCount} Members`;
+
+      modal.classList.add('active');
+    }
+
+    function closeMemberDetailsModal() {
+      document.getElementById('memberDetailsModal').classList.remove('active');
+    }
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.team-modal-backdrop').forEach(b => {
+      b.addEventListener('click', (e) => {
+        if (e.target === b) {
+          b.classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
