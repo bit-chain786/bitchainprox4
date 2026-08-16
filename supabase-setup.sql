@@ -46,19 +46,13 @@ BEGIN
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    NEW.email,
     NEW.email,
     NEW.raw_user_meta_data->>'phone',
     NEW.raw_user_meta_data->>'sponsor_username',
     COALESCE(NEW.raw_user_meta_data->>'referral_code', UPPER(split_part(NEW.email, '@', 1)) || floor(random() * 1000)::text)
   )
-  ON CONFLICT (id) DO UPDATE SET
-    full_name = EXCLUDED.full_name,
-    username = EXCLUDED.username,
-    email = EXCLUDED.email,
-    phone = EXCLUDED.phone,
-    sponsor_username = EXCLUDED.sponsor_username,
-    updated_at = now();
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
