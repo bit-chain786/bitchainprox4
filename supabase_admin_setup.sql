@@ -60,13 +60,17 @@ DROP POLICY IF EXISTS "Users can view own deposits" ON deposits;
 DROP POLICY IF EXISTS "Users can insert own deposits" ON deposits;
 DROP POLICY IF EXISTS "Admins can view all deposits" ON deposits;
 DROP POLICY IF EXISTS "Admins can update deposits" ON deposits;
-CREATE POLICY "Users can view own deposits" ON deposits FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own deposits" ON deposits FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Admins can view all deposits" ON deposits FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+DROP POLICY IF EXISTS "Users and admins can view deposits" ON deposits;
+
+CREATE POLICY "Users can insert own deposits" ON deposits FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.uid() IS NOT NULL);
+CREATE POLICY "Users and admins can view deposits" ON deposits FOR SELECT USING (
+  auth.uid() = user_id 
+  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com'))
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
 );
 CREATE POLICY "Admins can update deposits" ON deposits FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com'))
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
 );
 
 -- 4. Withdrawals table
@@ -89,13 +93,17 @@ DROP POLICY IF EXISTS "Users can view own withdrawals" ON withdrawals;
 DROP POLICY IF EXISTS "Users can insert own withdrawals" ON withdrawals;
 DROP POLICY IF EXISTS "Admins can view all withdrawals" ON withdrawals;
 DROP POLICY IF EXISTS "Admins can update withdrawals" ON withdrawals;
-CREATE POLICY "Users can view own withdrawals" ON withdrawals FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own withdrawals" ON withdrawals FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Admins can view all withdrawals" ON withdrawals FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+DROP POLICY IF EXISTS "Users and admins can view withdrawals" ON withdrawals;
+
+CREATE POLICY "Users can insert own withdrawals" ON withdrawals FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.uid() IS NOT NULL);
+CREATE POLICY "Users and admins can view withdrawals" ON withdrawals FOR SELECT USING (
+  auth.uid() = user_id 
+  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com'))
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
 );
 CREATE POLICY "Admins can update withdrawals" ON withdrawals FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com'))
+  OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
 );
 
 -- 5. Support conversations

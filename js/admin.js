@@ -596,7 +596,7 @@ async function loadDeposits(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('deposits').select('*, profiles!deposits_user_id_fkey(full_name, username, email)', {count:'exact'}).order('created_at', {ascending:false});
+    let query = db.from('deposits').select('*', {count:'exact'}).order('created_at', {ascending:false});
     if (_depositsFilter !== 'all') query = query.eq('status', _depositsFilter);
     if (_depositsSearch) query = query.or(`transaction_id.ilike.%${_depositsSearch}%`);
 
@@ -611,19 +611,35 @@ async function loadDeposits(page=1) {
       return;
     }
 
+    // Fetch user profiles for these user_ids to display user info cleanly
+    const userIds = [...new Set(data.map(d => d.user_id).filter(Boolean))];
+    let profilesMap = {};
+    if (userIds.length > 0) {
+      try {
+        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email').in('id', userIds);
+        if (profiles) {
+          profiles.forEach(p => { profilesMap[p.id] = p; });
+        }
+      } catch(e) {
+        console.warn('Profiles mapping note:', e);
+      }
+    }
+
     tbody.innerHTML = data.map(d => {
-      const p = d.profiles || {};
+      const p = profilesMap[d.user_id] || d.profiles || {};
+      const displayName = p.full_name || p.username || 'User';
+      const displaySub = p.email || (p.username ? '@' + p.username : truncate(d.user_id, 10));
       return `
         <tr>
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(d.id,12)}</td>
           <td>
             <div class="user-cell">
-              <div class="user-avatar-xs">${initials(p.full_name)}</div>
-              <div><div class="user-name-sm">${p.full_name||'—'}</div><div class="user-email-sm">@${p.username||'—'}</div></div>
+              <div class="user-avatar-xs">${initials(displayName)}</div>
+              <div><div class="user-name-sm">${displayName}</div><div class="user-email-sm">${displaySub}</div></div>
             </div>
           </td>
           <td><span style="font-size:1rem;font-weight:800;color:var(--accent-green)">$${fmt(d.amount)}</span></td>
-          <td style="font-size:0.8rem">${d.payment_method}</td>
+          <td style="font-size:0.8rem">${d.payment_method || 'USDT (BEP20)'}</td>
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(d.transaction_id,16)||'—'}</td>
           <td style="font-size:0.72rem;color:var(--text-muted)">${fmtDate(d.created_at)}</td>
           <td><span class="badge badge-${d.status}">${d.status}</span></td>
@@ -635,7 +651,7 @@ async function loadDeposits(page=1) {
     renderPagination('depositsPagination', count, page, p => loadDeposits(p));
   } catch(e) {
     console.error('Deposits load error:', e);
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load deposits</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load deposits: ${e.message||''}</div></div></td></tr>`;
   }
 }
 
@@ -648,10 +664,15 @@ async function openDepositModal(depositId) {
   const body = el('depositModalBody');
   body.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin:auto"></div></div>`;
 
-  const { data: d } = await db.from('deposits').select('*, profiles!deposits_user_id_fkey(full_name, username, email, available_balance)').eq('id', depositId).maybeSingle();
+  const { data: d, error } = await db.from('deposits').select('*').eq('id', depositId).maybeSingle();
   if (!d) { body.innerHTML = '<div class="empty-state"><div class="empty-state-text">Deposit not found</div></div>'; return; }
 
-  const p = d.profiles || {};
+  let p = {};
+  if (d.user_id) {
+    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance').eq('id', d.user_id).maybeSingle();
+    p = userProf || {};
+  }
+
   const isPending = d.status === 'pending';
 
   body.innerHTML = `
@@ -661,13 +682,13 @@ async function openDepositModal(depositId) {
       ${infoRow('Username', '@' + (p.username||'—'))}
       ${infoRow('Email', p.email||'—')}
       ${infoRow('Amount', '<strong style="color:var(--accent-green);font-size:1.1rem">$'+fmt(d.amount)+' USDT</strong>')}
-      ${infoRow('Payment Method', d.payment_method)}
+      ${infoRow('Payment Method', d.payment_method || 'USDT (BEP20)')}
       ${infoRow('Transaction ID', d.transaction_id||'—')}
       ${infoRow('Status', `<span class="badge badge-${d.status}">${d.status}</span>`)}
       ${infoRow('Submitted', fmtDate(d.created_at))}
       ${infoRow('Admin Notes', d.admin_notes||'—')}
     </div>
-    ${d.proof_url ? `<div style="margin-top:12px"><img src="${d.proof_url}" alt="Proof" style="max-width:100%;border-radius:8px;border:1px solid var(--admin-border)"></div>` : ''}
+    ${d.proof_url ? `<div style="margin-top:12px"><div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:6px">Proof Screenshot:</div><a href="${d.proof_url}" target="_blank"><img src="${d.proof_url}" alt="Proof" style="max-width:100%;max-height:260px;object-fit:contain;border-radius:8px;border:1px solid var(--admin-border)"></a></div>` : '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">(No screenshot attached)</div>'}
     ${isPending ? `
     <div style="margin-top:20px">
       <div class="form-group">
@@ -750,7 +771,7 @@ async function loadWithdrawals(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('withdrawals').select('*, profiles!withdrawals_user_id_fkey(full_name, username, email, available_balance)', {count:'exact'}).order('created_at', {ascending:false});
+    let query = db.from('withdrawals').select('*', {count:'exact'}).order('created_at', {ascending:false});
     if (_withdrawalsFilter !== 'all') query = query.eq('status', _withdrawalsFilter);
     if (_withdrawalsSearch) query = query.ilike('destination', `%${_withdrawalsSearch}%`);
 
@@ -765,20 +786,36 @@ async function loadWithdrawals(page=1) {
       return;
     }
 
+    // Fetch user profiles for these user_ids to display user info cleanly
+    const userIds = [...new Set(data.map(w => w.user_id).filter(Boolean))];
+    let profilesMap = {};
+    if (userIds.length > 0) {
+      try {
+        const { data: profiles } = await db.from('profiles').select('id, full_name, username, email, available_balance').in('id', userIds);
+        if (profiles) {
+          profiles.forEach(p => { profilesMap[p.id] = p; });
+        }
+      } catch(e) {
+        console.warn('Profiles mapping note for withdrawals:', e);
+      }
+    }
+
     tbody.innerHTML = data.map(w => {
-      const p = w.profiles || {};
+      const p = profilesMap[w.user_id] || w.profiles || {};
+      const displayName = p.full_name || p.username || 'User';
+      const displaySub = p.email || (p.username ? '@' + p.username : truncate(w.user_id, 10));
       return `
         <tr>
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(w.id,12)}</td>
           <td>
             <div class="user-cell">
-              <div class="user-avatar-xs">${initials(p.full_name)}</div>
-              <div><div class="user-name-sm">${p.full_name||'—'}</div><div class="user-email-sm">@${p.username||'—'}</div></div>
+              <div class="user-avatar-xs">${initials(displayName)}</div>
+              <div><div class="user-name-sm">${displayName}</div><div class="user-email-sm">${displaySub}</div></div>
             </div>
           </td>
           <td><span style="font-size:1rem;font-weight:800;color:var(--accent-red)">$${fmt(w.amount)}</span></td>
-          <td style="font-size:0.8rem">${w.withdrawal_method}</td>
-          <td style="font-size:0.72rem;color:var(--text-muted)">${truncate(w.destination,20)}</td>
+          <td style="font-size:0.8rem">${w.withdrawal_method || 'USDT (BEP20)'}</td>
+          <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(w.destination,20)}</td>
           <td style="font-size:0.72rem;color:var(--text-muted)">${fmtDate(w.created_at)}</td>
           <td><span class="badge badge-${w.status}">${w.status}</span></td>
           <td><button class="btn btn-ghost btn-sm" onclick="openWithdrawalModal('${w.id}')">👁 Review</button></td>
@@ -788,7 +825,8 @@ async function loadWithdrawals(page=1) {
 
     renderPagination('withdrawalsPagination', count, page, p => loadWithdrawals(p));
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load withdrawals</div></div></td></tr>`;
+    console.error('Withdrawals load error:', e);
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load withdrawals: ${e.message||''}</div></div></td></tr>`;
   }
 }
 
@@ -801,10 +839,15 @@ async function openWithdrawalModal(wdId) {
   const body = el('withdrawalModalBody');
   body.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin:auto"></div></div>`;
 
-  const { data: w } = await db.from('withdrawals').select('*, profiles!withdrawals_user_id_fkey(full_name, username, email, available_balance)').eq('id', wdId).maybeSingle();
+  const { data: w, error } = await db.from('withdrawals').select('*').eq('id', wdId).maybeSingle();
   if (!w) { body.innerHTML = '<div class="empty-state"><div class="empty-state-text">Withdrawal not found</div></div>'; return; }
 
-  const p = w.profiles || {};
+  let p = {};
+  if (w.user_id) {
+    const { data: userProf } = await db.from('profiles').select('full_name, username, email, available_balance').eq('id', w.user_id).maybeSingle();
+    p = userProf || {};
+  }
+
   const isPending = w.status === 'pending';
   const canProcess = parseFloat(p.available_balance || 0) >= parseFloat(w.amount);
 
