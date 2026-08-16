@@ -260,11 +260,18 @@ async function loadDashboard() {
 
     const totalDep = (totalDepRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
     const totalWd  = (totalWdRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
+    // Calculate today's deposits
+    const todayDepRes = await db.from('deposits')
+        .select('amount')
+        .eq('status','approved')
+        .gte('created_at', todayStart);
+    const todayDep = (todayDepRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
 
     setStatCard('statTotalUsers',   totalUsersRes.count || 0);
     setStatCard('statActiveUsers',  activeUsersRes.count || 0);
     setStatCard('statNewToday',     newTodayRes.count || 0);
     setStatCard('statTotalDep',    '$' + fmt(totalDep));
+    setStatCard('statTodayDep',    '$' + fmt(todayDep));
     setStatCard('statPendDep',      pendDepRes.count || 0);
     setStatCard('statAppDep',       appDepRes.count || 0);
     setStatCard('statPendWd',       pendWdRes.count || 0);
@@ -446,7 +453,7 @@ async function loadUsers(page=1) {
         </td>
         <td style="font-size:0.8rem;color:var(--text-muted)">${u.email || '—'}</td>
         <td><span style="font-size:0.78rem;color:var(--primary-light);font-weight:600">${u.current_package ? u.current_package.toUpperCase() : 'None'}</span></td>
-        <td><span style="font-size:0.78rem;color:var(--text-secondary)">${u.current_rank || 'Starter'}</span></td>
+        <td><span style="font-size:0.78rem;color:var(--text-secondary)">${u.current_rank || 'UNRANKED'}</span></td>
         <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-inactive'}">${u.role||'user'}</span></td>
         <td><span class="badge ${u.status==='active'?'badge-active':'badge-inactive'}">${u.status||'active'}</span></td>
         <td style="font-size:0.72rem;color:var(--text-muted)">${fmtDateShort(u.created_at)}</td>
@@ -493,7 +500,7 @@ async function openUserModal(userId) {
         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
           <span class="badge ${statusBadge}">${u.status||'active'}</span>
           <span class="badge ${u.role==='admin'?'badge-admin':'badge-inactive'}">${u.role||'user'}</span>
-          <span class="badge badge-open">${u.current_rank || 'Starter'}</span>
+          <span class="badge badge-open">${u.current_rank || 'UNRANKED'}</span>
         </div>
       </div>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
@@ -808,13 +815,13 @@ async function loadWithdrawals(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    let query = db.from('withdrawals').select('*').order('created_at', {ascending:false});
+    let query = db.from('withdrawals').select('*', { count: 'exact' }).order('created_at', {ascending:false});
     if (_withdrawalsFilter !== 'all') query = query.eq('status', _withdrawalsFilter);
     if (_withdrawalsSearch) query = query.ilike('destination', `%${_withdrawalsSearch}%`);
 
     const from = (page-1)*PAGE_SIZE;
     query = query.range(from, from+PAGE_SIZE-1);
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) throw error;
     if (!data || data.length === 0) {
@@ -860,7 +867,7 @@ async function loadWithdrawals(page=1) {
       `;
     }).join('');
 
-    renderPagination('withdrawalsPagination', count, page, p => loadWithdrawals(p));
+    renderPagination('withdrawalsPagination', count || 0, page, p => loadWithdrawals(p));
   } catch(e) {
     console.error('Withdrawals load error:', e);
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load withdrawals: ${e.message||''}</div></div></td></tr>`;

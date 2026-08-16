@@ -115,7 +115,7 @@ async function signUpUser({ fullName, username, email, phone, password, sponsorU
       phone: phone.trim() || null,
       sponsor_username: sponsorUsername ? sponsorUsername.trim() : null,
       referral_code: generatedRefCode,
-      rank: 'UNRANKED',
+      rank: null,
       rank_value: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()

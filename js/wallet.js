@@ -251,7 +251,7 @@ async function submitWithdraw() {
       throw new Error(`Insufficient balance. You have ${available.toFixed(2)} USDT.`);
     }
     
-    const { error: insertErr } = await client.from('withdrawals').insert({
+    const { data: wdData, error: insertErr } = await client.from('withdrawals').insert({
       user_id: user.id,
       amount: amount,
       withdrawal_method: 'USDT (BEP20)',
@@ -259,9 +259,29 @@ async function submitWithdraw() {
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    });
-    
+    }).select().single();
+
     if (insertErr) throw insertErr;
+
+    const wdId = wdData.id;
+
+    // Deduct balance instantly
+    const newBalance = (available - amount).toFixed(2);
+    const { error: balErr } = await client.from('profiles').update({
+      available_balance: newBalance,
+      updated_at: new Date().toISOString()
+    }).eq('id', user.id);
+    if (balErr) throw balErr;
+
+    // Log activity for withdrawal request
+    const { error: actErr } = await client.from('activities').insert({
+      user_id: user.id,
+      type: 'WITHDRAWAL',
+      amount: amount,
+      details: { withdrawal_id: wdId },
+      created_at: new Date().toISOString()
+    });
+    if (actErr) console.warn('Activity log error (withdrawal):', actErr);
     
     // Reset form
     if (amtInput) amtInput.value = '';
