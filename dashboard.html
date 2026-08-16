@@ -1758,6 +1758,9 @@
           if (window.GlobalAvatar) window.GlobalAvatar.clear(userId);
         }
 
+        const rankName = profile.rank || 'UNRANKED';
+        const pkgName = profile.package_name || 'No Package';
+
         document.getElementById('profUserFullName').textContent = fullName;
         document.getElementById('dashHdrUserName').textContent = fullName;
         const mobHdrName = document.getElementById('mobDashHdrUserName');
