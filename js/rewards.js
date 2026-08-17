@@ -107,7 +107,8 @@ window.BitchainRewards = (function() {
 
     const directMemberIds = directMembers.map(m => m.id);
 
-    // 4. Fetch confirmed deposits made by direct members during the active 60-day cycle
+    // 4. Fetch confirmed rank/package purchases made by direct members during the active 60-day cycle
+    // (Deposits are wallet funding only and NEVER count towards Reward Direct Business)
     let directBusinessTotal = 0;
     const directMemberContributions = new Map(); // memberId -> totalAmount
 
@@ -116,33 +117,33 @@ window.BitchainRewards = (function() {
     });
 
     if (directMemberIds.length > 0) {
-      const { data: depositsData, error: depErr } = await client
-        .from('deposits')
-        .select('id, user_id, amount, status, created_at')
+      const { data: purchasesData, error: purErr } = await client
+        .from('package_purchases')
+        .select('id, user_id, amount, status, purchased_at')
         .in('user_id', directMemberIds)
-        .in('status', ['approved', 'completed']);
+        .eq('status', 'completed');
 
-      if (depErr) {
-        console.warn('Deposits query note:', depErr);
+      if (purErr) {
+        console.warn('Package purchases query note:', purErr);
       }
 
-      const deposits = depositsData || [];
+      const purchases = purchasesData || [];
       const cycleStartMs = cycle.startDate.getTime();
       const cycleEndMs = cycle.endDate.getTime();
 
-      deposits.forEach(dep => {
-        const depTime = new Date(dep.created_at).getTime();
-        // Check if deposit occurred inside active 60-day cycle
-        if (depTime >= cycleStartMs && depTime <= cycleEndMs) {
-          const amt = parseFloat(dep.amount) || 0;
+      purchases.forEach(pur => {
+        const purTime = new Date(pur.purchased_at).getTime();
+        // Check if rank/package purchase occurred inside the active 60-day cycle
+        if (purTime >= cycleStartMs && purTime <= cycleEndMs) {
+          const amt = parseFloat(pur.amount) || 0;
           directBusinessTotal += amt;
-          const currentContrib = directMemberContributions.get(dep.user_id) || 0;
-          directMemberContributions.set(dep.user_id, currentContrib + amt);
+          const currentContrib = directMemberContributions.get(pur.user_id) || 0;
+          directMemberContributions.set(pur.user_id, currentContrib + amt);
         }
       });
     }
 
-    // 5. Build Top Reward Achievers ranking
+    // 5. Build Top Reward Achievers ranking based on actual direct package/rank purchases
     const topAchievers = directMembers.map(m => {
       const businessAmount = directMemberContributions.get(m.id) || 0;
       const rank = m.rank || m.current_rank || 'Leader';

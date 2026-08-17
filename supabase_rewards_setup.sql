@@ -41,17 +41,17 @@ CREATE POLICY "Admins can view all reward claims"
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com'))
   );
 
--- 2. Allow users to read deposits of their direct referrals for business calculations
--- (or public reading for confirmed deposits)
-DROP POLICY IF EXISTS "Users can view direct referrals deposits" ON public.deposits;
+-- 2. Allow users to read package_purchases of their direct referrals for business calculations
+-- (or completed package purchases)
+DROP POLICY IF EXISTS "Users can view direct referrals package purchases" ON public.package_purchases;
+DROP POLICY IF EXISTS "Public can view completed purchases for reward business" ON public.package_purchases;
 
-CREATE POLICY "Users can view direct referrals deposits" 
-  ON public.deposits 
+CREATE POLICY "Public can view completed purchases for reward business" 
+  ON public.package_purchases 
   FOR SELECT 
   USING (
     auth.uid() = user_id
     OR status = 'completed'
-    OR status = 'approved'
   );
 
 SELECT 'BITCHAIN PRO X Rewards table setup complete!' AS status;
