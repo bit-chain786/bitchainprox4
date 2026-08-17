@@ -1225,6 +1225,14 @@
   border-bottom: none;
 }
 
+.activity-row-item {
+  transition: all 0.25s ease;
+}
+
+.activity-row-item:hover {
+  background: rgba(157, 78, 221, 0.08);
+}
+
 .activity-name-cell {
   display: flex;
   align-items: center;
@@ -1232,31 +1240,95 @@
   font-weight: 700;
 }
 
+.act-title-text {
+  font-weight: 800;
+  color: #ffffff;
+  font-size: 0.92rem;
+  letter-spacing: 0.3px;
+}
+
 .act-icon-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
 }
 
-.act-icon-dot.direct { background: rgba(157, 78, 221, 0.2); color: #c77dff; }
-.act-icon-dot.team { background: rgba(58, 134, 255, 0.2); color: #3a86ff; }
-.act-icon-dot.non-working { background: rgba(0, 245, 212, 0.2); color: #00f5d4; }
-.act-icon-dot.reward { background: rgba(255, 209, 102, 0.2); color: #ffd166; }
+.activity-row-item:hover .act-icon-dot,
+.mobile-activity-card:hover .act-icon-dot {
+  transform: scale(1.08);
+}
 
+/* Category & Transaction Type Colors — Primary Theme Matched */
+.act-icon-dot.deposit     { background: rgba(0, 245, 212, 0.15); border: 1px solid rgba(0, 245, 212, 0.35); color: #00f5d4; box-shadow: 0 0 12px rgba(0, 245, 212, 0.2); }
+.act-icon-dot.withdrawal  { background: rgba(255, 107, 107, 0.15); border: 1px solid rgba(255, 107, 107, 0.35); color: #ff6b6b; box-shadow: 0 0 12px rgba(255, 107, 107, 0.2); }
+.act-icon-dot.purchase    { background: rgba(199, 125, 255, 0.15); border: 1px solid rgba(199, 125, 255, 0.35); color: #c77dff; box-shadow: 0 0 12px rgba(199, 125, 255, 0.2); }
+.act-icon-dot.reward      { background: rgba(255, 209, 102, 0.15); border: 1px solid rgba(255, 209, 102, 0.35); color: #ffd166; box-shadow: 0 0 12px rgba(255, 209, 102, 0.2); }
+.act-icon-dot.direct      { background: rgba(157, 78, 221, 0.15); border: 1px solid rgba(157, 78, 221, 0.35); color: #c77dff; box-shadow: 0 0 12px rgba(157, 78, 221, 0.2); }
+.act-icon-dot.team        { background: rgba(58, 134, 255, 0.15); border: 1px solid rgba(58, 134, 255, 0.35); color: #3a86ff; box-shadow: 0 0 12px rgba(58, 134, 255, 0.2); }
+.act-icon-dot.non-working { background: rgba(0, 245, 212, 0.15); border: 1px solid rgba(0, 245, 212, 0.35); color: #00f5d4; box-shadow: 0 0 12px rgba(0, 245, 212, 0.2); }
+
+/* Status Pills */
+.act-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 50px;
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.act-status-pill.approved,
+.act-status-pill.completed {
+  background: rgba(0, 245, 212, 0.12);
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  color: #00f5d4;
+  box-shadow: 0 0 8px rgba(0, 245, 212, 0.15);
+}
+
+.act-status-pill.pending {
+  background: rgba(255, 190, 11, 0.12);
+  border: 1px solid rgba(255, 190, 11, 0.35);
+  color: #ffbe0b;
+  box-shadow: 0 0 8px rgba(255, 190, 11, 0.15);
+  animation: pendingPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes pendingPulse {
+  0% { opacity: 0.75; }
+  100% { opacity: 1; }
+}
+
+.act-status-pill.rejected {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  color: #ff6b6b;
+}
+
+/* Amount Badges */
 .act-amount-badge {
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 900;
   font-size: 0.95rem;
+  letter-spacing: 0.3px;
 }
 
-.act-amount-badge.direct { color: #c77dff; }
-.act-amount-badge.team { color: #3a86ff; }
-.act-amount-badge.non-working { color: #00f5d4; }
-.act-amount-badge.reward { color: #ffd166; }
+.act-amount-badge.deposit     { color: #00f5d4; text-shadow: 0 0 10px rgba(0, 245, 212, 0.3); }
+.act-amount-badge.withdrawal  { color: #ff6b6b; text-shadow: 0 0 10px rgba(255, 107, 107, 0.3); }
+.act-amount-badge.purchase    { color: #c77dff; text-shadow: 0 0 10px rgba(199, 125, 255, 0.3); }
+.act-amount-badge.reward      { color: #ffd166; text-shadow: 0 0 10px rgba(255, 209, 102, 0.3); }
+.act-amount-badge.direct      { color: #c77dff; text-shadow: 0 0 10px rgba(199, 125, 255, 0.3); }
+.act-amount-badge.team        { color: #3a86ff; text-shadow: 0 0 10px rgba(58, 134, 255, 0.3); }
+.act-amount-badge.non-working { color: #00f5d4; text-shadow: 0 0 10px rgba(0, 245, 212, 0.3); }
 
 /* Empty Activity State */
 .empty-state-box {
@@ -1860,13 +1932,21 @@
   }
 
   .mobile-activity-card {
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(199, 125, 255, 0.12);
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(26, 8, 60, 0.7) 0%, rgba(15, 7, 39, 0.8) 100%);
+    border: 1px solid rgba(199, 125, 255, 0.2);
     border-radius: var(--radius-md);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    transition: all 0.25s ease;
+  }
+
+  .mobile-activity-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(199, 125, 255, 0.45);
+    box-shadow: 0 8px 24px rgba(157, 78, 221, 0.25);
   }
 }
 

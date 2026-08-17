@@ -1623,7 +1623,7 @@
             <thead>
               <tr>
                 <th>ACTIVITY</th>
-                <th>DETAILS</th>
+                <th>STATUS</th>
                 <th>TIME</th>
                 <th>AMOUNT</th>
               </tr>
@@ -1970,34 +1970,77 @@
 
         list.forEach(act => {
           const cat = (act.category || 'direct').toLowerCase();
+          const type = (act.type || cat).toLowerCase();
+          const status = (act.status || 'completed').toLowerCase();
           const amt = formatUsdt(act.amount);
-          const icon = cat === 'direct' ? '👤' : (cat === 'team' ? '👥' : (cat === 'non_working' ? '🔄' : '🎁'));
+
+          let icon = '💎';
+          let sign = '+';
+          let badgeClass = cat;
+
+          if (type === 'deposit') {
+            icon = '📥';
+            sign = '+';
+            badgeClass = 'deposit';
+          } else if (type === 'withdrawal') {
+            icon = '📤';
+            sign = '-';
+            badgeClass = 'withdrawal';
+          } else if (type === 'purchase') {
+            icon = '⚡';
+            sign = '-';
+            badgeClass = 'purchase';
+          } else if (type === 'reward' || cat === 'reward') {
+            icon = '🎁';
+            sign = '+';
+            badgeClass = 'reward';
+          } else if (cat === 'direct') {
+            icon = '👤';
+            sign = '+';
+            badgeClass = 'direct';
+          } else if (cat === 'team') {
+            icon = '👥';
+            sign = '+';
+            badgeClass = 'team';
+          } else if (cat === 'non_working') {
+            icon = '🔄';
+            sign = '+';
+            badgeClass = 'non-working';
+          }
+
+          const statusPill = status === 'pending'
+            ? `<span class="act-status-pill pending">PENDING</span>`
+            : (status === 'rejected' ? `<span class="act-status-pill rejected">REJECTED</span>` : `<span class="act-status-pill approved">COMPLETED</span>`);
 
           rowsHtml += `
-            <tr>
+            <tr class="activity-row-item">
               <td>
                 <div class="activity-name-cell">
-                  <div class="act-icon-dot ${cat}">${icon}</div>
-                  <span>${act.title}</span>
+                  <div class="act-icon-dot ${badgeClass}">${icon}</div>
+                  <div>
+                    <span class="act-title-text">${act.title}</span>
+                    <div style="font-size:0.75rem; color:rgba(224,170,255,0.6);">${act.details || '-'}</div>
+                  </div>
                 </div>
               </td>
-              <td style="color: var(--text-muted);">${act.details || '-'}</td>
-              <td style="color: var(--text-muted);">${formatDate(act.created_at)}</td>
-              <td><span class="act-amount-badge ${cat}">+${amt}</span></td>
+              <td>${statusPill}</td>
+              <td style="color: var(--text-muted); font-size: 0.84rem;">${formatDate(act.created_at)}</td>
+              <td><span class="act-amount-badge ${badgeClass}">${sign}${amt}</span></td>
             </tr>
           `;
 
           mobHtml += `
-            <div class="mobile-activity-card">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="act-icon-dot ${cat}">${icon}</div>
+            <div class="mobile-activity-card ${badgeClass}">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="act-icon-dot ${badgeClass}">${icon}</div>
                 <div>
-                  <div style="font-weight: 700; font-size: 0.88rem;">${act.title}</div>
-                  <div style="font-size: 0.76rem; color: var(--text-muted);">${act.details || '-'}</div>
+                  <div style="font-weight: 800; font-size: 0.9rem; color: #ffffff;">${act.title}</div>
+                  <div style="font-size: 0.76rem; color: rgba(224, 170, 255, 0.65);">${act.details || '-'}</div>
+                  <div style="margin-top: 4px;">${statusPill}</div>
                 </div>
               </div>
-              <div style="text-align: right;">
-                <div class="act-amount-badge ${cat}">+${amt}</div>
+              <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <div class="act-amount-badge ${badgeClass}">${sign}${amt}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted);">${formatDate(act.created_at)}</div>
               </div>
             </div>

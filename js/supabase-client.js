@@ -294,29 +294,160 @@ function onAuthStateChanged(callback) {
 }
 
 /**
- * Fetch recent activities for a given user ID.
+ * Fetch unified transaction activity history for a user:
+ * - Deposits (pending, approved, completed, rejected)
+ * - Withdrawals (pending, approved, completed, rejected)
+ * - Package / Rank Purchases
+ * - Reward Claims
+ * - Commission activities (direct, team, non-working, reward)
  */
-async function getUserActivities(userId, limit = 5) {
+async function getUserActivities(userId, limit = 15) {
   const client = getSupabase();
-  if (!client) return [];
+  if (!client || !userId) return [];
+
+  const combinedList = [];
 
   try {
-    const { data, error } = await client
+    // 1. Fetch general activities (commissions, non-working income, etc.)
+    const { data: actData } = await client
       .from('activities')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.warn('Activities query notice:', error.message);
-      return [];
+    if (actData && actData.length > 0) {
+      actData.forEach(item => {
+        combinedList.push({
+          id: item.id,
+          title: item.title || 'Income Received',
+          details: item.details || 'Commission Credit',
+          amount: parseFloat(item.amount) || 0,
+          type: 'income',
+          status: 'completed',
+          category: item.category || 'direct',
+          created_at: item.created_at
+        });
+      });
     }
-    return data || [];
-  } catch (err) {
-    console.warn('Activities fetch exception:', err);
-    return [];
+  } catch (e) {
+    console.warn('Activities fetch note:', e);
   }
+
+  try {
+    // 2. Fetch Deposits
+    const { data: depData } = await client
+      .from('deposits')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (depData && depData.length > 0) {
+      depData.forEach(dep => {
+        const st = (dep.status || 'pending').toLowerCase();
+        combinedList.push({
+          id: dep.id,
+          title: 'Wallet Deposit',
+          details: `BEP-20 USDT Deposit (${st.toUpperCase()})`,
+          amount: parseFloat(dep.amount) || 0,
+          type: 'deposit',
+          status: st,
+          category: 'deposit',
+          created_at: dep.created_at
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('Deposits fetch note:', e);
+  }
+
+  try {
+    // 3. Fetch Withdrawals
+    const { data: withData } = await client
+      .from('withdrawals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (withData && withData.length > 0) {
+      withData.forEach(w => {
+        const st = (w.status || 'pending').toLowerCase();
+        combinedList.push({
+          id: w.id,
+          title: 'Wallet Withdrawal',
+          details: `BEP-20 USDT Payout (${st.toUpperCase()})`,
+          amount: parseFloat(w.amount) || 0,
+          type: 'withdrawal',
+          status: st,
+          category: 'withdrawal',
+          created_at: w.created_at
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('Withdrawals fetch note:', e);
+  }
+
+  try {
+    // 4. Fetch Package / Rank Purchases
+    const { data: pkgData } = await client
+      .from('package_purchases')
+      .select('*')
+      .eq('user_id', userId)
+      .order('purchased_at', { ascending: false })
+      .limit(limit);
+
+    if (pkgData && pkgData.length > 0) {
+      pkgData.forEach(p => {
+        combinedList.push({
+          id: p.id,
+          title: `${p.rank_name || p.package_name || 'Rank'} Upgrade`,
+          details: `Activated Package Tier ${p.package_name || ''}`,
+          amount: parseFloat(p.amount) || 0,
+          type: 'purchase',
+          status: p.status || 'completed',
+          category: 'purchase',
+          created_at: p.purchased_at || p.created_at
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('Package purchases fetch note:', e);
+  }
+
+  try {
+    // 5. Fetch Reward Claims
+    const { data: rewardData } = await client
+      .from('reward_claims')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (rewardData && rewardData.length > 0) {
+      rewardData.forEach(r => {
+        combinedList.push({
+          id: r.id,
+          title: `Reward Level ${r.level} Bonus`,
+          details: `Achieved $${parseFloat(r.target_amount).toLocaleString()} Direct Business`,
+          amount: parseFloat(r.reward_amount) || 0,
+          type: 'reward',
+          status: r.status || 'claimed',
+          category: 'reward',
+          created_at: r.created_at
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('Reward claims fetch note:', e);
+  }
+
+  // Sort unified transaction activities chronologically (newest first)
+  combinedList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  return combinedList.slice(0, limit);
 }
 
 /**
