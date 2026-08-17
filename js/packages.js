@@ -405,17 +405,64 @@ async function pkgConfirmPurchase() {
 
     // 1. Record the package purchase
     try {
-      await client
-        .from('package_purchases')
-        .insert({
-          user_id:      userId,
-          package_key:  tier.key,
-          package_name: tier.name,
-          rank_name:    tier.rank,
-          amount:       canonicalPrice,
-          status:       'completed',
-          purchased_at: new Date().toISOString()
-        });
+      const { data: purchaseData, error: purchaseInsertErr } = await client
+          .from('package_purchases')
+          .insert({
+            user_id:      userId,
+            package_key:  tier.key,
+            package_name: tier.name,
+            rank_name:    tier.rank,
+            amount:       canonicalPrice,
+            status:       'completed',
+            purchased_at: new Date().toISOString()
+          })
+          .select();
+        if (purchaseInsertErr) {
+          console.warn('Purchase log note:', purchaseInsertErr);
+        }
+        // ---- Direct Income Commission (40% of purchase) ----
+        if (purchaseData && purchaseData.length > 0) {
+          const purchaseId = purchaseData[0].id;
+          // Get purchaser's sponsor username
+          const { data: purchaserProfile } = await client
+            .from('profiles')
+            .select('sponsor_username, username')
+            .eq('id', userId)
+            .single();
+          if (purchaserProfile && purchaserProfile.sponsor_username) {
+            // Find sponsor's profile by username
+            const { data: sponsorProfile } = await client
+              .from('profiles')
+              .select('id, direct_income, username')
+              .eq('username', purchaserProfile.sponsor_username)
+              .single();
+            if (sponsorProfile && sponsorProfile.id) {
+              const commission = parseFloat((canonicalPrice * 0.4).toFixed(2));
+              // Prevent duplicate commission for this purchase
+              const { data: existing } = await client
+                .from('activities')
+                .select('id')
+                .eq('user_id', sponsorProfile.id)
+                .eq('title', 'Direct Income')
+                .ilike('details', `%${purchaseId}%`)
+                .limit(1);
+              if (!existing || existing.length === 0) {
+                // Log activity for sponsor
+                await client.from('activities').insert({
+                  user_id: sponsorProfile.id,
+                  title: 'Direct Income',
+                  details: `Commission from ${purchaserProfile.username} purchase ${tier.name} (Purchase ID: ${purchaseId})`,
+                  amount: commission,
+                  category: 'direct',
+                  created_at: new Date().toISOString()
+                });
+                // Update sponsor's direct_income column
+                const newDirectIncome = (parseFloat(sponsorProfile.direct_income) || 0) + commission;
+                await client.from('profiles').update({ direct_income: newDirectIncome }).eq('id', sponsorProfile.id);
+              }
+            }
+          }
+        }
     } catch (purchaseErr) {
       console.warn('Purchase log note:', purchaseErr);
     }
