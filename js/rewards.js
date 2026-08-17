@@ -132,13 +132,45 @@ window.BitchainRewards = (function() {
       const cycleEndMs = cycle.endDate.getTime();
 
       purchases.forEach(pur => {
-        const purTime = new Date(pur.purchased_at).getTime();
+        const purTime = new Date(pur.purchased_at || pur.created_at).getTime();
         // Check if rank/package purchase occurred inside the active 60-day cycle
         if (purTime >= cycleStartMs && purTime <= cycleEndMs) {
           const amt = parseFloat(pur.amount) || 0;
           directBusinessTotal += amt;
           const currentContrib = directMemberContributions.get(pur.user_id) || 0;
           directMemberContributions.set(pur.user_id, currentContrib + amt);
+        }
+      });
+
+      // Cumulative Rank Price Tier table
+      const RANK_PRICES = {
+        'starter': 5,
+        'basic': 15,     // $5 Starter + $10 Basic = $15 total
+        'silver': 35,    // + $20 = $35
+        'gold': 75,      // + $40 = $75
+        'diamond': 155,  // + $80 = $155
+        'elite': 315,    // + $160 = $315
+        'executive': 635,// + $320 = $635
+        'royal': 1275    // + $640 = $1275
+      };
+
+      // Fallback: If no rows in package_purchases yet (e.g. upgraded prior to table logging or RLS restriction),
+      // determine eligible rank purchase amount directly from the member's profile rank/current_package
+      directMembers.forEach(m => {
+        const recordedAmt = directMemberContributions.get(m.id) || 0;
+        if (recordedAmt === 0) {
+          const rKey = (m.current_package || m.rank || m.current_rank || '').toLowerCase().trim();
+          let estimatedAmt = 0;
+          for (const key in RANK_PRICES) {
+            if (rKey.includes(key)) {
+              estimatedAmt = RANK_PRICES[key];
+              break;
+            }
+          }
+          if (estimatedAmt > 0) {
+            directMemberContributions.set(m.id, estimatedAmt);
+            directBusinessTotal += estimatedAmt;
+          }
         }
       });
     }
