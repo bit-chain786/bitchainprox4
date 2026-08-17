@@ -406,8 +406,9 @@
       if (!rewardsDataState) return;
       const { directBusinessTotal, cycle, overallProgressPct, firstUnachieved } = rewardsDataState;
 
-      // 1. Direct Business
-      document.getElementById('valDirectBusiness').textContent = directBusinessTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // 1. Direct Business (Active current level business starting from $0)
+      const activeBusiness = rewardsDataState.unconsumedBusiness !== undefined ? rewardsDataState.unconsumedBusiness : directBusinessTotal;
+      document.getElementById('valDirectBusiness').textContent = activeBusiness.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       document.getElementById('lblCycleStart').textContent = window.BitchainRewards.formatDate(cycle.startDate);
       document.getElementById('lblCycleEnd').textContent = window.BitchainRewards.formatDate(cycle.endDate);
       document.getElementById('lblDaysRemaining').textContent = `${cycle.daysRemaining} Days Left`;
