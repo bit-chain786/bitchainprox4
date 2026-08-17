@@ -301,6 +301,19 @@ function onAuthStateChanged(callback) {
  * - Reward Claims
  * - Commission activities (direct, team, non-working, reward)
  */
+
+// Helper: safely convert any value to a display string (prevents [object Object])
+function safeStr(val, fallback = '') {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    // Try extracting a known message key, else return empty
+    return val.message || val.text || val.description || val.details || fallback;
+  }
+  return String(val);
+}
+
 async function getUserActivities(userId, limit = 15) {
   const client = getSupabase();
   if (!client || !userId) return [];
@@ -320,8 +333,8 @@ async function getUserActivities(userId, limit = 15) {
       actData.forEach(item => {
         combinedList.push({
           id: item.id,
-          title: item.title || 'Income Received',
-          details: item.details || 'Commission Credit',
+          title: safeStr(item.title, 'Income Received'),
+          details: safeStr(item.details, 'Commission Credit'),
           amount: parseFloat(item.amount) || 0,
           type: 'income',
           status: 'completed',
