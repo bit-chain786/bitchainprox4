@@ -463,9 +463,50 @@ async function pkgConfirmPurchase() {
             }
           }
         }
+
+        // ---- System Maintenance (10% of every purchase, all users) ----
+        if (purchaseData && purchaseData.length > 0) {
+          const purchaseId = purchaseData[0].id;
+          try {
+            // Duplicate protection — check if maintenance already recorded for this purchase
+            const { data: existingMaint } = await client
+              .from('system_maintenance')
+              .select('id')
+              .eq('purchase_id', purchaseId)
+              .limit(1);
+            if (!existingMaint || existingMaint.length === 0) {
+              const maintenance = parseFloat((canonicalPrice * 0.1).toFixed(2));
+              // Fetch purchaser username for record
+              let purchaserUsername = 'Unknown';
+              try {
+                const { data: prf } = await client
+                  .from('profiles')
+                  .select('username')
+                  .eq('id', userId)
+                  .single();
+                if (prf) purchaserUsername = prf.username;
+              } catch (_) {}
+              await client.from('system_maintenance').insert({
+                user_id:        userId,
+                user_name:      purchaserUsername,
+                package_name:   tier.name,
+                rank_name:      tier.rank,
+                purchase_amount: canonicalPrice,
+                maintenance_pct: 10,
+                maintenance_amount: maintenance,
+                purchase_id:    purchaseId,
+                status:         'completed',
+                created_at:     new Date().toISOString()
+              });
+            }
+          } catch (maintErr) {
+            console.warn('System maintenance log note:', maintErr);
+          }
+        }
     } catch (purchaseErr) {
       console.warn('Purchase log note:', purchaseErr);
     }
+
 
     // 2. Update the user's profile with new package + rank AND DEDUCT BALANCE
     const updatePayload = {

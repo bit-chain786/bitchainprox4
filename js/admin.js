@@ -244,7 +244,7 @@ async function loadDashboard() {
       totalUsersRes, activeUsersRes, newTodayRes,
       totalDepRes, pendDepRes, appDepRes,
       totalWdRes, pendWdRes, appWdRes,
-      totalPkgRes
+      totalPkgRes, maintRes
     ] = await Promise.all([
       db.from('profiles').select('id', {count:'exact',head:true}),
       db.from('profiles').select('id', {count:'exact',head:true}).eq('status','active'),
@@ -255,7 +255,8 @@ async function loadDashboard() {
       db.from('withdrawals').select('amount').eq('status','approved'),
       db.from('withdrawals').select('id', {count:'exact',head:true}).eq('status','pending'),
       db.from('withdrawals').select('id', {count:'exact',head:true}).eq('status','approved'),
-      db.from('package_purchases').select('id', {count:'exact',head:true})
+      db.from('package_purchases').select('id', {count:'exact',head:true}),
+      db.from('system_maintenance').select('maintenance_amount').eq('status','completed')
     ]);
 
     const totalDep = (totalDepRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
@@ -267,6 +268,9 @@ async function loadDashboard() {
         .gte('created_at', todayStart);
     const todayDep = (todayDepRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
 
+    // Total System Maintenance (10% of all successful purchases)
+    const totalMaint = (maintRes.data || []).reduce((s, r) => s + parseFloat(r.maintenance_amount || 0), 0);
+
     setStatCard('statTotalUsers',   totalUsersRes.count || 0);
     setStatCard('statActiveUsers',  activeUsersRes.count || 0);
     setStatCard('statNewToday',     newTodayRes.count || 0);
@@ -277,6 +281,7 @@ async function loadDashboard() {
     setStatCard('statPendWd',       pendWdRes.count || 0);
     setStatCard('statAppWd',        appWdRes.count || 0);
     setStatCard('statTotalPkg',     totalPkgRes.count || 0);
+    setStatCard('statOutgoingIncome', '$' + fmt(totalMaint));
 
     // Charts
     await loadDashboardCharts();
