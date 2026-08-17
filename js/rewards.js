@@ -191,46 +191,68 @@ window.BitchainRewards = (function() {
 
     // 6. Fetch existing reward claims for the active cycle
     let claimedLevelSet = new Set();
+    let totalConsumedBusiness = 0;
     try {
       const { data: claimsData, error: claimErr } = await client
         .from('reward_claims')
         .select('*')
         .eq('user_id', userId)
         .gte('created_at', cycle.startDate.toISOString())
-        .lte('created_at', cycle.endDate.toISOString());
+        .lte('created_at', cycle.endDate.toISOString())
+        .order('level', { ascending: true });
 
       if (!claimErr && claimsData) {
-        claimsData.forEach(c => claimedLevelSet.add(c.level));
+        claimsData.forEach(c => {
+          claimedLevelSet.add(c.level);
+          // Each claimed level consumes its required target amount
+          totalConsumedBusiness += parseFloat(c.target_amount || 0);
+        });
       }
     } catch (e) {
       console.warn('Reward claims read note:', e);
     }
 
-    // 7. Calculate milestone statuses
-    let nextTargetMilestone = REWARD_MILESTONES[0];
+    // 7. Calculate milestone statuses (Independent Progression — Fresh $0 for each Level)
+    // Active available business for the current milestone after previous claimed levels
+    let unconsumedBusiness = Math.max(0, directBusinessTotal - totalConsumedBusiness);
+    let activeLevelMilestone = null;
+
     const milestonesStatus = REWARD_MILESTONES.map(ms => {
       const isClaimed = claimedLevelSet.has(ms.level);
-      const isAchieved = directBusinessTotal >= ms.target;
-      const pct = Math.min(100, Math.round((directBusinessTotal / ms.target) * 100));
 
+      let levelCurrentBusiness = 0;
+      let isAchieved = false;
       let status = 'PENDING';
+
       if (isClaimed) {
+        // Level is already claimed: completed 100%
+        levelCurrentBusiness = ms.target;
+        isAchieved = true;
         status = 'CLAIMED';
-      } else if (isAchieved) {
-        status = 'ACHIEVED';
-      } else if (directBusinessTotal > 0) {
-        status = 'IN PROGRESS';
+      } else if (!activeLevelMilestone) {
+        // This is the active tier the user is currently working on!
+        activeLevelMilestone = ms;
+        levelCurrentBusiness = Math.min(ms.target, unconsumedBusiness);
+        isAchieved = unconsumedBusiness >= ms.target;
+        if (isAchieved) {
+          status = 'ACHIEVED';
+        } else if (unconsumedBusiness > 0) {
+          status = 'IN PROGRESS';
+        } else {
+          status = 'PENDING';
+        }
+      } else {
+        // Higher level tiers that unlock only after current active level is completed
+        levelCurrentBusiness = 0;
+        isAchieved = false;
+        status = 'PENDING';
       }
 
-      if (!isAchieved && (!nextTargetMilestone || ms.target > nextTargetMilestone.target)) {
-        if (nextTargetMilestone === REWARD_MILESTONES[0] && directBusinessTotal >= nextTargetMilestone.target) {
-          nextTargetMilestone = ms;
-        }
-      }
+      const pct = Math.min(100, Math.round((levelCurrentBusiness / ms.target) * 100));
 
       return {
         ...ms,
-        currentBusiness: directBusinessTotal,
+        currentBusiness: levelCurrentBusiness,
         percentage: pct,
         status,
         isAchieved,
@@ -238,18 +260,22 @@ window.BitchainRewards = (function() {
       };
     });
 
-    // Find first unachieved milestone for the circular progress widget
-    const firstUnachieved = milestonesStatus.find(m => !m.isAchieved) || REWARD_MILESTONES[REWARD_MILESTONES.length - 1];
-    const overallProgressPct = Math.min(100, Math.round((directBusinessTotal / firstUnachieved.target) * 100));
+    // The active target milestone for the circular progress widget
+    const currentActiveTier = activeLevelMilestone || REWARD_MILESTONES[REWARD_MILESTONES.length - 1];
+    const currentTierProgress = currentActiveTier.isClaimed ? currentActiveTier.target : Math.min(currentActiveTier.target, unconsumedBusiness);
+    const overallProgressPct = Math.min(100, Math.round((currentTierProgress / currentActiveTier.target) * 100));
 
     return {
       userProfile,
       cycle,
       directBusinessTotal,
+      currentTierBusiness: currentTierProgress,
+      unconsumedBusiness,
       directMembersCount: directMembers.length,
       topAchievers,
       milestonesStatus,
-      firstUnachieved,
+      currentActiveTier,
+      firstUnachieved: currentActiveTier,
       overallProgressPct
     };
   }
@@ -266,8 +292,10 @@ window.BitchainRewards = (function() {
 
     // 1. Recalculate authoritative data to prevent client tampering
     const freshData = await computeUserRewardsData(userId);
-    if (freshData.directBusinessTotal < milestone.target) {
-      throw new Error(`Target of $${milestone.target.toLocaleString()} direct business has not been reached yet.`);
+    const targetMilestoneStatus = freshData.milestonesStatus.find(m => m.level === level);
+
+    if (!targetMilestoneStatus || !targetMilestoneStatus.isAchieved) {
+      throw new Error(`Target of $${milestone.target.toLocaleString()} direct business has not been reached yet for Level ${level}.`);
     }
 
     // 2. Check duplicate claim in current cycle

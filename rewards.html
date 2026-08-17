@@ -412,10 +412,11 @@
       document.getElementById('lblCycleEnd').textContent = window.BitchainRewards.formatDate(cycle.endDate);
       document.getElementById('lblDaysRemaining').textContent = `${cycle.daysRemaining} Days Left`;
 
-      // 2. Circular Progress
+      // 2. Circular Progress (Displays active level progress starting from $0)
+      const activeProgressAmt = rewardsDataState.currentTierBusiness || 0;
       document.getElementById('lblProgressPct').textContent = `${overallProgressPct}%`;
-      document.getElementById('lblProgressSub').textContent = `You have achieved ${overallProgressPct}% of your target`;
-      document.getElementById('lblProgressRatio').textContent = `$ ${directBusinessTotal.toLocaleString()} / $ ${firstUnachieved.target.toLocaleString()}`;
+      document.getElementById('lblProgressSub').textContent = `You have achieved ${overallProgressPct}% of Level ${firstUnachieved.level} target`;
+      document.getElementById('lblProgressRatio').textContent = `$ ${activeProgressAmt.toLocaleString()} / $ ${firstUnachieved.target.toLocaleString()}`;
 
       // Calculate circle stroke offset: circumference = 2 * PI * 42 = 263.89
       const perimeter = 263.89;
