@@ -1,11 +1,16 @@
 ﻿-- ============================================================================
 -- BITCHAIN PRO X — DIRECT INCOME (40%) AUTOMATIC COMMISSION ENGINE
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
--- Safe to execute multiple times (Idempotent).
 -- ============================================================================
 
--- 1. Create table to log and track every 40% direct income payment
-CREATE TABLE IF NOT EXISTS public.direct_income_log (
+-- 1. Drop existing trigger to avoid dependencies while altering
+DROP TRIGGER IF EXISTS trg_direct_income ON public.package_purchases;
+DROP TRIGGER IF EXISTS trg_direct_income_commission ON public.package_purchases;
+
+-- 2. Drop and recreate direct_income_log table cleanly
+DROP TABLE IF EXISTS public.direct_income_log CASCADE;
+
+CREATE TABLE public.direct_income_log (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   purchase_id         UUID NOT NULL UNIQUE,
   purchaser_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -21,11 +26,6 @@ CREATE TABLE IF NOT EXISTS public.direct_income_log (
 
 -- Enable RLS
 ALTER TABLE public.direct_income_log ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies to prevent duplicate policy errors
-DROP POLICY IF EXISTS Allow insert direct income ON public.direct_income_log;
-DROP POLICY IF EXISTS Admins can read direct income ON public.direct_income_log;
-DROP POLICY IF EXISTS Users can read own direct income log ON public.direct_income_log;
 
 CREATE POLICY Allow insert direct income
   ON public.direct_income_log FOR INSERT
@@ -57,7 +57,7 @@ CREATE POLICY Users can read own activities
   ON public.activities FOR SELECT
   USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
--- 2. Trigger function that executes on PostgreSQL backend with SECURITY DEFINER
+-- 3. Trigger function that executes on PostgreSQL backend with SECURITY DEFINER
 CREATE OR REPLACE FUNCTION public.handle_direct_income_commission()
 RETURNS trigger AS 
 DECLARE
@@ -163,15 +163,14 @@ BEGIN
 END;
  LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. Attach trigger to package_purchases table
-DROP TRIGGER IF EXISTS trg_direct_income_commission ON public.package_purchases;
+-- 4. Attach trigger to package_purchases table
 CREATE TRIGGER trg_direct_income_commission
   AFTER INSERT OR UPDATE ON public.package_purchases
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_direct_income_commission();
 
--- 4. RETROACTIVE SYNC / BACKFILL FOR EXISTING PURCHASES
--- This automatically credits 40% direct income for past completed purchases (like esgxfb -> DRDSSK224)
+-- 5. RETROACTIVE SYNC / BACKFILL FOR EXISTING PURCHASES
+-- This automatically credits 40% direct income for past completed purchases
 DO 
 DECLARE
   r RECORD;
@@ -181,7 +180,6 @@ DECLARE
   v_raw_sponsor TEXT;
 BEGIN
   FOR r IN SELECT * FROM public.package_purchases WHERE status = ''completed'' AND amount > 0 LOOP
-    -- Check if already logged
     IF NOT EXISTS (SELECT 1 FROM public.direct_income_log WHERE purchase_id = r.id) THEN
       SELECT id, username, full_name, email, sponsor_username, referral_code
         INTO v_purchaser
@@ -202,8 +200,7 @@ BEGIN
          AND id <> r.user_id
          LIMIT 1;
 
-        IF FOUND AND v_sponsor.id IS NULL THEN
-          -- calculate
+        IF FOUND AND v_sponsor.id IS NOT NULL THEN
           v_commission := ROUND((r.amount * 0.40)::numeric, 2);
 
           INSERT INTO public.direct_income_log (
