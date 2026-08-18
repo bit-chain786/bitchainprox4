@@ -3,7 +3,7 @@
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
 
--- 1. Ensure public.activities table and all required columns exist
+-- 1. Ensure public.activities table and all required columns exist as TEXT
 CREATE TABLE IF NOT EXISTS public.activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -13,6 +13,14 @@ CREATE TABLE IF NOT EXISTS public.activities (
   category TEXT DEFAULT ''direct'',
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- Convert details column to TEXT if it was created as JSON/JSONB
+DO 
+BEGIN
+  ALTER TABLE public.activities ALTER COLUMN details TYPE TEXT USING details::text;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END ;
 
 ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''Activity'';
 ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS details TEXT;
@@ -80,6 +88,7 @@ DECLARE
   v_sponsor   RECORD;
   v_commission NUMERIC(14,2);
   v_raw_sponsor TEXT;
+  v_detail_text TEXT;
 BEGIN
   -- Only process completed rank/package purchases
   IF NEW.status <> ''completed'' OR NEW.amount <= 0 THEN
@@ -149,6 +158,8 @@ BEGIN
   ) ON CONFLICT (purchase_id) DO NOTHING;
 
   -- 5. Insert activity record for the sponsor so it shows in Recent Activity
+  v_detail_text := ''40% commission from '' || COALESCE(v_purchaser.username, v_purchaser.full_name, ''Direct Referral'') || '' purchasing '' || COALESCE(NEW.package_name, NEW.rank_name, ''Package'') || '' — $'' || TO_CHAR(NEW.amount, ''FM999,999,990.00'') || '' USDT'';
+
   INSERT INTO public.activities (
     user_id,
     title,
@@ -159,7 +170,7 @@ BEGIN
   ) VALUES (
     v_sponsor.id,
     ''Direct Income'',
-    ''40% commission from '' || COALESCE(v_purchaser.username, v_purchaser.full_name, ''Direct Referral'') || '' purchasing '' || COALESCE(NEW.package_name, NEW.rank_name, ''Package'') || '' — $'' || TO_CHAR(NEW.amount, ''FM999,999,990.00'') || '' USDT'',
+    v_detail_text,
     v_commission,
     ''direct'',
     NOW()
@@ -192,6 +203,7 @@ DECLARE
   v_sponsor RECORD;
   v_commission NUMERIC(14,2);
   v_raw_sponsor TEXT;
+  v_detail_text TEXT;
 BEGIN
   FOR r IN SELECT * FROM public.package_purchases WHERE status = ''completed'' AND amount > 0 LOOP
     IF NOT EXISTS (SELECT 1 FROM public.direct_income_log WHERE purchase_id = r.id) THEN
@@ -227,11 +239,13 @@ BEGIN
             40.00, v_commission, r.purchased_at
           ) ON CONFLICT (purchase_id) DO NOTHING;
 
+          v_detail_text := ''40% commission from '' || COALESCE(v_purchaser.username, v_purchaser.full_name, ''Direct Referral'') || '' purchasing '' || COALESCE(r.package_name, r.rank_name, ''Package'') || '' — $'' || TO_CHAR(r.amount, ''FM999,999,990.00'') || '' USDT'';
+
           INSERT INTO public.activities (user_id, title, details, amount, category, created_at)
           VALUES (
             v_sponsor.id,
             ''Direct Income'',
-            ''40% commission from '' || COALESCE(v_purchaser.username, v_purchaser.full_name, ''Direct Referral'') || '' purchasing '' || COALESCE(r.package_name, r.rank_name, ''Package'') || '' — $'' || TO_CHAR(r.amount, ''FM999,999,990.00'') || '' USDT'',
+            v_detail_text,
             v_commission,
             ''direct'',
             r.purchased_at
