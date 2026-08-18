@@ -970,24 +970,28 @@ async function processWithdrawal(wdId, userId, amount, newStatus) {
       if (balErr) throw new Error('Refund failed: ' + balErr.message);
 
       // Log the refund activity so user sees it in Recent Activity
-      await db.from('activities').insert({
-        user_id:    userId,
-        category:   'withdrawal',
-        title:      'Withdrawal Rejected – Refunded',
-        details:    `Your withdrawal of $${fmt(amount)} USDT was rejected. Reason: ${notes}. Amount refunded to your balance.`,
-        amount:     parseFloat(amount),
-        created_at: new Date().toISOString()
-      }).catch(() => {});
+      try {
+        await db.from('activities').insert({
+          user_id:    userId,
+          category:   'withdrawal',
+          title:      'Withdrawal Rejected – Refunded',
+          details:    `Your withdrawal of $${fmt(amount)} USDT was rejected. Reason: ${notes}. Amount refunded to your balance.`,
+          amount:     parseFloat(amount),
+          created_at: new Date().toISOString()
+        });
+      } catch (_) {}
     } else {
       // Approve: log completed withdrawal activity
-      await db.from('activities').insert({
-        user_id:    userId,
-        category:   'withdrawal',
-        title:      'Withdrawal Approved',
-        details:    `Your withdrawal of $${fmt(amount)} USDT has been approved and processed successfully.`,
-        amount:     -parseFloat(amount),
-        created_at: new Date().toISOString()
-      }).catch(() => {});
+      try {
+        await db.from('activities').insert({
+          user_id:    userId,
+          category:   'withdrawal',
+          title:      'Withdrawal Approved',
+          details:    `Your withdrawal of $${fmt(amount)} USDT has been approved and processed successfully.`,
+          amount:     -parseFloat(amount),
+          created_at: new Date().toISOString()
+        });
+      } catch (_) {}
     }
 
     // Update withdrawal record
