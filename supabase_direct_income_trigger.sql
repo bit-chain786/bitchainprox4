@@ -3,11 +3,39 @@
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
 
--- 1. Drop existing trigger to avoid dependencies while altering
+-- 1. Ensure public.activities table and all required columns exist
+CREATE TABLE IF NOT EXISTS public.activities (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT DEFAULT ''Activity'',
+  details TEXT,
+  amount NUMERIC(14,2) DEFAULT 0.00,
+  category TEXT DEFAULT ''direct'',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''Activity'';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS details TEXT;
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS amount NUMERIC(14,2) DEFAULT 0.00;
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''direct'';
+
+-- Ensure RLS on activities table permits inserts & reads
+ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS Allow authenticated insert activities ON public.activities;
+CREATE POLICY Allow authenticated insert activities
+  ON public.activities FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS Users can read own activities ON public.activities;
+CREATE POLICY Users can read own activities
+  ON public.activities FOR SELECT
+  USING (auth.uid() = user_id OR auth.uid() IS NULL);
+
+-- 2. Drop existing triggers to avoid dependencies
 DROP TRIGGER IF EXISTS trg_direct_income ON public.package_purchases;
 DROP TRIGGER IF EXISTS trg_direct_income_commission ON public.package_purchases;
 
--- 2. Drop and recreate direct_income_log table cleanly
+-- 3. Drop and recreate direct_income_log table cleanly
 DROP TABLE IF EXISTS public.direct_income_log CASCADE;
 
 CREATE TABLE public.direct_income_log (
@@ -24,7 +52,6 @@ CREATE TABLE public.direct_income_log (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Enable RLS
 ALTER TABLE public.direct_income_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY Allow insert direct income
@@ -45,19 +72,7 @@ CREATE POLICY Admins can read direct income
     OR (SELECT email FROM auth.users WHERE id = auth.uid()) = ''bitchain3@gmail.com''
   );
 
--- Ensure RLS on activities table permits authenticated insert and public/user select
-ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS Allow authenticated insert activities ON public.activities;
-CREATE POLICY Allow authenticated insert activities
-  ON public.activities FOR INSERT
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS Users can read own activities ON public.activities;
-CREATE POLICY Users can read own activities
-  ON public.activities FOR SELECT
-  USING (auth.uid() = user_id OR auth.uid() IS NULL);
-
--- 3. Trigger function that executes on PostgreSQL backend with SECURITY DEFINER
+-- 4. Trigger function that executes on PostgreSQL backend with SECURITY DEFINER
 CREATE OR REPLACE FUNCTION public.handle_direct_income_commission()
 RETURNS trigger AS 
 DECLARE
@@ -163,14 +178,13 @@ BEGIN
 END;
  LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4. Attach trigger to package_purchases table
+-- 5. Attach trigger to package_purchases table
 CREATE TRIGGER trg_direct_income_commission
   AFTER INSERT OR UPDATE ON public.package_purchases
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_direct_income_commission();
 
--- 5. RETROACTIVE SYNC / BACKFILL FOR EXISTING PURCHASES
--- This automatically credits 40% direct income for past completed purchases
+-- 6. RETROACTIVE SYNC / BACKFILL FOR EXISTING PURCHASES
 DO 
 DECLARE
   r RECORD;
