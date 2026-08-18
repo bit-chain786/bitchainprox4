@@ -430,13 +430,17 @@ async function pkgConfirmPurchase() {
             .eq('id', userId)
             .single();
           if (purchaserProfile && purchaserProfile.sponsor_username) {
-            // Find sponsor's profile by username
-            const { data: sponsorProfile } = await client
+            const rawSponsor = purchaserProfile.sponsor_username.trim();
+            // Look up sponsor by referral_code, username, or email
+            const { data: sponsorList } = await client
               .from('profiles')
-              .select('id, direct_income, username')
-              .eq('username', purchaserProfile.sponsor_username)
-              .single();
-            if (sponsorProfile && sponsorProfile.id) {
+              .select('id, direct_income, total_income, available_balance, username, full_name, referral_code, email')
+              .or(`referral_code.ilike.${rawSponsor},username.ilike.${rawSponsor},email.ilike.${rawSponsor}`)
+              .limit(1);
+
+            const sponsorProfile = (sponsorList && sponsorList.length > 0) ? sponsorList[0] : null;
+
+            if (sponsorProfile && sponsorProfile.id && sponsorProfile.id !== userId) {
               const commission = parseFloat((canonicalPrice * 0.4).toFixed(2));
               // Prevent duplicate commission for this purchase
               const { data: existing } = await client
@@ -446,22 +450,34 @@ async function pkgConfirmPurchase() {
                 .eq('title', 'Direct Income')
                 .ilike('details', `%${purchaseId}%`)
                 .limit(1);
+
               if (!existing || existing.length === 0) {
                 // Log activity for sponsor
                 await client.from('activities').insert({
-                  user_id: sponsorProfile.id,
-                  title: 'Direct Income',
-                  details: `Commission from ${purchaserProfile.username} purchase ${tier.name} (Purchase ID: ${purchaseId})`,
-                  amount: commission,
-                  category: 'direct',
+                  user_id:    sponsorProfile.id,
+                  title:      'Direct Income',
+                  details:    `40% commission from ${purchaserProfile.username || 'Direct Referral'} purchasing ${tier.name} — $${canonicalPrice.toFixed(2)} USDT (Ref: ${purchaseId})`,
+                  amount:     commission,
+                  category:   'direct',
                   created_at: new Date().toISOString()
                 });
-                // Update sponsor's direct_income column
-                const newDirectIncome = (parseFloat(sponsorProfile.direct_income) || 0) + commission;
-                await client.from('profiles').update({ direct_income: newDirectIncome }).eq('id', sponsorProfile.id);
+
+                // Update sponsor's direct_income, total_income, and available_balance
+                const curDirect = parseFloat(sponsorProfile.direct_income) || 0;
+                const curTotal  = parseFloat(sponsorProfile.total_income) || 0;
+                const curBal    = parseFloat(sponsorProfile.available_balance) || 0;
+
+                await client.from('profiles').update({
+                  direct_income:     parseFloat((curDirect + commission).toFixed(2)),
+                  total_income:      parseFloat((curTotal + commission).toFixed(2)),
+                  available_balance: parseFloat((curBal + commission).toFixed(2)),
+                  updated_at:        new Date().toISOString()
+                }).eq('id', sponsorProfile.id);
               }
             }
           }
+
+
         }
 
         // ---- System Maintenance (10% of every purchase, all users) ----
