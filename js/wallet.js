@@ -275,13 +275,15 @@ async function submitWithdraw() {
 
     // Log activity for withdrawal request
     const { error: actErr } = await client.from('activities').insert({
-      user_id: user.id,
-      type: 'WITHDRAWAL',
-      amount: amount,
-      details: { withdrawal_id: wdId },
+      user_id:    user.id,
+      category:   'withdrawal',
+      title:      'Withdrawal Pending',
+      details:    `Withdrawal of $${amount.toFixed(2)} USDT — Awaiting admin approval (Ref: ${wdId})`,
+      amount:     amount,
       created_at: new Date().toISOString()
     });
     if (actErr) console.warn('Activity log error (withdrawal):', actErr);
+
     
     // Reset form
     if (amtInput) amtInput.value = '';

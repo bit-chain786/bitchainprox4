@@ -387,10 +387,21 @@ async function getUserActivities(userId, limit = 15) {
     if (withData && withData.length > 0) {
       withData.forEach(w => {
         const st = (w.status || 'pending').toLowerCase();
+        let detailText = '';
+        if (st === 'pending') {
+          detailText = `Withdrawal of $${parseFloat(w.amount).toFixed(2)} USDT — Awaiting admin approval`;
+        } else if (st === 'approved') {
+          detailText = `Withdrawal of $${parseFloat(w.amount).toFixed(2)} USDT — Approved & processed successfully`;
+        } else if (st === 'rejected') {
+          const reason = w.rejection_reason || w.admin_notes || 'No reason provided';
+          detailText = `Withdrawal Rejected & Refunded — Reason: ${reason}`;
+        } else {
+          detailText = `BEP-20 USDT Payout (${st.toUpperCase()})`;
+        }
         combinedList.push({
           id: w.id,
-          title: 'Wallet Withdrawal',
-          details: `BEP-20 USDT Payout (${st.toUpperCase()})`,
+          title: st === 'rejected' ? 'Withdrawal Rejected – Refunded' : st === 'approved' ? 'Withdrawal Approved' : 'Withdrawal Pending',
+          details: detailText,
           amount: parseFloat(w.amount) || 0,
           type: 'withdrawal',
           status: st,
@@ -399,6 +410,7 @@ async function getUserActivities(userId, limit = 15) {
         });
       });
     }
+
   } catch (e) {
     console.warn('Withdrawals fetch note:', e);
   }

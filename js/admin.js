@@ -898,7 +898,7 @@ async function openWithdrawalModal(wdId) {
   }
 
   const isPending = w.status === 'pending';
-  const canProcess = parseFloat(p.available_balance || 0) >= parseFloat(w.amount);
+  // NOTE: balance is already deducted when user submits; no need to block approve here
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--admin-border);">
@@ -912,14 +912,14 @@ async function openWithdrawalModal(wdId) {
       ${infoRow('Withdrawal ID', truncate(w.id,24))}
       ${infoRow('User', p.full_name||'—')}
       ${infoRow('Username', '@'+(p.username||'—'))}
-      ${infoRow('Available Balance', '<strong style="color:var(--accent-green)">$'+fmt(p.available_balance)+'</strong>')}
+      ${infoRow('Current Balance (after deduction)', '<strong style="color:var(--accent-green)">$'+fmt(p.available_balance)+'</strong>')}
       ${infoRow('Requested Amount', '<strong style="color:var(--accent-red);font-size:1.1rem">$'+fmt(w.amount)+' USDT</strong>')}
-      ${!canProcess && isPending ? `<div style="grid-column:1/-1"><div style="background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;padding:10px;color:#e63946;font-size:0.82rem;font-weight:600">⚠️ Insufficient balance — user only has $${fmt(p.available_balance)}</div></div>` : ''}
+      <div style="grid-column:1/-1"><div style="background:rgba(0,245,212,0.07);border:1px solid rgba(0,245,212,0.25);border-radius:8px;padding:10px;color:#00f5d4;font-size:0.82rem;font-weight:600">ℹ️ Balance was already deducted when the user submitted this request. Approving will NOT deduct again. Rejecting will REFUND the amount.</div></div>
       ${infoRow('Method', w.withdrawal_method)}
       ${infoRow('Destination', w.destination)}
       ${infoRow('Status', `<span class="badge badge-${w.status}">${w.status}</span>`)}
       ${infoRow('Submitted', fmtDate(w.created_at))}
-      ${w.rejection_reason ? infoRow('Rejection Reason', w.rejection_reason) : ''}
+      ${w.rejection_reason ? infoRow('Rejection Reason', `<span style="color:#ff6b6b">${w.rejection_reason}</span>`) : ''}
     </div>
     ${isPending ? `
     <div style="margin-top:20px">
@@ -928,60 +928,82 @@ async function openWithdrawalModal(wdId) {
         <textarea class="form-control" id="wdAdminNotes" placeholder="Required when rejecting…"></textarea>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-success" onclick="processWithdrawal('${w.id}','${w.user_id}',${w.amount},'approved')" ${!canProcess ? 'disabled title="Insufficient balance"' : ''}>✓ Process Withdrawal</button>
-        <button class="btn btn-danger" onclick="processWithdrawal('${w.id}','${w.user_id}',${w.amount},'rejected')">✕ Reject</button>
+        <button class="btn btn-success" onclick="processWithdrawal('${w.id}','${w.user_id}',${w.amount},'approved')">✓ Approve Withdrawal</button>
+        <button class="btn btn-danger" onclick="processWithdrawal('${w.id}','${w.user_id}',${w.amount},'rejected')">✕ Reject & Refund</button>
       </div>
     </div>` : ''}
   `;
 }
+
 
 async function processWithdrawal(wdId, userId, amount, newStatus) {
   const db = getDB();
   if (!db) return;
 
   const isApprove = newStatus === 'approved';
+  const isReject  = newStatus === 'rejected';
   const notes = el('wdAdminNotes')?.value?.trim() || '';
 
-  if (!isApprove && !notes) { toast('Please provide a rejection reason.', 'warning'); return; }
+  if (isReject && !notes) { toast('Please provide a rejection reason.', 'warning'); return; }
 
   const confirmed = await showConfirm(
-    isApprove ? '✓ Process Withdrawal?' : '✕ Reject Withdrawal?',
-    isApprove ? `$${fmt(amount)} will be deducted from the user's balance.` : `Withdrawal will be rejected: "${notes}"`
+    isApprove ? '✓ Approve Withdrawal?' : '✕ Reject & Refund Withdrawal?',
+    isApprove
+      ? `Mark withdrawal of $${fmt(amount)} as approved (balance already deducted at request time).`
+      : `Reject and REFUND $${fmt(amount)} back to user's balance.\nReason: "${notes}"`
   );
   if (!confirmed) return;
 
   try {
-    // Server-side balance verification before deducting
-    if (isApprove) {
+    // NOTE: Balance was already deducted when the user submitted the withdrawal request.
+    // APPROVE → just mark as approved (no balance change).
+    // REJECT  → refund the amount back to the user's balance.
+    if (isReject) {
       const { data: profile } = await db.from('profiles').select('available_balance').eq('id', userId).maybeSingle();
       const currentBalance = parseFloat(profile?.available_balance || 0);
-      if (currentBalance < parseFloat(amount)) {
-        toast('Insufficient balance. Cannot process withdrawal.', 'error');
-        return;
-      }
+      const refundedBalance = parseFloat((currentBalance + parseFloat(amount)).toFixed(2));
 
-      // Deduct balance
       const { error: balErr } = await db.from('profiles').update({
-        available_balance: currentBalance - parseFloat(amount),
+        available_balance: refundedBalance,
         updated_at: new Date().toISOString()
       }).eq('id', userId);
-      if (balErr) throw new Error(balErr.message);
+      if (balErr) throw new Error('Refund failed: ' + balErr.message);
+
+      // Log the refund activity so user sees it in Recent Activity
+      await db.from('activities').insert({
+        user_id:    userId,
+        category:   'withdrawal',
+        title:      'Withdrawal Rejected – Refunded',
+        details:    `Your withdrawal of $${fmt(amount)} USDT was rejected. Reason: ${notes}. Amount refunded to your balance.`,
+        amount:     parseFloat(amount),
+        created_at: new Date().toISOString()
+      }).catch(() => {});
+    } else {
+      // Approve: log completed withdrawal activity
+      await db.from('activities').insert({
+        user_id:    userId,
+        category:   'withdrawal',
+        title:      'Withdrawal Approved',
+        details:    `Your withdrawal of $${fmt(amount)} USDT has been approved and processed successfully.`,
+        amount:     -parseFloat(amount),
+        created_at: new Date().toISOString()
+      }).catch(() => {});
     }
 
-    // Update withdrawal
+    // Update withdrawal record
     const { error } = await db.from('withdrawals').update({
-      status: newStatus,
-      admin_notes: notes,
-      rejection_reason: !isApprove ? notes : null,
-      reviewed_by: _adminUser.id,
-      reviewed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      status:           newStatus,
+      admin_notes:      notes,
+      rejection_reason: isReject ? notes : null,
+      reviewed_by:      _adminUser.id,
+      reviewed_at:      new Date().toISOString(),
+      updated_at:       new Date().toISOString()
     }).eq('id', wdId).eq('status','pending');
 
     if (error) throw new Error(error.message);
 
     await auditLog(`WITHDRAWAL_${newStatus.toUpperCase()}`, userId, 'withdrawals', wdId, { amount, notes });
-    toast(`Withdrawal ${newStatus} successfully.`, isApprove ? 'success' : 'warning');
+    toast(`Withdrawal ${isApprove ? 'approved' : 'rejected & refunded'} successfully.`, isApprove ? 'success' : 'warning');
     closeModal('withdrawalModal');
     loadWithdrawals(_withdrawalsPage);
     loadBadgeCounts();
@@ -989,6 +1011,7 @@ async function processWithdrawal(wdId, userId, amount, newStatus) {
     toast(e.message || 'Failed to process withdrawal.', 'error');
   }
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════
 // SECTION: PACKAGES
