@@ -3,10 +3,11 @@
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
 
--- 1. Ensure public.activities table and all required columns exist as TEXT
+-- 1. Ensure public.activities table exists and fix all column constraints
 CREATE TABLE IF NOT EXISTS public.activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  type TEXT DEFAULT ''income'',
   title TEXT DEFAULT ''Activity'',
   details TEXT,
   amount NUMERIC(14,2) DEFAULT 0.00,
@@ -14,18 +15,28 @@ CREATE TABLE IF NOT EXISTS public.activities (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- Convert details column to TEXT if it was created as JSON/JSONB
+-- Fix column types and drop strict NOT NULL constraints on activities
 DO 
 BEGIN
+  -- Add columns if missing
+  ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS type TEXT DEFAULT ''income'';
+  ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''Activity'';
+  ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS details TEXT;
+  ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS amount NUMERIC(14,2) DEFAULT 0.00;
+  ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''direct'';
+
+  -- Convert details to text
   ALTER TABLE public.activities ALTER COLUMN details TYPE TEXT USING details::text;
+
+  -- Relax NOT NULL constraints and set defaults
+  ALTER TABLE public.activities ALTER COLUMN type DROP NOT NULL;
+  ALTER TABLE public.activities ALTER COLUMN type SET DEFAULT ''income'';
+  ALTER TABLE public.activities ALTER COLUMN title DROP NOT NULL;
+  ALTER TABLE public.activities ALTER COLUMN category DROP NOT NULL;
+  ALTER TABLE public.activities ALTER COLUMN details DROP NOT NULL;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END ;
-
-ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS title TEXT DEFAULT ''Activity'';
-ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS details TEXT;
-ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS amount NUMERIC(14,2) DEFAULT 0.00;
-ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''direct'';
 
 -- Ensure RLS on activities table permits inserts & reads
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
@@ -162,6 +173,7 @@ BEGIN
 
   INSERT INTO public.activities (
     user_id,
+    type,
     title,
     details,
     amount,
@@ -169,6 +181,7 @@ BEGIN
     created_at
   ) VALUES (
     v_sponsor.id,
+    ''income'',
     ''Direct Income'',
     v_detail_text,
     v_commission,
@@ -241,9 +254,10 @@ BEGIN
 
           v_detail_text := ''40% commission from '' || COALESCE(v_purchaser.username, v_purchaser.full_name, ''Direct Referral'') || '' purchasing '' || COALESCE(r.package_name, r.rank_name, ''Package'') || '' — $'' || TO_CHAR(r.amount, ''FM999,999,990.00'') || '' USDT'';
 
-          INSERT INTO public.activities (user_id, title, details, amount, category, created_at)
+          INSERT INTO public.activities (user_id, type, title, details, amount, category, created_at)
           VALUES (
             v_sponsor.id,
+            ''income'',
             ''Direct Income'',
             v_detail_text,
             v_commission,
