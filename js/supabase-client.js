@@ -359,10 +359,24 @@ async function getUserActivities(userId, limit = 15) {
     if (depData && depData.length > 0) {
       depData.forEach(dep => {
         const st = (dep.status || 'pending').toLowerCase();
+        let detailText = '';
+        let titleText = 'Wallet Deposit';
+        if (st === 'pending') {
+          titleText = 'Deposit Pending';
+          detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Awaiting admin approval`;
+        } else if (st === 'approved' || st === 'completed') {
+          titleText = 'Deposit Approved';
+          detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Approved & credited`;
+        } else if (st === 'rejected') {
+          titleText = 'Deposit Rejected';
+          detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Rejected by admin`;
+        } else {
+          detailText = `BEP-20 USDT Deposit (${st.toUpperCase()})`;
+        }
         combinedList.push({
           id: dep.id,
-          title: 'Wallet Deposit',
-          details: `BEP-20 USDT Deposit (${st.toUpperCase()})`,
+          title: titleText,
+          details: detailText,
           amount: parseFloat(dep.amount) || 0,
           type: 'deposit',
           status: st,
@@ -374,6 +388,7 @@ async function getUserActivities(userId, limit = 15) {
   } catch (e) {
     console.warn('Deposits fetch note:', e);
   }
+
 
   try {
     // 3. Fetch Withdrawals

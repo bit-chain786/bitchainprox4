@@ -1330,6 +1330,11 @@
 .act-amount-badge.team        { color: #3a86ff; text-shadow: 0 0 10px rgba(58, 134, 255, 0.3); }
 .act-amount-badge.non-working { color: #00f5d4; text-shadow: 0 0 10px rgba(0, 245, 212, 0.3); }
 
+/* Mobile activity list - hidden by default on desktop */
+.mobile-activity-list {
+  display: none;
+}
+
 /* Empty Activity State */
 .empty-state-box {
   padding: 40px 20px;
@@ -1339,6 +1344,7 @@
   align-items: center;
   gap: 12px;
 }
+
 
 .empty-state-icon {
   width: 56px;

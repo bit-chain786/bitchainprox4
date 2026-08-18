@@ -2010,7 +2010,14 @@
 
           const statusPill = status === 'pending'
             ? `<span class="act-status-pill pending">PENDING</span>`
-            : (status === 'rejected' ? `<span class="act-status-pill rejected">REJECTED</span>` : `<span class="act-status-pill approved">COMPLETED</span>`);
+            : (status === 'rejected'
+                ? `<span class="act-status-pill rejected">REJECTED</span>`
+                : (status === 'approved'
+                    ? `<span class="act-status-pill approved">APPROVED</span>`
+                    : `<span class="act-status-pill completed">COMPLETED</span>`
+                  )
+              );
+
 
           rowsHtml += `
             <tr class="activity-row-item">
