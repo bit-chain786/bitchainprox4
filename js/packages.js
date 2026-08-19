@@ -650,6 +650,11 @@ async function pkgConfirmPurchase() {
                 } catch (_) {}
               }
             }
+          } catch (teamErr) {
+            console.warn('Team income distribution note:', teamErr);
+          }
+        }
+
         // ---- System Maintenance (10% of every purchase, all users) ----
         if (purchaseData && purchaseData.length > 0) {
           const purchaseId = purchaseData[0].id;
