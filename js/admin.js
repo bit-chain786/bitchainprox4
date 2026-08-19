@@ -626,8 +626,8 @@ async function loadDeposits(page=1) {
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><div class="loading-spinner" style="margin:auto"></div></td></tr>`;
 
   try {
-    // Build base query for data
-    let dataQuery = db.from('deposits').select('*').order('created_at', {ascending:false});
+    // Build base query for data — exclude proof_url (can be large Base64) from list view
+    let dataQuery = db.from('deposits').select('id, user_id, amount, payment_method, transaction_id, proof_url, status, created_at, admin_notes').order('created_at', {ascending:false});
     if (_depositsFilter !== 'all') dataQuery = dataQuery.eq('status', _depositsFilter);
     if (_depositsSearch) dataQuery = dataQuery.ilike('transaction_id', `%${_depositsSearch}%`);
 
@@ -687,6 +687,12 @@ async function loadDeposits(page=1) {
           <td style="font-size:0.8rem">${d.payment_method || 'USDT (BEP20)'}</td>
           <td style="font-size:0.72rem;color:var(--text-muted);font-family:monospace">${truncate(d.transaction_id,16)||'—'}</td>
           <td style="font-size:0.72rem;color:var(--text-muted)">${fmtDate(d.created_at)}</td>
+          <td style="text-align:center;">
+            ${d.proof_url
+              ? `<span title="Screenshot attached" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,200,83,0.15);color:#00c853;border:1px solid rgba(0,200,83,0.4);font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:8px;cursor:pointer;" onclick="openDepositProofZoom('${d.proof_url.replace(/'/g,"\\'")}')">📸 View</span>`
+              : `<span title="No screenshot" style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,0,85,0.12);color:#ff6b8a;border:1px solid rgba(255,0,85,0.3);font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:8px;">✗ None</span>`
+            }
+          </td>
           <td><span class="badge badge-${d.status}">${d.status}</span></td>
           <td><button class="btn btn-ghost btn-sm" onclick="openDepositModal('${d.id}')">👁 Review</button></td>
         </tr>
