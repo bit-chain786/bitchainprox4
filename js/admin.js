@@ -700,6 +700,40 @@ async function loadDeposits(page=1) {
   }
 }
 
+// ── Deposit Proof Screenshot Zoom Lightbox ────────────────────────────────────
+function openDepositProofZoom(imageUrl) {
+  if (!imageUrl) return;
+  let lb = document.getElementById('depositProofLightbox');
+  if (!lb) {
+    const html = `
+      <div id="depositProofLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);backdrop-filter:blur(12px);z-index:999999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeDepositProofZoom()">
+        <div style="position:relative;max-width:92vw;max-height:92vh;">
+          <button onclick="closeDepositProofZoom()" style="position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:#ff0055;color:#fff;border:2px solid #fff;font-weight:900;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:1;">✕</button>
+          <div style="font-size:0.75rem;color:rgba(0,245,212,0.8);text-align:center;margin-bottom:8px;font-weight:600;">📸 PAYMENT PROOF SCREENSHOT</div>
+          <img id="depositProofZoomImg" src="" alt="Payment Proof" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:10px;border:1px solid rgba(0,245,212,0.4);box-shadow:0 10px 40px rgba(0,0,0,0.8);" />
+          <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
+            <a id="depositProofDownload" href="#" download="payment_proof.jpg" class="btn btn-ghost btn-sm" style="font-size:0.78rem;">⬇ Download</a>
+            <a id="depositProofOpen" href="#" target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.78rem;">↗ Open in New Tab</a>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    lb = document.getElementById('depositProofLightbox');
+  }
+  const img = document.getElementById('depositProofZoomImg');
+  if (img) img.src = imageUrl;
+  const dl = document.getElementById('depositProofDownload');
+  if (dl) dl.href = imageUrl;
+  const op = document.getElementById('depositProofOpen');
+  if (op) op.href = imageUrl;
+  if (lb) lb.style.display = 'flex';
+}
+
+function closeDepositProofZoom() {
+  const lb = document.getElementById('depositProofLightbox');
+  if (lb) lb.style.display = 'none';
+}
+
 async function openDepositModal(depositId) {
   const db = getDB();
   if (!db) return;
@@ -740,7 +774,33 @@ async function openDepositModal(depositId) {
       ${infoRow('Submitted', fmtDate(d.created_at))}
       ${infoRow('Admin Notes', d.admin_notes||'—')}
     </div>
-    ${d.proof_url ? `<div style="margin-top:12px"><div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:6px">Proof Screenshot:</div><a href="${d.proof_url}" target="_blank"><img src="${d.proof_url}" alt="Proof" style="max-width:100%;max-height:260px;object-fit:contain;border-radius:8px;border:1px solid var(--admin-border)"></a></div>` : '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">(No screenshot attached)</div>'}
+
+    <!-- Transaction Screenshot (Proof) — shown prominently -->
+    <div style="margin-top:18px;border-top:1px solid var(--admin-border);padding-top:16px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+        📸 PAYMENT SCREENSHOT (PROOF)
+        ${d.proof_url ? `<span style="background:#00c853;color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:10px;">✓ Attached</span>` : `<span style="background:#ff0055;color:#fff;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:10px;">⚠ Missing</span>`}
+      </div>
+      ${d.proof_url ? `
+        <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(0,245,212,0.4);background:rgba(0,0,0,0.3);cursor:pointer;" onclick="openDepositProofZoom('${d.proof_url.replace(/'/g,"\\'")}')">
+          <img src="${d.proof_url}" alt="Payment Proof Screenshot"
+            style="width:100%;max-height:320px;object-fit:contain;display:block;border-radius:10px;"
+            onerror="this.parentElement.innerHTML='<div style=\\'padding:20px;text-align:center;color:rgba(255,255,255,0.4);font-size:0.8rem;\\'>⚠️ Could not load screenshot image.</div>'"
+          />
+          <div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.75);color:#00f5d4;font-size:0.72rem;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(0,245,212,0.4);">🔍 Click to Zoom</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <a href="${d.proof_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.78rem;">↗ Open Full Image</a>
+          <a href="${d.proof_url}" download="deposit_proof_${d.transaction_id||d.id}.jpg" class="btn btn-ghost btn-sm" style="font-size:0.78rem;">⬇ Download</a>
+        </div>
+      ` : `
+        <div style="padding:24px;text-align:center;background:rgba(255,0,85,0.06);border:1px dashed rgba(255,0,85,0.3);border-radius:8px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">📷</div>
+          <div style="font-size:0.82rem;color:rgba(255,107,138,0.9);font-weight:600;">No transaction screenshot was uploaded.</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:4px;">Request the user to resubmit with proof.</div>
+        </div>
+      `}
+    </div>
     ${isPending ? `
     <div style="margin-top:20px">
       <div class="form-group">

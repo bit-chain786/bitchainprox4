@@ -69,7 +69,7 @@ function calcWithdrawReceive() {
 }
 
 /**
- * Handle Proof Screenshot File Select (OPTIONAL)
+ * Handle Proof Screenshot File Select (REQUIRED)
  */
 function handleProofSelect(e) {
   const file = e.target.files && e.target.files[0];
@@ -77,12 +77,16 @@ function handleProofSelect(e) {
   const previewWrap = document.getElementById('proofPreviewWrap');
   const previewImg = document.getElementById('proofPreviewImg');
   const uploadPrompt = document.getElementById('proofUploadPrompt');
+  const hintEl = document.getElementById('proofRequiredHint');
+  const dropZone = document.getElementById('proofDropZone');
   
   if (!file) {
     selectedProofFile = null;
     if (nameEl) { nameEl.style.display = 'none'; nameEl.textContent = ''; }
     if (previewWrap) previewWrap.style.display = 'none';
     if (uploadPrompt) uploadPrompt.style.display = 'block';
+    if (hintEl) { hintEl.style.color = 'rgba(255,107,138,0.9)'; hintEl.textContent = '⚠️ You must upload your transaction screenshot before submitting.'; }
+    if (dropZone) dropZone.style.borderColor = 'rgba(255,0,85,0.35)';
     return;
   }
   
@@ -97,6 +101,10 @@ function handleProofSelect(e) {
     nameEl.style.display = 'block';
     nameEl.textContent = `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
   }
+  
+  // Mark required hint as satisfied
+  if (hintEl) { hintEl.style.color = 'rgba(0,245,212,0.9)'; hintEl.textContent = '✅ Screenshot uploaded — ready to submit!'; }
+  if (dropZone) dropZone.style.borderColor = 'rgba(0,245,212,0.4)';
   
   // Show image preview
   if (previewWrap && previewImg) {
@@ -121,6 +129,10 @@ function removeProofFile(e) {
   if (previewWrap) previewWrap.style.display = 'none';
   const uploadPrompt = document.getElementById('proofUploadPrompt');
   if (uploadPrompt) uploadPrompt.style.display = 'block';
+  const hintEl = document.getElementById('proofRequiredHint');
+  if (hintEl) { hintEl.style.color = 'rgba(255,107,138,0.9)'; hintEl.textContent = '⚠️ You must upload your transaction screenshot before submitting.'; }
+  const dropZone = document.getElementById('proofDropZone');
+  if (dropZone) dropZone.style.borderColor = 'rgba(255,0,85,0.35)';
 }
 
 /**
@@ -136,6 +148,22 @@ async function submitDeposit() {
     if (amtInput) amtInput.focus();
     return;
   }
+
+  // ── Screenshot is now REQUIRED ───────────────────────────────────────────
+  if (!selectedProofFile) {
+    showWalletToast('⚠️ Please upload your transaction screenshot before submitting.', 'error');
+    const dropZone = document.getElementById('proofDropZone');
+    if (dropZone) {
+      dropZone.style.borderColor = '#ff0055';
+      dropZone.style.boxShadow = '0 0 0 3px rgba(255,0,85,0.25)';
+      setTimeout(() => {
+        dropZone.style.boxShadow = '';
+        dropZone.style.borderColor = 'rgba(255,0,85,0.35)';
+      }, 2000);
+      dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
   
   const client = window.BitchainAuth && window.BitchainAuth.getSupabase ? window.BitchainAuth.getSupabase() : null;
   if (!client) {
@@ -144,7 +172,7 @@ async function submitDeposit() {
   }
   
   btn.disabled = true;
-  btn.innerHTML = '<span class="wallet-spinner"></span> Submitting...';
+  btn.innerHTML = '<span class="wallet-spinner"></span> Uploading Screenshot...';
   
   try {
     const { data: { user }, error: userErr } = await client.auth.getUser();
@@ -152,24 +180,38 @@ async function submitDeposit() {
     
     let proofUrl = null;
     
-    // Upload screenshot if provided (optional)
-    if (selectedProofFile) {
-      try {
-        const fileExt = selectedProofFile.name.split('.').pop();
-        const filePath = `${user.id}/deposit_${Date.now()}.${fileExt}`;
-        const { error: uploadErr } = await client.storage.from('deposits').upload(filePath, selectedProofFile, {
-          cacheControl: '3600',
-          upsert: true
+    // Upload screenshot to Supabase Storage (REQUIRED — fallback to Base64)
+    try {
+      const fileExt = selectedProofFile.name.split('.').pop();
+      const filePath = `${user.id}/deposit_${Date.now()}.${fileExt}`;
+      const { error: uploadErr } = await client.storage.from('deposits').upload(filePath, selectedProofFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+      if (!uploadErr) {
+        const { data: urlData } = client.storage.from('deposits').getPublicUrl(filePath);
+        proofUrl = urlData?.publicUrl || null;
+      } else {
+        // Storage bucket not configured — fall back to Base64 data URL
+        console.warn('Storage upload failed, using Base64 fallback:', uploadErr);
+        const reader = new FileReader();
+        proofUrl = await new Promise((resolve) => {
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.readAsDataURL(selectedProofFile);
         });
-        
-        if (!uploadErr) {
-          const { data: urlData } = client.storage.from('deposits').getPublicUrl(filePath);
-          proofUrl = urlData?.publicUrl || null;
-        }
-      } catch (storageErr) {
-        console.warn('Storage upload note (screenshot optional):', storageErr);
       }
+    } catch (storageErr) {
+      // Absolute fallback to Base64
+      console.warn('Storage error, encoding as Base64:', storageErr);
+      const reader = new FileReader();
+      proofUrl = await new Promise((resolve) => {
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.readAsDataURL(selectedProofFile);
+      });
     }
+
+    btn.innerHTML = '<span class="wallet-spinner"></span> Submitting...';
     
     const txId = 'DEP' + Math.floor(100000 + Math.random() * 900000);
     

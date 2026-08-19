@@ -1343,23 +1343,26 @@
                 <div class="crypto-sub-hint">Minimum Deposit: <strong style="color:#00f5d4;">5 USDT</strong></div>
               </div>
 
-              <!-- Upload Payment Screenshot (Optional) -->
+              <!-- Upload Payment Screenshot (REQUIRED) -->
               <div class="crypto-card-section">
-                <label class="crypto-sec-label">UPLOAD PAYMENT SCREENSHOT <span style="font-size:0.68rem;color:#c77dff;font-weight:400;text-transform:none;">(Optional)</span></label>
-                <div class="crypto-upload-box" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()">
+                <label class="crypto-sec-label">UPLOAD PAYMENT SCREENSHOT <span style="font-size:0.72rem;background:linear-gradient(135deg,#ff0055,#c77dff);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;">Required</span></label>
+                <div class="crypto-upload-box" id="proofDropZone" onclick="document.getElementById('proofFileInput').click()" style="border-color:rgba(255,0,85,0.35);" id="proofDropZone">
                   <input type="file" id="proofFileInput" accept="image/png, image/jpeg, image/jpg" style="display:none;" onchange="WalletModule.handleProofSelect(event)">
                   <div id="proofUploadPrompt">
                     <div class="upload-cloud-icon">
-                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#c77dff" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 13 12 9 9.5 11.5"/></svg>
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ff0055" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 13 12 9 9.5 11.5"/></svg>
                     </div>
-                    <div class="upload-primary-text">Upload Screenshot</div>
-                    <div class="upload-secondary-text">JPG, PNG up to 5MB</div>
+                    <div class="upload-primary-text" style="color:#ff6b8a;">Upload Transaction Screenshot</div>
+                    <div class="upload-secondary-text">Required · JPG, PNG up to 5MB</div>
                   </div>
                   <div id="proofPreviewWrap" style="display:none; text-align:center;">
-                    <img id="proofPreviewImg" src="" alt="Screenshot" style="max-height:80px; border-radius:8px; border:1px solid rgba(199,125,255,0.4); margin-bottom:6px;">
-                    <div style="font-size:0.75rem; color:#e0aaff; cursor:pointer;" onclick="WalletModule.removeProofFile(event)">✕ Remove Screenshot</div>
+                    <img id="proofPreviewImg" src="" alt="Screenshot" style="max-height:80px; border-radius:8px; border:1px solid rgba(0,245,212,0.4); margin-bottom:6px;">
+                    <div style="font-size:0.75rem; color:#00f5d4; cursor:pointer;" onclick="WalletModule.removeProofFile(event)">✕ Remove Screenshot</div>
                   </div>
                   <div id="proofFileName" style="display:none;font-size:0.75rem;color:#00f5d4;margin-top:6px;font-weight:600;"></div>
+                </div>
+                <div style="font-size:0.73rem;color:rgba(255,107,138,0.9);margin-top:5px;display:flex;align-items:center;gap:4px;" id="proofRequiredHint">
+                  ⚠️ You must upload your transaction screenshot before submitting.
                 </div>
               </div>
 
@@ -1372,7 +1375,7 @@
                 <ul class="imp-list">
                   <li><span>✓</span> Send only USDT (BEP20) to the above address.</li>
                   <li><span>✓</span> Minimum deposit is 5 USDT.</li>
-                  <li><span>✓</span> After sending, upload the screenshot for verification (optional).</li>
+                  <li><span style="color:#ff6b8a;">✓</span> <strong style="color:#ff6b8a;">Screenshot of your payment is mandatory</strong> for verification and faster approval.</li>
                 </ul>
               </div>
 
