@@ -799,8 +799,7 @@
 .fin-card-bottom {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
 }
 
 .trend-indicator-badge {
@@ -817,10 +816,8 @@
 .trend-indicator-badge.gold { color: #ffd166; }
 
 .sparkline-svg {
-  width: 90px;
-  height: 42px;
-  flex: 1;
-  min-width: 0;
+  width: 80px;
+  height: 30px;
 }
 
 /* --------------------------------------------------------------------------
