@@ -357,59 +357,82 @@
         finalImageUrl = await uploadOrEncodeImage(_formAttachedImage, _activeUser.id);
       }
 
-      // 2. Create support conversation (standard columns only to ensure schema compatibility)
-      const { data: conv, error: convErr } = await client
-        .from('support_conversations')
-        .insert({
-          user_id: _activeUser.id,
-          subject: `[${category}] ${subject}`,
-          status: 'open',
-          unread_admin: 1,
-          unread_user: 0,
-          last_message: message,
-          last_message_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      let convId = null;
 
-      if (convErr) throw convErr;
+      // 2. Try RPC function first (SECURITY DEFINER guarantees 100% permission bypass)
+      try {
+        const { data: rpcData, error: rpcErr } = await client.rpc('start_support_ticket', {
+          p_subject: `[${category}] ${subject}`,
+          p_message: message,
+          p_phone: phone || null,
+          p_image_url: finalImageUrl || null
+        });
 
-      // 3. Insert initial message (with image_url or fallback)
-      let initialMsg = `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`;
-      let msgPayload = {
-        conversation_id: conv.id,
-        sender_id: _activeUser.id,
-        sender_role: 'user',
-        message: initialMsg,
-        created_at: new Date().toISOString()
-      };
-      if (finalImageUrl) {
-        msgPayload.image_url = finalImageUrl;
-      }
-
-      let { error: msgErr } = await client
-        .from('support_messages')
-        .insert(msgPayload);
-
-      // Fallback: If image_url column doesn't exist in support_messages
-      if (msgErr && msgErr.message && (msgErr.message.includes('image_url') || msgErr.message.includes('schema cache'))) {
-        console.warn('support_messages table does not have image_url column, using embedded image fallback:', msgErr);
-        delete msgPayload.image_url;
-        if (finalImageUrl) {
-          msgPayload.message = `${initialMsg}\n\n🖼️ [IMAGE_ATTACHMENT]: ${finalImageUrl}`;
+        if (!rpcErr && rpcData && (rpcData.conversation_id || rpcData.id)) {
+          convId = rpcData.conversation_id || rpcData.id;
+        } else if (rpcErr) {
+          console.warn('RPC start_support_ticket note, trying direct insert fallback:', rpcErr.message);
         }
-        const retryRes = await client.from('support_messages').insert(msgPayload);
-        msgErr = retryRes.error;
+      } catch (rpcEx) {
+        console.warn('RPC call failed, using direct insert:', rpcEx);
       }
 
-      if (msgErr) throw msgErr;
+      // 3. Fallback to direct table insert if RPC not installed
+      if (!convId) {
+        const { data: conv, error: convErr } = await client
+          .from('support_conversations')
+          .insert({
+            user_id: _activeUser.id,
+            subject: `[${category}] ${subject}`,
+            status: 'open',
+            unread_admin: 1,
+            unread_user: 0,
+            last_message: message,
+            last_message_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (convErr) throw convErr;
+        convId = conv.id;
+
+        // Insert initial message (with image_url or fallback)
+        let initialMsg = `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`;
+        let msgPayload = {
+          conversation_id: convId,
+          sender_id: _activeUser.id,
+          sender_role: 'user',
+          message: initialMsg,
+          created_at: new Date().toISOString()
+        };
+        if (finalImageUrl) {
+          msgPayload.image_url = finalImageUrl;
+        }
+
+        let { error: msgErr } = await client
+          .from('support_messages')
+          .insert(msgPayload);
+
+        // Fallback: If image_url column doesn't exist in support_messages
+        if (msgErr && msgErr.message && (msgErr.message.includes('image_url') || msgErr.message.includes('schema cache'))) {
+          console.warn('support_messages table does not have image_url column, using embedded image fallback:', msgErr);
+          delete msgPayload.image_url;
+          if (finalImageUrl) {
+            msgPayload.message = `${initialMsg}\n\n🖼️ [IMAGE_ATTACHMENT]: ${finalImageUrl}`;
+          }
+          const retryRes = await client.from('support_messages').insert(msgPayload);
+          msgErr = retryRes.error;
+        }
+
+        if (msgErr) throw msgErr;
+      }
 
       _formAttachedImage = null;
 
       // 4. Update active conversation and switch to chat
-      _activeConvId = conv.id;
+      _activeConvId = convId;
       await loadUserConversations();
       switchSupportTab('chat');
 
