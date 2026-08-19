@@ -447,63 +447,9 @@ async function pkgConfirmPurchase() {
           if (purchaseInsertErr) {
             console.warn('Purchase log note:', purchaseInsertErr);
           }
-          // ---- Direct Income Commission (40% of purchase) ----
-          if (purchaseData && purchaseData.length > 0) {
-            const purchaseId = purchaseData[0].id;
-            // Get purchaser's sponsor username
-            const { data: purchaserProfile } = await client
-              .from('profiles')
-              .select('sponsor_username, username')
-              .eq('id', userId)
-              .single();
-            if (purchaserProfile && purchaserProfile.sponsor_username) {
-              const rawSponsor = purchaserProfile.sponsor_username.trim();
-              // Look up sponsor by referral_code, username, or email
-              const { data: sponsorList } = await client
-                .from('profiles')
-                .select('id, direct_income, total_income, available_balance, username, full_name, referral_code, email')
-                .or(`referral_code.ilike.${rawSponsor},username.ilike.${rawSponsor},email.ilike.${rawSponsor}`)
-                .limit(1);
-
-              const sponsorProfile = (sponsorList && sponsorList.length > 0) ? sponsorList[0] : null;
-
-              if (sponsorProfile && sponsorProfile.id && sponsorProfile.id !== userId) {
-                const commission = parseFloat((canonicalPrice * 0.4).toFixed(2));
-                // Prevent duplicate commission for this purchase
-                const { data: existing } = await client
-                  .from('activities')
-                  .select('id')
-                  .eq('user_id', sponsorProfile.id)
-                  .eq('title', 'Direct Income')
-                  .ilike('details', `%${purchaseId}%`)
-                  .limit(1);
-
-                if (!existing || existing.length === 0) {
-                  // Log activity for sponsor
-                  await client.from('activities').insert({
-                    user_id:    sponsorProfile.id,
-                    title:      'Direct Income',
-                    details:    `40% commission from ${purchaserProfile.username || 'Direct Referral'} purchasing ${tier.name} — $${canonicalPrice.toFixed(2)} USDT (Ref: ${purchaseId})`,
-                    amount:     commission,
-                    category:   'direct',
-                    created_at: new Date().toISOString()
-                  });
-
-                  // Update sponsor's direct_income, total_income, and available_balance
-                  const curDirect = parseFloat(sponsorProfile.direct_income) || 0;
-                  const curTotal  = parseFloat(sponsorProfile.total_income) || 0;
-                  const curBal    = parseFloat(sponsorProfile.available_balance) || 0;
-
-                  await client.from('profiles').update({
-                    direct_income:     parseFloat((curDirect + commission).toFixed(2)),
-                    total_income:      parseFloat((curTotal + commission).toFixed(2)),
-                    available_balance: parseFloat((curBal + commission).toFixed(2)),
-                    updated_at:        new Date().toISOString()
-                  }).eq('id', sponsorProfile.id);
-                }
-              }
-            }
-          }
+          // ── Direct Income Commission (40%) is handled automatically
+          // by the Supabase SQL trigger (supabase_direct_income_trigger.sql).
+          // Do NOT insert here — doing so causes duplicate entries in activities.
 
           // ---- Team Income (15% 5-Upline Leadership Distribution) ----
           if (purchaseData && purchaseData.length > 0) {
