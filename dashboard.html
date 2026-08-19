@@ -912,9 +912,28 @@
               <div class="fin-card-value" id="valAvailableBal"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
             </div>
           </div>
-          <div class="fin-card-bottom">
-            <span class="trend-indicator-badge purple">↗ 5.7% Available</span>
-            <svg class="sparkline-svg" viewBox="0 0 140 55">
+          <div class="fin-card-bottom" style="display:flex;align-items:center;gap:10px;">
+            <!-- Donut Ring Chart: 5.7% -->
+            <div style="position:relative;flex-shrink:0;">
+              <svg viewBox="0 0 70 70" width="62" height="62" style="transform:rotate(-90deg);">
+                <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>
+                <circle cx="35" cy="35" r="28" fill="none" stroke="url(#ringGreenGrad1)" stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-dasharray="175.93" stroke-dashoffset="165.9"
+                  style="filter:drop-shadow(0 0 5px #00ff88);"/>
+                <defs>
+                  <linearGradient id="ringGreenGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#00c853"/>
+                    <stop offset="100%" stop-color="#00ff88"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:0.88rem;font-weight:800;color:#00ff88;line-height:1;text-shadow:0 0 8px rgba(0,255,136,0.7);">5.7%</span>
+                <span style="font-size:0.56rem;color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:0.3px;">↑ GAIN</span>
+              </div>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 140 55" style="flex:1;min-width:0;">
               <defs>
                 <linearGradient id="purpleArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#5a189a"/>
@@ -980,9 +999,28 @@
               <div class="fin-card-value" id="valTotalInc"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
             </div>
           </div>
-          <div class="fin-card-bottom">
-            <span class="trend-indicator-badge blue">↗ 12.5% vs Last Month</span>
-            <svg class="sparkline-svg" viewBox="0 0 140 55">
+          <div class="fin-card-bottom" style="display:flex;align-items:center;gap:10px;">
+            <!-- Donut Ring Chart: 12.5% -->
+            <div style="position:relative;flex-shrink:0;">
+              <svg viewBox="0 0 70 70" width="62" height="62" style="transform:rotate(-90deg);">
+                <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>
+                <circle cx="35" cy="35" r="28" fill="none" stroke="url(#ringGreenGrad2)" stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-dasharray="175.93" stroke-dashoffset="153.9"
+                  style="filter:drop-shadow(0 0 5px #00ff88);"/>
+                <defs>
+                  <linearGradient id="ringGreenGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#00c853"/>
+                    <stop offset="100%" stop-color="#00ff88"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:0.82rem;font-weight:800;color:#00ff88;line-height:1;text-shadow:0 0 8px rgba(0,255,136,0.7);">12.5%</span>
+                <span style="font-size:0.56rem;color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:0.3px;">↑ MONTH</span>
+              </div>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 140 55" style="flex:1;min-width:0;">
               <defs>
                 <linearGradient id="blueArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#051f4d"/>
@@ -1047,9 +1085,28 @@
               <div class="fin-card-value" id="valTodayInc"><span class="skeleton-pulse" style="width: 100px; height: 28px;"></span></div>
             </div>
           </div>
-          <div class="fin-card-bottom">
-            <span class="trend-indicator-badge gold">↗ 8.3% vs Yesterday</span>
-            <svg class="sparkline-svg" viewBox="0 0 140 55">
+          <div class="fin-card-bottom" style="display:flex;align-items:center;gap:10px;">
+            <!-- Donut Ring Chart: 8.3% -->
+            <div style="position:relative;flex-shrink:0;">
+              <svg viewBox="0 0 70 70" width="62" height="62" style="transform:rotate(-90deg);">
+                <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>
+                <circle cx="35" cy="35" r="28" fill="none" stroke="url(#ringGreenGrad3)" stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-dasharray="175.93" stroke-dashoffset="161.3"
+                  style="filter:drop-shadow(0 0 5px #00ff88);"/>
+                <defs>
+                  <linearGradient id="ringGreenGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#00c853"/>
+                    <stop offset="100%" stop-color="#00ff88"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:0.88rem;font-weight:800;color:#00ff88;line-height:1;text-shadow:0 0 8px rgba(0,255,136,0.7);">8.3%</span>
+                <span style="font-size:0.56rem;color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:0.3px;">↑ TODAY</span>
+              </div>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 140 55" style="flex:1;min-width:0;">
               <defs>
                 <linearGradient id="goldArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#4a3000"/>
@@ -1118,9 +1175,28 @@
               <div class="fin-card-value" id="valTotalTeam"><span class="skeleton-pulse" style="width: 80px; height: 28px;"></span></div>
             </div>
           </div>
-          <div class="fin-card-bottom">
-            <span class="trend-indicator-badge green">↗ 12.7% vs Last Month</span>
-            <svg class="sparkline-svg" viewBox="0 0 140 55">
+          <div class="fin-card-bottom" style="display:flex;align-items:center;gap:10px;">
+            <!-- Donut Ring Chart: 12.7% -->
+            <div style="position:relative;flex-shrink:0;">
+              <svg viewBox="0 0 70 70" width="62" height="62" style="transform:rotate(-90deg);">
+                <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>
+                <circle cx="35" cy="35" r="28" fill="none" stroke="url(#ringGreenGrad4)" stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-dasharray="175.93" stroke-dashoffset="153.6"
+                  style="filter:drop-shadow(0 0 5px #00ff88);"/>
+                <defs>
+                  <linearGradient id="ringGreenGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#00c853"/>
+                    <stop offset="100%" stop-color="#00ff88"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:0.82rem;font-weight:800;color:#00ff88;line-height:1;text-shadow:0 0 8px rgba(0,255,136,0.7);">12.7%</span>
+                <span style="font-size:0.56rem;color:rgba(255,255,255,0.5);margin-top:2px;letter-spacing:0.3px;">↑ MONTH</span>
+              </div>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 140 55" style="flex:1;min-width:0;">
               <defs>
                 <linearGradient id="greenArrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#00382d"/>
