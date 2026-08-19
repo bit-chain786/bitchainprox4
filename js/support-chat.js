@@ -357,7 +357,7 @@
         finalImageUrl = await uploadOrEncodeImage(_formAttachedImage, _activeUser.id);
       }
 
-      // 2. Create support conversation
+      // 2. Create support conversation (standard columns only to ensure schema compatibility)
       const { data: conv, error: convErr } = await client
         .from('support_conversations')
         .insert({
@@ -368,7 +368,6 @@
           unread_user: 0,
           last_message: message,
           last_message_at: new Date().toISOString(),
-          attachment_url: finalImageUrl,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -377,17 +376,33 @@
 
       if (convErr) throw convErr;
 
-      // 3. Insert initial message
-      const { error: msgErr } = await client
+      // 3. Insert initial message (with image_url or fallback)
+      let initialMsg = `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`;
+      let msgPayload = {
+        conversation_id: conv.id,
+        sender_id: _activeUser.id,
+        sender_role: 'user',
+        message: initialMsg,
+        created_at: new Date().toISOString()
+      };
+      if (finalImageUrl) {
+        msgPayload.image_url = finalImageUrl;
+      }
+
+      let { error: msgErr } = await client
         .from('support_messages')
-        .insert({
-          conversation_id: conv.id,
-          sender_id: _activeUser.id,
-          sender_role: 'user',
-          message: `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`,
-          image_url: finalImageUrl,
-          created_at: new Date().toISOString()
-        });
+        .insert(msgPayload);
+
+      // Fallback: If image_url column doesn't exist in support_messages
+      if (msgErr && msgErr.message && (msgErr.message.includes('image_url') || msgErr.message.includes('schema cache'))) {
+        console.warn('support_messages table does not have image_url column, using embedded image fallback:', msgErr);
+        delete msgPayload.image_url;
+        if (finalImageUrl) {
+          msgPayload.message = `${initialMsg}\n\n🖼️ [IMAGE_ATTACHMENT]: ${finalImageUrl}`;
+        }
+        const retryRes = await client.from('support_messages').insert(msgPayload);
+        msgErr = retryRes.error;
+      }
 
       if (msgErr) throw msgErr;
 
@@ -556,17 +571,27 @@
 
       stream.innerHTML = messages.map(m => {
         const isAdmin = m.sender_role === 'admin';
+        let imgUrl = m.image_url || null;
+        let displayMsg = m.message || '';
+
+        // Extract embedded image fallback if present
+        if (!imgUrl && displayMsg.includes('[IMAGE_ATTACHMENT]:')) {
+          const parts = displayMsg.split('[IMAGE_ATTACHMENT]:');
+          displayMsg = parts[0].replace(/🖼️/g, '').trim();
+          imgUrl = (parts[1] || '').trim();
+        }
+
         return `
           <div class="support-msg ${isAdmin ? 'admin' : 'user'}">
             <div class="support-msg-sender">
               ${isAdmin ? '🛡️ Support Desk' : '👤 You'}
             </div>
             <div class="support-msg-bubble">
-              ${escapeHtml(m.message).replace(/\n/g, '<br>')}
+              ${displayMsg ? escapeHtml(displayMsg).replace(/\n/g, '<br>') : ''}
               
-              ${m.image_url ? `
-                <div class="support-msg-img-container" onclick="window.SupportChat.openImageModal('${m.image_url}')">
-                  <img src="${m.image_url}" class="support-msg-img" alt="Attached Screenshot" loading="lazy" />
+              ${imgUrl ? `
+                <div class="support-msg-img-container" onclick="window.SupportChat.openImageModal('${imgUrl.replace(/'/g, "\\'")}')">
+                  <img src="${imgUrl}" class="support-msg-img" alt="Attached Screenshot" loading="lazy" />
                   <span class="support-msg-img-zoom-tag">🔍 View Full Image</span>
                 </div>
               ` : ''}
@@ -612,17 +637,31 @@
       }
 
       const textToSend = msg || '📎 [Attached Screenshot]';
+      let msgPayload = {
+        conversation_id: _activeConvId,
+        sender_id: _activeUser.id,
+        sender_role: 'user',
+        message: textToSend,
+        created_at: new Date().toISOString()
+      };
+      if (finalImg) {
+        msgPayload.image_url = finalImg;
+      }
 
-      const { error: msgErr } = await client
+      let { error: msgErr } = await client
         .from('support_messages')
-        .insert({
-          conversation_id: _activeConvId,
-          sender_id: _activeUser.id,
-          sender_role: 'user',
-          message: textToSend,
-          image_url: finalImg,
-          created_at: new Date().toISOString()
-        });
+        .insert(msgPayload);
+
+      // Fallback if image_url column doesn't exist
+      if (msgErr && msgErr.message && (msgErr.message.includes('image_url') || msgErr.message.includes('schema cache'))) {
+        console.warn('support_messages does not have image_url column, using embedded fallback');
+        delete msgPayload.image_url;
+        if (finalImg) {
+          msgPayload.message = `${textToSend}\n\n🖼️ [IMAGE_ATTACHMENT]: ${finalImg}`;
+        }
+        const retryRes = await client.from('support_messages').insert(msgPayload);
+        msgErr = retryRes.error;
+      }
 
       if (msgErr) throw msgErr;
 

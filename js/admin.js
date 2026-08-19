@@ -1351,20 +1351,32 @@ async function loadMessages(convId) {
     return;
   }
 
-  box.innerHTML = data.map(m => `
-    <div class="chat-msg ${m.sender_role === 'admin' ? 'admin' : 'user'}">
-      <div>${m.message ? escapeHtml(m.message).replace(/\n/g, '<br>') : ''}</div>
-      ${m.image_url ? `
-        <div style="margin-top:8px;">
-          <div style="position:relative;display:inline-block;cursor:pointer;" onclick="openAdminImagePreview('${m.image_url}')">
-            <img src="${m.image_url}" alt="Attachment Screenshot" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid rgba(199,125,255,0.4);display:block;box-shadow:0 4px 12px rgba(0,0,0,0.3);" />
-            <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.75);color:#00f5d4;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;pointer-events:none;">🔍 Click to Zoom</span>
+  box.innerHTML = data.map(m => {
+    let imgUrl = m.image_url || null;
+    let displayMsg = m.message || '';
+
+    // Extract embedded image fallback if present
+    if (!imgUrl && displayMsg.includes('[IMAGE_ATTACHMENT]:')) {
+      const parts = displayMsg.split('[IMAGE_ATTACHMENT]:');
+      displayMsg = parts[0].replace(/🖼️/g, '').trim();
+      imgUrl = (parts[1] || '').trim();
+    }
+
+    return `
+      <div class="chat-msg ${m.sender_role === 'admin' ? 'admin' : 'user'}">
+        <div>${displayMsg ? escapeHtml(displayMsg).replace(/\n/g, '<br>') : ''}</div>
+        ${imgUrl ? `
+          <div style="margin-top:8px;">
+            <div style="position:relative;display:inline-block;cursor:pointer;" onclick="openAdminImagePreview('${imgUrl.replace(/'/g, "\\'")}')">
+              <img src="${imgUrl}" alt="Attachment Screenshot" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid rgba(199,125,255,0.4);display:block;box-shadow:0 4px 12px rgba(0,0,0,0.3);" />
+              <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.75);color:#00f5d4;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;pointer-events:none;">🔍 Click to Zoom</span>
+            </div>
           </div>
-        </div>
-      ` : ''}
-      <div class="chat-msg-time">${fmtDate(m.created_at)}</div>
-    </div>
-  `).join('');
+        ` : ''}
+        <div class="chat-msg-time">${fmtDate(m.created_at)}</div>
+      </div>
+    `;
+  }).join('');
   box.scrollTop = box.scrollHeight;
 }
 
@@ -1387,15 +1399,28 @@ async function sendAdminMessage() {
   input.disabled = true;
 
   const textToSend = msg || '📎 [Attached Screenshot]';
-
-  const { error } = await db.from('support_messages').insert({
+  let msgPayload = {
     conversation_id: _activeConvId,
     sender_id: _adminUser.id,
     sender_role: 'admin',
     message: textToSend,
-    image_url: finalImg,
     created_at: new Date().toISOString()
-  });
+  };
+  if (finalImg) {
+    msgPayload.image_url = finalImg;
+  }
+
+  let { error } = await db.from('support_messages').insert(msgPayload);
+
+  // Fallback if image_url column doesn't exist
+  if (error && error.message && (error.message.includes('image_url') || error.message.includes('schema cache'))) {
+    delete msgPayload.image_url;
+    if (finalImg) {
+      msgPayload.message = `${textToSend}\n\n🖼️ [IMAGE_ATTACHMENT]: ${finalImg}`;
+    }
+    const retry = await db.from('support_messages').insert(msgPayload);
+    error = retry.error;
+  }
 
   if (!error) {
     await db.from('support_conversations').update({
@@ -1406,7 +1431,7 @@ async function sendAdminMessage() {
     }).eq('id', _activeConvId);
     loadMessages(_activeConvId);
   } else {
-    toast('Failed to send message.', 'error');
+    toast('Failed to send message: ' + error.message, 'error');
     input.value = msg;
   }
   input.disabled = false;
