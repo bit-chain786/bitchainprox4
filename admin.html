@@ -103,10 +103,16 @@
         <span class="nav-badge" id="badgeChat" style="display:none">0</span>
       </div>
 
+      <div class="nav-item" data-nav="teamincome" onclick="navigateTo('teamincome')">
+        <div class="nav-icon">👥</div>
+        <div class="nav-label">Team Income (15%)</div>
+      </div>
+
       <div class="nav-item" data-nav="reports" onclick="navigateTo('reports')">
         <div class="nav-icon">📊</div>
         <div class="nav-label">Reports</div>
       </div>
+
 
       <div class="nav-section-label">System</div>
 
@@ -438,9 +444,97 @@
       </section>
 
       <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- TEAM INCOME (15% 5-UPLINE) SECTION                              -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-teamincome">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">👥</div> Team Income (15% 5-Upline Distribution)</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="loadTeamIncome()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon purple">💎</div>
+              <span class="stat-trend up">15% Total Pool</span>
+            </div>
+            <div class="stat-value" id="statTeamIncomeGen">$0.00</div>
+            <div class="stat-label">Total Generated</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">✅</div>
+              <span class="stat-trend up">Paid to Uplines</span>
+            </div>
+            <div class="stat-value" id="statTeamIncomePaid">$0.00</div>
+            <div class="stat-label">Total Paid</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon yellow">⚠️</div>
+              <span class="stat-trend neutral">Passed Up</span>
+            </div>
+            <div class="stat-value" id="statTeamIncomeUnalloc">$0.00</div>
+            <div class="stat-label">Unallocated Amount</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">📋</div>
+              <span class="stat-trend up">Distributions</span>
+            </div>
+            <div class="stat-value" id="statTeamIncomeTxCount">0</div>
+            <div class="stat-label">Total Transactions</div>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="glass-card">
+          <div class="glass-card-header" style="flex-wrap:wrap;gap:10px">
+            <div class="glass-card-title">Team Income Distributions Log</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="filter-tabs" id="teamIncomeFilterTabs">
+                <button class="filter-tab active" onclick="setTeamIncomeFilter('all', this)">All</button>
+                <button class="filter-tab" onclick="setTeamIncomeFilter('paid', this)">Paid (Qualified)</button>
+                <button class="filter-tab" onclick="setTeamIncomeFilter('skipped', this)">Skipped (Rank &lt; Purchaser)</button>
+                <button class="filter-tab" onclick="setTeamIncomeFilter('unallocated', this)">Unallocated</button>
+              </div>
+              <div class="search-box" style="margin:0">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="teamIncomeSearch" placeholder="Search user or package…" oninput="filterTeamIncomeTable()" />
+              </div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Purchaser</th>
+                  <th>Purchased Rank</th>
+                  <th>Amount</th>
+                  <th>Recipient Upline</th>
+                  <th>Recipient Rank</th>
+                  <th>Upline Pos.</th>
+                  <th>Commission</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="teamIncomeTableBody">
+                <tr><td colspan="9"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
       <!-- REPORTS SECTION                                                 -->
       <!-- ═══════════════════════════════════════════════════════════════ -->
       <section class="admin-section" id="section-reports">
+
         <div class="section-header">
           <div class="section-title"><div class="section-title-icon">📊</div> Reports</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">

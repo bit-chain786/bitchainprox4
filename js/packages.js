@@ -480,11 +480,180 @@ async function pkgConfirmPurchase() {
 
         }
 
+        // ---- Team Income (15% 5-Upline Leadership Distribution) ----
+        if (purchaseData && purchaseData.length > 0) {
+          const purchaseId = purchaseData[0].id;
+          try {
+            // Check if already processed
+            const { data: existingTeamLogs } = await client
+              .from('team_income_log')
+              .select('id')
+              .eq('purchase_id', purchaseId)
+              .limit(1);
+
+            if (!existingTeamLogs || existingTeamLogs.length === 0) {
+              const rankOrder = { 'starter': 1, 'basic': 2, 'silver': 3, 'gold': 4, 'diamond': 5, 'elite': 6, 'executive': 7, 'royal': 8 };
+              const purchaserRankKey = (tier.key || tier.rank || 'starter').toLowerCase();
+              const purchaserRankLevel = rankOrder[purchaserRankKey] || 1;
+              const percentages = [5, 4, 3, 2, 1];
+              let qualifiedCount = 0;
+              let currentUplineId = userId;
+              const visitedIds = new Set([userId]);
+              let loopSafety = 0;
+
+              while (qualifiedCount < 5 && loopSafety < 100) {
+                loopSafety++;
+                // Get sponsor string of current user
+                const { data: curProf } = await client
+                  .from('profiles')
+                  .select('sponsor_username')
+                  .eq('id', currentUplineId)
+                  .single();
+
+                if (!curProf || !curProf.sponsor_username || !curProf.sponsor_username.trim()) break;
+
+                const rawSponsor = curProf.sponsor_username.trim();
+                const { data: sponsorList } = await client
+                  .from('profiles')
+                  .select('*')
+                  .or(`referral_code.ilike.${rawSponsor},username.ilike.${rawSponsor},email.ilike.${rawSponsor}`)
+                  .limit(1);
+
+                if (!sponsorList || sponsorList.length === 0) break;
+                const uplineProf = sponsorList[0];
+                if (!uplineProf || visitedIds.has(uplineProf.id)) break;
+
+                visitedIds.add(uplineProf.id);
+                currentUplineId = uplineProf.id;
+
+                const uplineRankKey = (uplineProf.current_rank || uplineProf.current_package || '').toLowerCase();
+                const uplineRankLevel = rankOrder[uplineRankKey] || 0;
+
+                if (uplineRankLevel >= purchaserRankLevel) {
+                  // QUALIFIED
+                  qualifiedCount++;
+                  const pct = percentages[qualifiedCount - 1];
+                  const comm = parseFloat((canonicalPrice * pct / 100).toFixed(2));
+
+                  // Insert log
+                  try {
+                    await client.from('team_income_log').insert({
+                      purchase_id: purchaseId,
+                      purchaser_id: userId,
+                      purchaser_username: purchaserProfile?.username || 'Member',
+                      package_name: tier.name,
+                      purchase_amount: canonicalPrice,
+                      purchaser_rank: tier.rank,
+                      purchaser_rank_level: purchaserRankLevel,
+                      recipient_id: uplineProf.id,
+                      recipient_username: uplineProf.username || 'Upline',
+                      recipient_rank: uplineProf.current_rank || 'Starter',
+                      recipient_rank_level: uplineRankLevel,
+                      upline_position: qualifiedCount,
+                      commission_pct: pct,
+                      commission_amount: comm,
+                      status: 'paid',
+                      reason: `Qualified: Upline rank (${uplineProf.current_rank || 'Rank'}) >= Purchaser rank (${tier.rank})`,
+                      created_at: new Date().toISOString()
+                    });
+                  } catch (_) {}
+
+                  // Activity
+                  try {
+                    await client.from('activities').insert({
+                      user_id: uplineProf.id,
+                      type: 'income',
+                      title: 'Team Income Received',
+                      details: `${pct}% Team Income ($${comm.toFixed(2)} USDT) received from ${purchaserProfile?.username || 'Downline'} purchasing ${tier.name} (Qualified Position #${qualifiedCount})`,
+                      amount: comm,
+                      category: 'team',
+                      created_at: new Date().toISOString()
+                    });
+                  } catch (_) {}
+
+                  // Update balance
+                  const curBal = parseFloat(uplineProf.available_balance) || 0;
+                  const curTot = parseFloat(uplineProf.total_income) || 0;
+                  const curTeam = parseFloat(uplineProf.team_income) || 0;
+                  try {
+                    await client.from('profiles').update({
+                      available_balance: parseFloat((curBal + comm).toFixed(2)),
+                      total_income: parseFloat((curTot + comm).toFixed(2)),
+                      team_income: parseFloat((curTeam + comm).toFixed(2)),
+                      updated_at: new Date().toISOString()
+                    }).eq('id', uplineProf.id);
+                  } catch (_) {}
+
+                } else {
+                  // SKIPPED
+                  try {
+                    await client.from('team_income_log').insert({
+                      purchase_id: purchaseId,
+                      purchaser_id: userId,
+                      purchaser_username: purchaserProfile?.username || 'Member',
+                      package_name: tier.name,
+                      purchase_amount: canonicalPrice,
+                      purchaser_rank: tier.rank,
+                      purchaser_rank_level: purchaserRankLevel,
+                      recipient_id: uplineProf.id,
+                      recipient_username: uplineProf.username || 'Upline',
+                      recipient_rank: uplineProf.current_rank || 'None',
+                      recipient_rank_level: uplineRankLevel,
+                      upline_position: qualifiedCount + 1,
+                      commission_pct: percentages[qualifiedCount],
+                      commission_amount: 0.00,
+                      status: 'skipped',
+                      reason: `Skipped: Current rank (${uplineProf.current_rank || 'None'}) is below purchaser rank (${tier.rank})`,
+                      created_at: new Date().toISOString()
+                    });
+                  } catch (_) {}
+
+                  try {
+                    await client.from('activities').insert({
+                      user_id: uplineProf.id,
+                      type: 'info',
+                      title: 'Team Income Skipped',
+                      details: `Team Income skipped — your current rank (${uplineProf.current_rank || 'None'}) does not meet the required rank (${tier.rank}) for the purchase by ${purchaserProfile?.username || 'Downline'}. This position was passed up to the next eligible upline.`,
+                      amount: 0.00,
+                      category: 'team',
+                      created_at: new Date().toISOString()
+                    });
+                  } catch (_) {}
+                }
+              }
+
+              // Record remaining unallocated
+              while (qualifiedCount < 5) {
+                qualifiedCount++;
+                const pct = percentages[qualifiedCount - 1];
+                const comm = parseFloat((canonicalPrice * pct / 100).toFixed(2));
+                try {
+                  await client.from('team_income_log').insert({
+                    purchase_id: purchaseId,
+                    purchaser_id: userId,
+                    purchaser_username: purchaserProfile?.username || 'Member',
+                    package_name: tier.name,
+                    purchase_amount: canonicalPrice,
+                    purchaser_rank: tier.rank,
+                    purchaser_rank_level: purchaserRankLevel,
+                    recipient_id: null,
+                    recipient_username: 'Unallocated Pool',
+                    recipient_rank: 'None',
+                    recipient_rank_level: 0,
+                    upline_position: qualifiedCount,
+                    commission_pct: pct,
+                    commission_amount: comm,
+                    status: 'unallocated',
+                    reason: 'Unallocated: Upline tree ended before 5 qualified uplines were found',
+                    created_at: new Date().toISOString()
+                  });
+                } catch (_) {}
+              }
+            }
         // ---- System Maintenance (10% of every purchase, all users) ----
         if (purchaseData && purchaseData.length > 0) {
           const purchaseId = purchaseData[0].id;
           try {
-            // Duplicate protection — check if maintenance already recorded for this purchase
             const { data: existingMaint } = await client
               .from('system_maintenance')
               .select('id')
@@ -492,7 +661,6 @@ async function pkgConfirmPurchase() {
               .limit(1);
             if (!existingMaint || existingMaint.length === 0) {
               const maintenance = parseFloat((canonicalPrice * 0.1).toFixed(2));
-              // Fetch purchaser username for record
               let purchaserUsername = 'Unknown';
               try {
                 const { data: prf } = await client
@@ -522,6 +690,8 @@ async function pkgConfirmPurchase() {
     } catch (purchaseErr) {
       console.warn('Purchase log note:', purchaseErr);
     }
+
+
 
 
     // 2. Update the user's profile with new package + rank AND DEDUCT BALANCE

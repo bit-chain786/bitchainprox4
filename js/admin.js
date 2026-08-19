@@ -188,6 +188,7 @@ function navigateTo(section, sub=null) {
     dashboard: 'Dashboard', users: 'Users',
     deposits: 'Payments / Deposits', withdrawals: 'Payments / Withdrawals',
     packages: 'Packages & Ranks', chat: 'Chat Support',
+    teamincome: 'Team Income (15%)',
     reports: 'Reports', settings: 'Settings', audit: 'Audit Logs'
   };
   const bc = el('topbarBreadcrumb');
@@ -201,10 +202,12 @@ function navigateTo(section, sub=null) {
     case 'withdrawals':loadWithdrawals(); break;
     case 'packages':   loadPackages(); break;
     case 'chat':       loadChat(); break;
+    case 'teamincome': loadTeamIncome(); break;
     case 'reports':    loadReports(); break;
     case 'settings':   loadSettings(); break;
     case 'audit':      loadAuditLogs(); break;
   }
+
 
   // Close mobile sidebar
   closeMobileSidebar();
@@ -1502,8 +1505,151 @@ async function adminLogout() {
   window.location.href = 'login.html';
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// SECTION: TEAM INCOME (15% 5-UPLINE DISTRIBUTION)
+// ══════════════════════════════════════════════════════════════════════════
+let _teamIncomeLogs = [];
+let _teamIncomeFilter = 'all';
+
+async function loadTeamIncome() {
+  const db = getDB();
+  if (!db) return;
+
+  const tbody = el('teamIncomeTableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>`;
+  }
+
+  try {
+    const { data, error } = await db
+      .from('team_income_log')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    _teamIncomeLogs = data || [];
+
+    // Calculate stats
+    let totalPaid = 0;
+    let totalUnallocated = 0;
+    let totalGen = 0;
+
+    _teamIncomeLogs.forEach(log => {
+      const comm = parseFloat(log.commission_amount) || 0;
+      if (log.status === 'paid') {
+        totalPaid += comm;
+        totalGen += comm;
+      } else if (log.status === 'unallocated') {
+        totalUnallocated += comm;
+        totalGen += comm;
+      }
+    });
+
+    if (el('statTeamIncomeGen')) el('statTeamIncomeGen').textContent = '$' + fmtNum(totalGen);
+    if (el('statTeamIncomePaid')) el('statTeamIncomePaid').textContent = '$' + fmtNum(totalPaid);
+    if (el('statTeamIncomeUnalloc')) el('statTeamIncomeUnalloc').textContent = '$' + fmtNum(totalUnallocated);
+    if (el('statTeamIncomeTxCount')) el('statTeamIncomeTxCount').textContent = _teamIncomeLogs.length;
+
+    renderTeamIncomeTable();
+  } catch (err) {
+    console.warn('Error loading team income:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">No team income transactions found yet.</div></div></td></tr>`;
+    }
+  }
+}
+
+function setTeamIncomeFilter(filter, btn) {
+  _teamIncomeFilter = filter;
+  document.querySelectorAll('#teamIncomeFilterTabs .filter-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTeamIncomeTable();
+}
+
+function filterTeamIncomeTable() {
+  renderTeamIncomeTable();
+}
+
+function renderTeamIncomeTable() {
+  const tbody = el('teamIncomeTableBody');
+  if (!tbody) return;
+
+  const query = (el('teamIncomeSearch')?.value || '').toLowerCase().trim();
+
+  let filtered = _teamIncomeLogs.filter(log => {
+    // Status filter
+    if (_teamIncomeFilter !== 'all' && log.status !== _teamIncomeFilter) return false;
+    // Search query
+    if (query) {
+      const pName = (log.purchaser_username || '').toLowerCase();
+      const rName = (log.recipient_username || '').toLowerCase();
+      const pkg = (log.package_name || '').toLowerCase();
+      const rank = (log.purchaser_rank || '').toLowerCase();
+      if (!pName.includes(query) && !rName.includes(query) && !pkg.includes(query) && !rank.includes(query)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No matching team income records found</div></div></td></tr>`;
+    return;
+  }
+
+  const posLabels = {
+    1: '1st (5%)',
+    2: '2nd (4%)',
+    3: '3rd (3%)',
+    4: '4th (2%)',
+    5: '5th (1%)'
+  };
+
+  tbody.innerHTML = filtered.map(log => {
+    const isPaid = log.status === 'paid';
+    const isSkipped = log.status === 'skipped';
+    const isUnalloc = log.status === 'unallocated';
+
+    let badgeHtml = '';
+    if (isPaid) {
+      badgeHtml = `<span class="badge badge-success" title="Qualified & Paid">PAID</span>`;
+    } else if (isSkipped) {
+      badgeHtml = `<span class="badge badge-warning" title="${log.reason || 'Upline rank < purchaser rank'}">SKIPPED</span>`;
+    } else {
+      badgeHtml = `<span class="badge badge-secondary" title="${log.reason || 'Unallocated'}">UNALLOCATED</span>`;
+    }
+
+    return `
+      <tr>
+        <td style="font-size:0.75rem;white-space:nowrap">${fmtDate(log.created_at)}</td>
+        <td>
+          <div style="font-weight:700;color:var(--text-primary)">${log.purchaser_username || 'Member'}</div>
+        </td>
+        <td>
+          <span class="badge badge-primary">${log.purchaser_rank || log.package_name || 'Starter'}</span>
+        </td>
+        <td style="font-weight:700;color:var(--text-primary)">$${fmtNum(log.purchase_amount)}</td>
+        <td>
+          <div style="font-weight:600;color:${isUnalloc ? 'var(--text-muted)' : 'var(--text-primary)'}">${log.recipient_username || '—'}</div>
+        </td>
+        <td>
+          <span style="font-size:0.75rem;color:var(--text-muted)">${log.recipient_rank || '—'}</span>
+        </td>
+        <td>
+          <span style="font-weight:700;color:var(--accent-purple)">${posLabels[log.upline_position] || `#${log.upline_position}`}</span>
+        </td>
+        <td style="font-weight:800;color:${isPaid ? '#00f5d4' : 'var(--text-muted)'}">
+          ${isPaid ? '+$' + fmtNum(log.commission_amount) : '$0.00'}
+        </td>
+        <td>${badgeHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 // ── Submenu toggle ─────────────────────────────────────────────────────────
 function toggleSubmenu(id) {
+
   const sub = el(id);
   const item = sub?.previousElementSibling;
   if (sub) sub.classList.toggle('open');
