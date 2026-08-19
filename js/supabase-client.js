@@ -321,16 +321,17 @@ async function getUserActivities(userId, limit = 15) {
   const combinedList = [];
 
   try {
-    // 1. Fetch general activities (commissions, non-working income, etc.)
-    const { data: actData } = await client
-      .from('activities')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const [actRes, depRes, withRes, pkgRes, rewardRes] = await Promise.allSettled([
+      client.from('activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
+      client.from('deposits').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
+      client.from('withdrawals').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
+      client.from('package_purchases').select('*').eq('user_id', userId).order('purchased_at', { ascending: false }).limit(limit),
+      client.from('reward_claims').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit)
+    ]);
 
-    if (actData && actData.length > 0) {
-      actData.forEach(item => {
+    // 1. Activities
+    if (actRes.status === 'fulfilled' && actRes.value.data) {
+      actRes.value.data.forEach(item => {
         combinedList.push({
           id: item.id,
           title: safeStr(item.title, 'Income Received'),
@@ -343,21 +344,10 @@ async function getUserActivities(userId, limit = 15) {
         });
       });
     }
-  } catch (e) {
-    console.warn('Activities fetch note:', e);
-  }
 
-  try {
-    // 2. Fetch Deposits
-    const { data: depData } = await client
-      .from('deposits')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (depData && depData.length > 0) {
-      depData.forEach(dep => {
+    // 2. Deposits
+    if (depRes.status === 'fulfilled' && depRes.value.data) {
+      depRes.value.data.forEach(dep => {
         const st = (dep.status || 'pending').toLowerCase();
         let detailText = '';
         let titleText = 'Wallet Deposit';
@@ -385,22 +375,10 @@ async function getUserActivities(userId, limit = 15) {
         });
       });
     }
-  } catch (e) {
-    console.warn('Deposits fetch note:', e);
-  }
 
-
-  try {
-    // 3. Fetch Withdrawals
-    const { data: withData } = await client
-      .from('withdrawals')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (withData && withData.length > 0) {
-      withData.forEach(w => {
+    // 3. Withdrawals
+    if (withRes.status === 'fulfilled' && withRes.value.data) {
+      withRes.value.data.forEach(w => {
         const st = (w.status || 'pending').toLowerCase();
         let detailText = '';
         if (st === 'pending') {
@@ -426,21 +404,9 @@ async function getUserActivities(userId, limit = 15) {
       });
     }
 
-  } catch (e) {
-    console.warn('Withdrawals fetch note:', e);
-  }
-
-  try {
-    // 4. Fetch Package / Rank Purchases
-    const { data: pkgData } = await client
-      .from('package_purchases')
-      .select('*')
-      .eq('user_id', userId)
-      .order('purchased_at', { ascending: false })
-      .limit(limit);
-
-    if (pkgData && pkgData.length > 0) {
-      pkgData.forEach(p => {
+    // 4. Package Purchases
+    if (pkgRes.status === 'fulfilled' && pkgRes.value.data) {
+      pkgRes.value.data.forEach(p => {
         combinedList.push({
           id: p.id,
           title: `${p.rank_name || p.package_name || 'Rank'} Upgrade`,
@@ -453,35 +419,24 @@ async function getUserActivities(userId, limit = 15) {
         });
       });
     }
-  } catch (e) {
-    console.warn('Package purchases fetch note:', e);
-  }
 
-  try {
-    // 5. Fetch Reward Claims
-    const { data: rewardData } = await client
-      .from('reward_claims')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (rewardData && rewardData.length > 0) {
-      rewardData.forEach(r => {
+    // 5. Reward Claims
+    if (rewardRes.status === 'fulfilled' && rewardRes.value.data) {
+      rewardRes.value.data.forEach(r => {
         combinedList.push({
           id: r.id,
-          title: `Reward Level ${r.level} Bonus`,
-          details: `Achieved $${parseFloat(r.target_amount).toLocaleString()} Direct Business`,
+          title: 'Reward Claimed',
+          details: `Reward Level ${r.reward_level || 1} Payout`,
           amount: parseFloat(r.reward_amount) || 0,
           type: 'reward',
-          status: r.status || 'claimed',
+          status: 'completed',
           category: 'reward',
-          created_at: r.created_at
+          created_at: r.claimed_at || r.created_at
         });
       });
     }
   } catch (e) {
-    console.warn('Reward claims fetch note:', e);
+    console.warn('Activities parallel fetch note:', e);
   }
 
   // Sort unified transaction activities chronologically (newest first)

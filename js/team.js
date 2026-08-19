@@ -66,23 +66,44 @@ window.BitchainTeam = (function() {
       throw new Error('Supabase client is not available.');
     }
 
-    // Fetch all user profiles to construct full downline graph
-    const { data: allProfiles, error } = await client
-      .from('profiles')
-      .select('*');
+    let profilesList = [];
+    try {
+      // Fetch only needed lightweight fields to ensure fast network loading
+      const { data: allProfiles, error } = await client
+        .from('profiles')
+        .select('id, username, referral_code, sponsor_username, full_name, current_rank, current_package, phone, created_at, role, rank_value');
 
-    if (error) {
-      console.error('Error loading team profiles:', error);
-      throw error;
+      if (!error && allProfiles) {
+        profilesList = allProfiles;
+      }
+    } catch (err) {
+      console.warn('Team profiles lightweight fetch note:', err);
     }
 
-    const profilesList = allProfiles || [];
+    if (profilesList.length === 0) {
+      return {
+        rootProfile: null,
+        levels: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
+        levelCounts: Array(10).fill(0),
+        directTeamCount: 0,
+        downlineTeamCount: 0,
+        totalTeamCount: 0
+      };
+    }
 
     // Find the root profile
     const rootProfile = profilesList.find(p => p.id === rootUserId);
     if (!rootProfile) {
-      throw new Error('User profile not found in database.');
+      return {
+        rootProfile: null,
+        levels: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
+        levelCounts: Array(10).fill(0),
+        directTeamCount: 0,
+        downlineTeamCount: 0,
+        totalTeamCount: 0
+      };
     }
+
 
     // Build fast lookup by normalized sponsor keys
     // Children can refer to a sponsor by sponsor's username OR sponsor's referral_code

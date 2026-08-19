@@ -972,5 +972,5 @@ window.PkgSystem = {
 // Auto-run when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   pkgLoadUserState();
-  setTimeout(pkgLoadUserState, 1000);
 });
+
