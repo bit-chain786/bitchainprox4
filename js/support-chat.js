@@ -1,6 +1,6 @@
 /* ==========================================================================
    BITCHAIN PRO X — 24/7 CUSTOMER CHAT SUPPORT MODULE
-   Real-Time Two-Way Messaging Between User and Admin
+   Real-Time Two-Way Messaging with Screenshot / Issue Image Upload Support
    ========================================================================== */
 
 'use strict';
@@ -12,6 +12,10 @@
   let _realtimeSub = null;
   let _currentTab = 'chat'; // 'chat' | 'new' | 'history'
   let _conversations = [];
+
+  // Image Attachment State
+  let _formAttachedImage = null; // { file, dataUrl, name, size }
+  let _chatAttachedImage = null; // { file, dataUrl, name, size }
 
   function getClient() {
     return window.BitchainAuth && typeof window.BitchainAuth.getSupabase === 'function'
@@ -157,8 +161,43 @@
     }
   }
 
+  // ─── Image Processing Helpers ───────────────────────────────────────────────
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadOrEncodeImage(fileInfo, userId) {
+    if (!fileInfo || !fileInfo.file) return null;
+    const client = getClient();
+    
+    // Try uploading to Supabase Storage first
+    if (client && client.storage) {
+      try {
+        const fileExt = fileInfo.name.split('.').pop() || 'png';
+        const filePath = `${userId}/support_${Date.now()}.${fileExt}`;
+        const { error: uploadErr } = await client.storage
+          .from('deposits')
+          .upload(filePath, fileInfo.file, { cacheControl: '3600', upsert: true });
+
+        if (!uploadErr) {
+          const { data } = client.storage.from('deposits').getPublicUrl(filePath);
+          if (data && data.publicUrl) return data.publicUrl;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback directly to Data URL
+    return fileInfo.dataUrl;
+  }
+
   // ─── Render: New Support Request Form ───────────────────────────────────────
   function renderNewRequestForm(container) {
+    _formAttachedImage = null;
     const fullName = _userProfile?.full_name || _activeUser?.user_metadata?.full_name || '';
     const email = _userProfile?.email || _activeUser?.email || '';
     const phone = _userProfile?.phone || '';
@@ -209,11 +248,80 @@
           <textarea id="suppInputMessage" class="support-form-textarea" placeholder="Explain your request in detail. If this is regarding a transaction, please include the Transaction ID or Amount." required></textarea>
         </div>
 
+        <!-- Issue Screenshot / Image Upload Zone -->
+        <div class="support-form-group">
+          <label class="support-form-label">Attach Screenshot / Issue Proof (Optional)</label>
+          <input type="file" id="suppFormFileInput" accept="image/*" style="display:none" onchange="window.SupportChat.handleFormFile(event)" />
+          
+          <div class="support-upload-zone" id="suppFormUploadZone" onclick="document.getElementById('suppFormFileInput').click()">
+            <div class="support-upload-icon">📷</div>
+            <div class="support-upload-title">Click to upload issue screenshot or error image</div>
+            <div class="support-upload-subtitle">Supports JPG, PNG, WEBP (Max 5MB)</div>
+          </div>
+
+          <div id="suppFormImgPreviewWrap" style="display:none;"></div>
+        </div>
+
         <button type="submit" id="suppSubmitBtn" class="support-submit-btn">
           <span>🚀</span> Start Support Chat
         </button>
       </form>
     `;
+  }
+
+  // ─── Handle Form Image Selection ────────────────────────────────────────────
+  async function handleFormFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, WEBP).');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      _formAttachedImage = {
+        file,
+        dataUrl,
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB'
+      };
+
+      const previewWrap = document.getElementById('suppFormImgPreviewWrap');
+      const uploadZone = document.getElementById('suppFormUploadZone');
+
+      if (previewWrap && uploadZone) {
+        uploadZone.style.display = 'none';
+        previewWrap.style.display = 'block';
+        previewWrap.innerHTML = `
+          <div class="support-img-preview-box">
+            <img src="${dataUrl}" class="support-preview-thumb" alt="Preview" />
+            <div class="support-preview-meta">
+              <div class="support-preview-filename">${escapeHtml(file.name)}</div>
+              <div class="support-preview-size">${_formAttachedImage.size}</div>
+            </div>
+            <button type="button" class="support-preview-remove-btn" onclick="window.SupportChat.removeFormFile()">✕ Remove</button>
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.warn('Error previewing form image:', e);
+    }
+  }
+
+  function removeFormFile() {
+    _formAttachedImage = null;
+    const previewWrap = document.getElementById('suppFormImgPreviewWrap');
+    const uploadZone = document.getElementById('suppFormUploadZone');
+    const fileInput = document.getElementById('suppFormFileInput');
+
+    if (fileInput) fileInput.value = '';
+    if (previewWrap) {
+      previewWrap.innerHTML = '';
+      previewWrap.style.display = 'none';
+    }
+    if (uploadZone) uploadZone.style.display = 'block';
   }
 
   // ─── Submit New Support Ticket ──────────────────────────────────────────────
@@ -239,11 +347,17 @@
     const btn = document.getElementById('suppSubmitBtn');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="loading-spinner"></span> Connecting to Support…';
+      btn.innerHTML = '<span class="loading-spinner"></span> Uploading & Connecting…';
     }
 
     try {
-      // 1. Create support conversation
+      // 1. Process and upload screenshot if attached
+      let finalImageUrl = null;
+      if (_formAttachedImage) {
+        finalImageUrl = await uploadOrEncodeImage(_formAttachedImage, _activeUser.id);
+      }
+
+      // 2. Create support conversation
       const { data: conv, error: convErr } = await client
         .from('support_conversations')
         .insert({
@@ -254,6 +368,7 @@
           unread_user: 0,
           last_message: message,
           last_message_at: new Date().toISOString(),
+          attachment_url: finalImageUrl,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -262,7 +377,7 @@
 
       if (convErr) throw convErr;
 
-      // 2. Insert initial message
+      // 3. Insert initial message
       const { error: msgErr } = await client
         .from('support_messages')
         .insert({
@@ -270,12 +385,15 @@
           sender_id: _activeUser.id,
           sender_role: 'user',
           message: `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`,
+          image_url: finalImageUrl,
           created_at: new Date().toISOString()
         });
 
       if (msgErr) throw msgErr;
 
-      // 3. Update active conversation and switch to chat
+      _formAttachedImage = null;
+
+      // 4. Update active conversation and switch to chat
       _activeConvId = conv.id;
       await loadUserConversations();
       switchSupportTab('chat');
@@ -292,6 +410,8 @@
 
   // ─── Render: Live Chat Room ─────────────────────────────────────────────────
   async function renderChatRoom(container) {
+    _chatAttachedImage = null;
+
     if (!_activeConvId || _conversations.length === 0) {
       renderNewRequestForm(container);
       return;
@@ -304,7 +424,7 @@
       <div class="support-chat-room">
         <div class="support-chat-top-info">
           <div>
-            <div class="support-chat-subject">${currentConv.subject || 'Customer Support'}</div>
+            <div class="support-chat-subject">${escapeHtml(currentConv.subject || 'Customer Support')}</div>
             <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:2px;">Ticket ID: #${currentConv.id.substring(0, 8).toUpperCase()}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -319,8 +439,16 @@
           </div>
         </div>
 
+        <!-- Chat Image Preview Container -->
+        <div id="suppChatImgPreviewBar" style="display:none;padding:8px 16px;background:rgba(14,6,36,0.98);border-top:1px solid rgba(199,125,255,0.2);"></div>
+
         <div class="support-chat-input-bar">
+          <input type="file" id="suppChatFileInput" accept="image/*" style="display:none" onchange="window.SupportChat.handleChatFile(event)" />
+          
+          <button class="support-chat-attach-btn" onclick="document.getElementById('suppChatFileInput').click()" title="Attach Screenshot or Image">📷</button>
+
           <input type="text" id="suppChatMsgInput" class="support-chat-input" placeholder="${isResolved ? 'This ticket is resolved. Type to reply and reopen…' : 'Type your reply to support…'}" onkeydown="if(event.key==='Enter') window.SupportChat.sendMessage();" />
+          
           <button class="support-chat-send-btn" onclick="window.SupportChat.sendMessage()" title="Send Message">➤</button>
         </div>
       </div>
@@ -348,6 +476,55 @@
           loadMessagesStream(_activeConvId);
         })
         .subscribe();
+    }
+  }
+
+  // ─── Handle Live Chat Image Attachment ──────────────────────────────────────
+  async function handleChatFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      _chatAttachedImage = {
+        file,
+        dataUrl,
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB'
+      };
+
+      const previewBar = document.getElementById('suppChatImgPreviewBar');
+      if (previewBar) {
+        previewBar.style.display = 'block';
+        previewBar.innerHTML = `
+          <div class="support-img-preview-box" style="margin-top:0;">
+            <img src="${dataUrl}" class="support-preview-thumb" alt="Preview" />
+            <div class="support-preview-meta">
+              <div class="support-preview-filename">${escapeHtml(file.name)}</div>
+              <div class="support-preview-size">${_chatAttachedImage.size}</div>
+            </div>
+            <button type="button" class="support-preview-remove-btn" onclick="window.SupportChat.removeChatFile()">✕ Cancel</button>
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.warn('Error reading chat image:', e);
+    }
+  }
+
+  function removeChatFile() {
+    _chatAttachedImage = null;
+    const previewBar = document.getElementById('suppChatImgPreviewBar');
+    const fileInput = document.getElementById('suppChatFileInput');
+    if (fileInput) fileInput.value = '';
+    if (previewBar) {
+      previewBar.innerHTML = '';
+      previewBar.style.display = 'none';
     }
   }
 
@@ -386,6 +563,13 @@
             </div>
             <div class="support-msg-bubble">
               ${escapeHtml(m.message).replace(/\n/g, '<br>')}
+              
+              ${m.image_url ? `
+                <div class="support-msg-img-container" onclick="window.SupportChat.openImageModal('${m.image_url}')">
+                  <img src="${m.image_url}" class="support-msg-img" alt="Attached Screenshot" loading="lazy" />
+                  <span class="support-msg-img-zoom-tag">🔍 View Full Image</span>
+                </div>
+              ` : ''}
             </div>
             <div class="support-msg-time">
               ${formatChatTime(m.created_at)}
@@ -406,23 +590,37 @@
   async function sendMessage() {
     if (!_activeConvId || !_activeUser) return;
     const input = document.getElementById('suppChatMsgInput');
-    const msg = input?.value?.trim();
-    if (!msg) return;
+    const sendBtn = document.querySelector('.support-chat-send-btn');
+    const msg = input?.value?.trim() || '';
+    
+    if (!msg && !_chatAttachedImage) return;
 
     const client = getClient();
     if (!client) return;
 
-    input.value = '';
-    input.disabled = true;
+    if (input) {
+      input.value = '';
+      input.disabled = true;
+    }
+    if (sendBtn) sendBtn.disabled = true;
 
     try {
+      let finalImg = null;
+      if (_chatAttachedImage) {
+        finalImg = await uploadOrEncodeImage(_chatAttachedImage, _activeUser.id);
+        removeChatFile();
+      }
+
+      const textToSend = msg || '📎 [Attached Screenshot]';
+
       const { error: msgErr } = await client
         .from('support_messages')
         .insert({
           conversation_id: _activeConvId,
           sender_id: _activeUser.id,
           sender_role: 'user',
-          message: msg,
+          message: textToSend,
+          image_url: finalImg,
           created_at: new Date().toISOString()
         });
 
@@ -431,7 +629,7 @@
       // Update conversation last message & unread_admin
       await client.from('support_conversations').update({
         status: 'open',
-        last_message: msg,
+        last_message: textToSend,
         last_message_at: new Date().toISOString(),
         unread_admin: 1,
         updated_at: new Date().toISOString()
@@ -441,10 +639,13 @@
     } catch (err) {
       console.error('Send message error:', err);
       alert('Failed to send message: ' + err.message);
-      input.value = msg;
+      if (input) input.value = msg;
     } finally {
-      input.disabled = false;
-      input.focus();
+      if (input) {
+        input.disabled = false;
+        input.focus();
+      }
+      if (sendBtn) sendBtn.disabled = false;
     }
   }
 
@@ -472,8 +673,8 @@
         ${_conversations.map(c => `
           <div class="support-history-item" onclick="window.SupportChat.selectConversation('${c.id}')">
             <div>
-              <div style="font-weight:700;font-size:0.9rem;color:#ffffff;margin-bottom:4px;">${c.subject || 'Support Ticket'}</div>
-              <div style="font-size:0.76rem;color:rgba(224,170,255,0.7);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.last_message || 'No messages'}</div>
+              <div style="font-weight:700;font-size:0.9rem;color:#ffffff;margin-bottom:4px;">${escapeHtml(c.subject || 'Support Ticket')}</div>
+              <div style="font-size:0.76rem;color:rgba(224,170,255,0.7);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(c.last_message || 'No messages')}</div>
               <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">${formatChatTime(c.updated_at || c.created_at)}</div>
             </div>
             <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -489,6 +690,33 @@
   function selectConversation(convId) {
     _activeConvId = convId;
     switchSupportTab('chat');
+  }
+
+  // ─── Fullscreen Image Lightbox Modal ────────────────────────────────────────
+  function openImageModal(imageUrl) {
+    if (!imageUrl) return;
+    let lightbox = document.getElementById('supportLightboxModal');
+    if (!lightbox) {
+      const html = `
+        <div class="support-lightbox-modal" id="supportLightboxModal" onclick="if(event.target===this) window.SupportChat.closeImageModal()">
+          <div class="support-lightbox-content">
+            <button class="support-lightbox-close" onclick="window.SupportChat.closeImageModal()">✕</button>
+            <img src="" id="supportLightboxImg" class="support-lightbox-img" alt="Zoomed Screenshot" />
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', html);
+      lightbox = document.getElementById('supportLightboxModal');
+    }
+
+    const img = document.getElementById('supportLightboxImg');
+    if (img) img.src = imageUrl;
+    if (lightbox) lightbox.classList.add('active');
+  }
+
+  function closeImageModal() {
+    const lightbox = document.getElementById('supportLightboxModal');
+    if (lightbox) lightbox.classList.remove('active');
   }
 
   // ─── Modal HTML Injection Helper ────────────────────────────────────────────
@@ -561,7 +789,13 @@
     submitNewTicket: submitNewTicket,
     sendMessage: sendMessage,
     selectConversation: selectConversation,
-    checkUnread: checkUnreadSupport
+    checkUnread: checkUnreadSupport,
+    handleFormFile: handleFormFile,
+    removeFormFile: removeFormFile,
+    handleChatFile: handleChatFile,
+    removeChatFile: removeChatFile,
+    openImageModal: openImageModal,
+    closeImageModal: closeImageModal
   };
 
   // Helper alias for onclick buttons

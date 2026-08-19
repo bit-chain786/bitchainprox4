@@ -435,13 +435,25 @@
               <div style="color:var(--text-muted);font-size:0.9rem">Select a conversation to start</div>
             </div>
             <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input-area">
-              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply…" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
-              <button class="btn btn-primary" onclick="sendAdminMessage()">Send ›</button>
+            <div id="adminChatImgPreview" style="display:none;padding:8px 16px;background:rgba(157,78,221,0.06);border-top:1px solid var(--admin-border);"></div>
+            <div class="chat-input-area" style="align-items:center;">
+              <input type="file" id="adminChatFileInput" accept="image/*" style="display:none" onchange="handleAdminChatFile(event)" />
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('adminChatFileInput').click()" title="Attach Screenshot / Image" style="font-size:1.1rem;padding:8px 12px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;">📷</button>
+              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply to user…" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
+              <button class="btn btn-primary" onclick="sendAdminMessage()" style="align-self:stretch;display:flex;align-items:center;justify-content:center;">Send ›</button>
             </div>
           </div>
         </div>
+
+        <!-- Fullscreen Image Preview Lightbox for Admin -->
+        <div id="adminImageLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(10px);z-index:999999;align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) closeAdminImagePreview()">
+          <div style="position:relative;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;">
+            <button onclick="closeAdminImagePreview()" style="position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:#ff0055;color:#fff;border:2px solid #fff;font-weight:900;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(255,0,85,0.5);">✕</button>
+            <img id="adminLightboxImg" src="" style="max-width:90vw;max-height:85vh;border-radius:10px;border:1px solid rgba(199,125,255,0.5);box-shadow:0 10px 40px rgba(0,0,0,0.8);" />
+          </div>
+        </div>
       </section>
+
 
       <!-- ═══════════════════════════════════════════════════════════════ -->
       <!-- TEAM INCOME (15% 5-UPLINE) SECTION                              -->

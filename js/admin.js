@@ -1221,6 +1221,58 @@ async function openConversation(convId) {
 }
 
 
+let _adminChatAttachedImage = null;
+
+function handleAdminChatFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    _adminChatAttachedImage = {
+      file,
+      dataUrl: e.target.result,
+      name: file.name
+    };
+
+    const preview = el('adminChatImgPreview');
+    if (preview) {
+      preview.style.display = 'flex';
+      preview.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(157,78,221,0.15);padding:6px 12px;border-radius:8px;border:1px solid rgba(199,125,255,0.3);">
+          <img src="${e.target.result}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;" />
+          <span style="font-size:0.8rem;color:#ffffff;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${file.name}</span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="removeAdminChatFile()" style="color:#ff0055;padding:2px 6px;">✕</button>
+        </div>
+      `;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAdminChatFile() {
+  _adminChatAttachedImage = null;
+  const preview = el('adminChatImgPreview');
+  const input = el('adminChatFileInput');
+  if (input) input.value = '';
+  if (preview) {
+    preview.innerHTML = '';
+    preview.style.display = 'none';
+  }
+}
+
+function openAdminImagePreview(url) {
+  const modal = el('adminImageLightbox');
+  const img = el('adminLightboxImg');
+  if (img) img.src = url;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAdminImagePreview() {
+  const modal = el('adminImageLightbox');
+  if (modal) modal.style.display = 'none';
+}
+
 async function loadMessages(convId) {
   const db = getDB();
   if (!db) return;
@@ -1235,7 +1287,15 @@ async function loadMessages(convId) {
 
   box.innerHTML = data.map(m => `
     <div class="chat-msg ${m.sender_role === 'admin' ? 'admin' : 'user'}">
-      <div>${m.message}</div>
+      <div>${m.message ? escapeHtml(m.message).replace(/\n/g, '<br>') : ''}</div>
+      ${m.image_url ? `
+        <div style="margin-top:8px;">
+          <div style="position:relative;display:inline-block;cursor:pointer;" onclick="openAdminImagePreview('${m.image_url}')">
+            <img src="${m.image_url}" alt="Attachment Screenshot" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid rgba(199,125,255,0.4);display:block;box-shadow:0 4px 12px rgba(0,0,0,0.3);" />
+            <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.75);color:#00f5d4;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;pointer-events:none;">🔍 Click to Zoom</span>
+          </div>
+        </div>
+      ` : ''}
       <div class="chat-msg-time">${fmtDate(m.created_at)}</div>
     </div>
   `).join('');
@@ -1245,26 +1305,35 @@ async function loadMessages(convId) {
 async function sendAdminMessage() {
   if (!_activeConvId) return;
   const input = el('chatAdminInput');
-  const msg = input?.value?.trim();
-  if (!msg) return;
+  const msg = input?.value?.trim() || '';
+  if (!msg && !_adminChatAttachedImage) return;
 
   const db = getDB();
   if (!db || !_adminUser) return;
 
+  let finalImg = null;
+  if (_adminChatAttachedImage) {
+    finalImg = _adminChatAttachedImage.dataUrl;
+    removeAdminChatFile();
+  }
+
   input.value = '';
   input.disabled = true;
+
+  const textToSend = msg || '📎 [Attached Screenshot]';
 
   const { error } = await db.from('support_messages').insert({
     conversation_id: _activeConvId,
     sender_id: _adminUser.id,
     sender_role: 'admin',
-    message: msg,
+    message: textToSend,
+    image_url: finalImg,
     created_at: new Date().toISOString()
   });
 
   if (!error) {
     await db.from('support_conversations').update({
-      last_message: msg,
+      last_message: textToSend,
       last_message_at: new Date().toISOString(),
       unread_user: 1,
       updated_at: new Date().toISOString()

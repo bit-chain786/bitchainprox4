@@ -539,6 +539,228 @@
   transform: translateY(-2px);
 }
 
+/* Image Upload Dropzone (New Request Form) */
+.support-upload-zone {
+  border: 2px dashed rgba(199, 125, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(26, 11, 58, 0.4);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.support-upload-zone:hover, .support-upload-zone.dragover {
+  border-color: #00f5d4;
+  background: rgba(0, 245, 212, 0.05);
+  box-shadow: 0 0 15px rgba(0, 245, 212, 0.15);
+}
+
+.support-upload-icon {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.support-upload-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #e0aaff;
+  margin-bottom: 2px;
+}
+
+.support-upload-subtitle {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Image Preview Container (Form & Chat) */
+.support-img-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(38, 14, 84, 0.75);
+  border: 1px solid rgba(0, 245, 212, 0.4);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  animation: fadeIn 0.2s ease;
+}
+
+.support-preview-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(199, 125, 255, 0.3);
+}
+
+.support-preview-meta {
+  flex: 1;
+  overflow: hidden;
+}
+
+.support-preview-filename {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.support-preview-size {
+  font-size: 0.7rem;
+  color: rgba(224, 170, 255, 0.7);
+}
+
+.support-preview-remove-btn {
+  background: rgba(255, 0, 85, 0.15);
+  border: 1px solid rgba(255, 0, 85, 0.4);
+  color: #ff0055;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.support-preview-remove-btn:hover {
+  background: #ff0055;
+  color: #ffffff;
+}
+
+/* Chat Room Attach Button */
+.support-chat-attach-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(157, 78, 221, 0.2);
+  border: 1px solid rgba(199, 125, 255, 0.3);
+  color: #e0aaff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.support-chat-attach-btn:hover {
+  background: rgba(0, 245, 212, 0.2);
+  border-color: #00f5d4;
+  color: #00f5d4;
+  transform: scale(1.06);
+}
+
+/* Attached Image inside Chat Message Bubbles */
+.support-msg-img-container {
+  margin-top: 8px;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(199, 125, 255, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-msg-img-container:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(0, 245, 212, 0.3);
+}
+
+.support-msg-img {
+  max-width: 240px;
+  max-height: 180px;
+  display: block;
+  object-fit: cover;
+  border-radius: 7px;
+}
+
+.support-msg-img-zoom-tag {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(10, 5, 24, 0.85);
+  backdrop-filter: blur(4px);
+  color: #00f5d4;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 245, 212, 0.4);
+  pointer-events: none;
+}
+
+/* Lightbox Modal */
+.support-lightbox-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 2, 12, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+}
+
+.support-lightbox-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.support-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.support-lightbox-img {
+  max-width: 90vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(123, 44, 191, 0.3);
+}
+
+.support-lightbox-close {
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ff0055;
+  color: #fff;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 0, 85, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.support-lightbox-close:hover {
+  transform: scale(1.15) rotate(90deg);
+}
+
 /* Responsive Mobile Rules */
 @media (max-width: 640px) {
   .support-modal-card {
@@ -558,4 +780,9 @@
     grid-template-columns: 1fr;
     gap: 0;
   }
+  .support-msg-img {
+    max-width: 190px;
+    max-height: 140px;
+  }
 }
+

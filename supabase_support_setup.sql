@@ -1,5 +1,5 @@
 -- ============================================================================
--- BITCHAIN PRO X — 24/7 CUSTOMER SUPPORT & REAL-TIME CHAT SETUP
+-- BITCHAIN PRO X — 24/7 CUSTOMER SUPPORT & REAL-TIME CHAT SETUP (WITH IMAGE ATTACHMENTS)
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
 
@@ -13,9 +13,13 @@ CREATE TABLE IF NOT EXISTS public.support_conversations (
   unread_user INTEGER DEFAULT 0,
   last_message TEXT,
   last_message_at TIMESTAMPTZ,
+  attachment_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add column if table already exists
+ALTER TABLE public.support_conversations ADD COLUMN IF NOT EXISTS attachment_url TEXT;
 
 -- Enable RLS on conversations
 ALTER TABLE public.support_conversations ENABLE ROW LEVEL SECURITY;
@@ -28,7 +32,14 @@ DROP POLICY IF EXISTS "Admins can update conversations" ON public.support_conver
 
 CREATE POLICY "Users can view own conversations"
   ON public.support_conversations FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (
+    auth.uid() = user_id
+    OR (auth.jwt() ->> 'email') = 'bitchain3@gmail.com'
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
+    )
+  );
 
 CREATE POLICY "Users can insert own conversations"
   ON public.support_conversations FOR INSERT
@@ -36,37 +47,28 @@ CREATE POLICY "Users can insert own conversations"
 
 CREATE POLICY "Users can update own conversations"
   ON public.support_conversations FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Admins can view all conversations"
-  ON public.support_conversations FOR SELECT
   USING (
-    EXISTS (
+    auth.uid() = user_id
+    OR (auth.jwt() ->> 'email') = 'bitchain3@gmail.com'
+    OR EXISTS (
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
     )
-    OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
   );
 
-CREATE POLICY "Admins can update conversations"
-  ON public.support_conversations FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
-    )
-    OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
-  );
-
--- 2. Create support_messages table
+-- 2. Create support_messages table with image_url
 CREATE TABLE IF NOT EXISTS public.support_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id UUID NOT NULL REFERENCES public.support_conversations(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   sender_role TEXT NOT NULL DEFAULT 'user',
   message TEXT NOT NULL,
+  image_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add column if table already exists
+ALTER TABLE public.support_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 -- Enable RLS on messages
 ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
@@ -76,51 +78,41 @@ DROP POLICY IF EXISTS "Users can insert messages in own conversations" ON public
 DROP POLICY IF EXISTS "Admins can view all messages" ON public.support_messages;
 DROP POLICY IF EXISTS "Admins can insert messages" ON public.support_messages;
 
-CREATE POLICY "Users can view messages in own conversations"
+CREATE POLICY "Users and admins can view messages"
   ON public.support_messages FOR SELECT
   USING (
-    EXISTS (
+    sender_id = auth.uid()
+    OR (auth.jwt() ->> 'email') = 'bitchain3@gmail.com'
+    OR EXISTS (
       SELECT 1 FROM public.support_conversations
       WHERE id = conversation_id AND user_id = auth.uid()
     )
-  );
-
-CREATE POLICY "Users can insert messages in own conversations"
-  ON public.support_messages FOR INSERT
-  WITH CHECK (
-    sender_id = auth.uid() AND
-    EXISTS (
-      SELECT 1 FROM public.support_conversations
-      WHERE id = conversation_id AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Admins can view all messages"
-  ON public.support_messages FOR SELECT
-  USING (
-    EXISTS (
+    OR EXISTS (
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
     )
-    OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
   );
 
-CREATE POLICY "Admins can insert messages"
+CREATE POLICY "Users and admins can insert messages"
   ON public.support_messages FOR INSERT
   WITH CHECK (
-    sender_id = auth.uid() AND
-    (
-      EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
-      )
-      OR (SELECT email FROM auth.users WHERE id = auth.uid()) = 'bitchain3@gmail.com'
+    sender_id = auth.uid()
+    OR (auth.jwt() ->> 'email') = 'bitchain3@gmail.com'
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND (role = 'admin' OR email = 'bitchain3@gmail.com')
     )
   );
 
--- Indexes for lightning-fast performance
+-- 3. Indexes for fast chat loading
 CREATE INDEX IF NOT EXISTS idx_support_conv_user ON public.support_conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_conv_status ON public.support_conversations(status);
+CREATE INDEX IF NOT EXISTS idx_support_conv_updated ON public.support_conversations(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_msg_conv ON public.support_messages(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_support_msg_created ON public.support_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_support_msg_created ON public.support_messages(created_at ASC);
 
-SELECT 'Customer Support Chat tables and policies setup complete!' AS status;
+-- 4. Enable Supabase Realtime for instant two-way chat updates
+ALTER PUBLICATION supabase_realtime ADD TABLE public.support_conversations;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
+
+SELECT 'Support chat setup with image attachments configured successfully!' AS status;
