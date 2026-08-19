@@ -2030,9 +2030,12 @@
             ? `<span class="act-status-pill pending">PENDING</span>`
             : (status === 'rejected'
                 ? `<span class="act-status-pill rejected">REJECTED</span>`
-                : (status === 'approved'
-                    ? `<span class="act-status-pill approved">APPROVED</span>`
-                    : `<span class="act-status-pill completed">COMPLETED</span>`
+                : (status === 'skipped'
+                    ? `<span class="act-status-pill skipped" style="background:rgba(255,165,0,0.15);color:#ffa500;border:1px solid rgba(255,165,0,0.3);padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:600;">SKIPPED</span>`
+                    : (status === 'approved'
+                        ? `<span class="act-status-pill approved">APPROVED</span>`
+                        : `<span class="act-status-pill completed">COMPLETED</span>`
+                      )
                   )
               );
 

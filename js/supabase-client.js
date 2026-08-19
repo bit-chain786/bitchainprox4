@@ -321,12 +321,13 @@ async function getUserActivities(userId, limit = 15) {
   const combinedList = [];
 
   try {
-    const [actRes, depRes, withRes, pkgRes, rewardRes] = await Promise.allSettled([
+    const [actRes, depRes, withRes, pkgRes, rewardRes, teamRes] = await Promise.allSettled([
       client.from('activities').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
       client.from('deposits').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
       client.from('withdrawals').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
       client.from('package_purchases').select('*').eq('user_id', userId).order('purchased_at', { ascending: false }).limit(limit),
-      client.from('reward_claims').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit)
+      client.from('reward_claims').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit),
+      client.from('team_income_log').select('*').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(limit)
     ]);
 
     // 1. Activities
@@ -337,7 +338,7 @@ async function getUserActivities(userId, limit = 15) {
           title: safeStr(item.title, 'Income Received'),
           details: safeStr(item.details, 'Commission Credit'),
           amount: parseFloat(item.amount) || 0,
-          type: 'income',
+          type: item.type || 'income',
           status: 'completed',
           category: item.category || 'direct',
           created_at: item.created_at
@@ -433,6 +434,31 @@ async function getUserActivities(userId, limit = 15) {
           category: 'reward',
           created_at: r.claimed_at || r.created_at
         });
+      });
+    }
+
+    // 6. Team Income Log (Direct Feed & Pass-Up Notifications)
+    if (teamRes.status === 'fulfilled' && teamRes.value.data) {
+      teamRes.value.data.forEach(t => {
+        // Prevent duplicate if already in activities table
+        const isDuplicate = combinedList.some(item => 
+          item.category === 'team' && item.details && item.details.includes(`Position #${t.upline_position}`)
+        );
+        if (!isDuplicate) {
+          const isPaid = (t.status || 'paid') === 'paid';
+          combinedList.push({
+            id: t.id,
+            title: isPaid ? `Team Income (${t.commission_pct}%)` : 'Team Income Skipped',
+            details: isPaid
+              ? `${t.commission_pct}% Team Income ($${parseFloat(t.commission_amount || 0).toFixed(2)} USDT) from ${t.purchaser_username || 'Downline'} purchasing ${t.package_name || 'Rank'} (Position #${t.upline_position})`
+              : `Skipped: Current rank (${t.recipient_rank || 'None'}) below required ${t.purchaser_rank} for purchase by ${t.purchaser_username || 'Downline'}. Passed up.`,
+            amount: isPaid ? (parseFloat(t.commission_amount) || 0) : 0,
+            type: isPaid ? 'income' : 'info',
+            status: isPaid ? 'completed' : 'skipped',
+            category: 'team',
+            created_at: t.created_at
+          });
+        }
       });
     }
   } catch (e) {
