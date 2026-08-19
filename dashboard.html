@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/packages.css">
+  <link rel="stylesheet" href="css/support-chat.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Cropper.js for profile picture cropping -->
@@ -772,6 +773,12 @@
           <a href="rewards.html" class="mob-nav-link dash-mob-nav-link">
             <span class="dash-mob-emoji">🎁</span>
             Rewards
+          </a>
+        </li>
+        <li>
+          <a href="javascript:void(0)" onclick="if(window.openSupportChatModal) openSupportChatModal(); var m=document.getElementById('mobileMenu'); var b=document.getElementById('hamburgerBtn'); if(m) m.classList.remove('open'); if(b) b.classList.remove('open');" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">💬</span>
+            Support Chat
           </a>
         </li>
       </ul>
@@ -1670,6 +1677,17 @@
   <script src="js/packages.js"></script>
   <!-- Team Hierarchy Calculation Engine -->
   <script src="js/team.js"></script>
+  <!-- 24/7 Live Customer Chat Support Module -->
+  <script src="js/support-chat.js"></script>
+
+  <!-- Floating Live Support Widget Button -->
+  <div class="floating-support-btn" id="floatingSupportBtn" onclick="if(window.openSupportChatModal) openSupportChatModal();" title="Contact 24/7 Support Desk">
+    <div class="floating-support-pulse"></div>
+    <div class="floating-support-icon">💬</div>
+    <span class="floating-support-label">Support</span>
+    <span class="floating-support-badge" id="floatingSupportBadge" style="display:none">1</span>
+  </div>
+
   <!-- Admin link visibility check -->
   <script>
     (async function checkAdminRole() {

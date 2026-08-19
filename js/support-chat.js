@@ -1,0 +1,574 @@
+/* ==========================================================================
+   BITCHAIN PRO X — 24/7 CUSTOMER CHAT SUPPORT MODULE
+   Real-Time Two-Way Messaging Between User and Admin
+   ========================================================================== */
+
+'use strict';
+
+(function () {
+  let _activeUser = null;
+  let _userProfile = null;
+  let _activeConvId = null;
+  let _realtimeSub = null;
+  let _currentTab = 'chat'; // 'chat' | 'new' | 'history'
+  let _conversations = [];
+
+  function getClient() {
+    return window.BitchainAuth && typeof window.BitchainAuth.getSupabase === 'function'
+      ? window.BitchainAuth.getSupabase()
+      : null;
+  }
+
+  // ─── Initialize User & Unread Badges ─────────────────────────────────────────
+  async function initSupportModule() {
+    const client = getClient();
+    if (!client) return;
+
+    try {
+      const { data: { session } } = await client.auth.getSession();
+      if (!session || !session.user) return;
+      _activeUser = session.user;
+
+      // Fetch profile for pre-filling Name, Email, Phone
+      const { data: prof } = await client
+        .from('profiles')
+        .select('*')
+        .eq('id', _activeUser.id)
+        .maybeSingle();
+      _userProfile = prof || {};
+
+      // Check for active unread messages from admin
+      await checkUnreadSupport();
+    } catch (e) {
+      console.warn('Support init note:', e);
+    }
+  }
+
+  // ─── Check Unread Support Messages ──────────────────────────────────────────
+  async function checkUnreadSupport() {
+    if (!_activeUser) return;
+    const client = getClient();
+    if (!client) return;
+
+    try {
+      const { data } = await client
+        .from('support_conversations')
+        .select('id, unread_user')
+        .eq('user_id', _activeUser.id)
+        .gt('unread_user', 0);
+
+      const count = (data || []).reduce((acc, c) => acc + (c.unread_user || 0), 0);
+      const badge = document.getElementById('floatingSupportBadge');
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch (_) {}
+  }
+
+  // ─── Open Support Modal ─────────────────────────────────────────────────────
+  async function openSupportChatModal(tab = null) {
+    let backdrop = document.getElementById('supportModalBackdrop');
+    if (!backdrop) {
+      injectSupportModalHtml();
+      backdrop = document.getElementById('supportModalBackdrop');
+    }
+
+    await initSupportModule();
+
+    if (backdrop) {
+      backdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Load user's conversations
+    await loadUserConversations();
+
+    // Decide which tab to show
+    if (tab) {
+      switchSupportTab(tab);
+    } else if (_conversations.length > 0) {
+      _activeConvId = _conversations[0].id;
+      switchSupportTab('chat');
+    } else {
+      switchSupportTab('new');
+    }
+  }
+
+  // ─── Close Support Modal ────────────────────────────────────────────────────
+  function closeSupportChatModal() {
+    const backdrop = document.getElementById('supportModalBackdrop');
+    if (backdrop) {
+      backdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    if (_realtimeSub) {
+      _realtimeSub.unsubscribe();
+      _realtimeSub = null;
+    }
+  }
+
+  // ─── Switch Tabs: 'chat' | 'new' | 'history' ─────────────────────────────────
+  function switchSupportTab(tab) {
+    _currentTab = tab;
+    const tabChat = document.getElementById('tabBtnSupportChat');
+    const tabNew = document.getElementById('tabBtnSupportNew');
+    const tabHistory = document.getElementById('tabBtnSupportHistory');
+
+    if (tabChat) tabChat.classList.toggle('active', tab === 'chat');
+    if (tabNew) tabNew.classList.toggle('active', tab === 'new');
+    if (tabHistory) tabHistory.classList.toggle('active', tab === 'history');
+
+    const bodyEl = document.getElementById('supportModalBody');
+    if (!bodyEl) return;
+
+    if (tab === 'new') {
+      renderNewRequestForm(bodyEl);
+    } else if (tab === 'chat') {
+      renderChatRoom(bodyEl);
+    } else if (tab === 'history') {
+      renderHistoryList(bodyEl);
+    }
+  }
+
+  // ─── Fetch Conversations ────────────────────────────────────────────────────
+  async function loadUserConversations() {
+    if (!_activeUser) return;
+    const client = getClient();
+    if (!client) return;
+
+    try {
+      const { data } = await client
+        .from('support_conversations')
+        .select('*')
+        .eq('user_id', _activeUser.id)
+        .order('updated_at', { ascending: false });
+
+      _conversations = data || [];
+      if (_conversations.length > 0 && !_activeConvId) {
+        _activeConvId = _conversations[0].id;
+      }
+    } catch (e) {
+      console.warn('Load conversations error:', e);
+    }
+  }
+
+  // ─── Render: New Support Request Form ───────────────────────────────────────
+  function renderNewRequestForm(container) {
+    const fullName = _userProfile?.full_name || _activeUser?.user_metadata?.full_name || '';
+    const email = _userProfile?.email || _activeUser?.email || '';
+    const phone = _userProfile?.phone || '';
+
+    container.innerHTML = `
+      <div style="margin-bottom:16px;">
+        <h4 style="font-size:1.1rem;font-weight:800;color:#ffffff;margin-bottom:4px;">Submit Support Request</h4>
+        <p style="font-size:0.8rem;color:rgba(224,170,255,0.7);">Our 24/7 dedicated support team will review your query and reply in live chat.</p>
+      </div>
+
+      <form id="supportNewTicketForm" onsubmit="event.preventDefault(); window.SupportChat.submitNewTicket();">
+        <div class="support-form-row">
+          <div class="support-form-group">
+            <label class="support-form-label">Full Name</label>
+            <input type="text" id="suppInputName" class="support-form-input" value="${fullName}" required />
+          </div>
+          <div class="support-form-group">
+            <label class="support-form-label">Email Address</label>
+            <input type="email" id="suppInputEmail" class="support-form-input" value="${email}" required />
+          </div>
+        </div>
+
+        <div class="support-form-row">
+          <div class="support-form-group">
+            <label class="support-form-label">Phone / WhatsApp (Optional)</label>
+            <input type="tel" id="suppInputPhone" class="support-form-input" placeholder="+1234567890" value="${phone}" />
+          </div>
+          <div class="support-form-group">
+            <label class="support-form-label">Department / Issue Type</label>
+            <select id="suppSelectCategory" class="support-form-select">
+              <option value="Rank & Package Upgrade">⚡ Package & Rank Upgrade</option>
+              <option value="Deposit & Wallet Funding">💳 Deposit & Wallet Funding</option>
+              <option value="Withdrawal & Payout">💸 Withdrawal & Payout</option>
+              <option value="Direct & Reward Income">🎁 Direct & Reward Income</option>
+              <option value="Account & Security">⚙️ Account & Login Security</option>
+              <option value="General Inquiry" selected>💬 General Inquiry</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="support-form-group">
+          <label class="support-form-label">Subject / Issue Summary</label>
+          <input type="text" id="suppInputSubject" class="support-form-input" placeholder="Brief summary of your question or issue…" required />
+        </div>
+
+        <div class="support-form-group">
+          <label class="support-form-label">Detailed Message</label>
+          <textarea id="suppInputMessage" class="support-form-textarea" placeholder="Explain your request in detail. If this is regarding a transaction, please include the Transaction ID or Amount." required></textarea>
+        </div>
+
+        <button type="submit" id="suppSubmitBtn" class="support-submit-btn">
+          <span>🚀</span> Start Support Chat
+        </button>
+      </form>
+    `;
+  }
+
+  // ─── Submit New Support Ticket ──────────────────────────────────────────────
+  async function submitNewTicket() {
+    const client = getClient();
+    if (!client || !_activeUser) {
+      alert('Please log in to submit a support request.');
+      return;
+    }
+
+    const name = document.getElementById('suppInputName')?.value?.trim();
+    const email = document.getElementById('suppInputEmail')?.value?.trim();
+    const phone = document.getElementById('suppInputPhone')?.value?.trim() || null;
+    const category = document.getElementById('suppSelectCategory')?.value || 'General Inquiry';
+    const subject = document.getElementById('suppInputSubject')?.value?.trim();
+    const message = document.getElementById('suppInputMessage')?.value?.trim();
+
+    if (!subject || !message) {
+      alert('Please fill out both the Subject and Message.');
+      return;
+    }
+
+    const btn = document.getElementById('suppSubmitBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Connecting to Support…';
+    }
+
+    try {
+      // 1. Create support conversation
+      const { data: conv, error: convErr } = await client
+        .from('support_conversations')
+        .insert({
+          user_id: _activeUser.id,
+          subject: `[${category}] ${subject}`,
+          status: 'open',
+          unread_admin: 1,
+          unread_user: 0,
+          last_message: message,
+          last_message_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (convErr) throw convErr;
+
+      // 2. Insert initial message
+      const { error: msgErr } = await client
+        .from('support_messages')
+        .insert({
+          conversation_id: conv.id,
+          sender_id: _activeUser.id,
+          sender_role: 'user',
+          message: `${message}${phone ? `\n\n📞 Contact: ${phone}` : ''}`,
+          created_at: new Date().toISOString()
+        });
+
+      if (msgErr) throw msgErr;
+
+      // 3. Update active conversation and switch to chat
+      _activeConvId = conv.id;
+      await loadUserConversations();
+      switchSupportTab('chat');
+
+    } catch (err) {
+      console.error('Support ticket error:', err);
+      alert('Failed to start support ticket: ' + (err.message || 'Please try again.'));
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🚀</span> Start Support Chat';
+      }
+    }
+  }
+
+  // ─── Render: Live Chat Room ─────────────────────────────────────────────────
+  async function renderChatRoom(container) {
+    if (!_activeConvId || _conversations.length === 0) {
+      renderNewRequestForm(container);
+      return;
+    }
+
+    const currentConv = _conversations.find(c => c.id === _activeConvId) || _conversations[0];
+    const isResolved = currentConv.status === 'resolved';
+
+    container.innerHTML = `
+      <div class="support-chat-room">
+        <div class="support-chat-top-info">
+          <div>
+            <div class="support-chat-subject">${currentConv.subject || 'Customer Support'}</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:2px;">Ticket ID: #${currentConv.id.substring(0, 8).toUpperCase()}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="support-ticket-badge ${isResolved ? 'resolved' : 'open'}">${isResolved ? 'RESOLVED' : 'ACTIVE'}</span>
+            <button class="support-btn-icon" onclick="window.SupportChat.switchTab('new')" title="New Request">➕</button>
+          </div>
+        </div>
+
+        <div class="support-messages-stream" id="suppMsgStream">
+          <div style="display:flex;justify-content:center;padding:20px;">
+            <div style="color:var(--text-muted);font-size:0.82rem;">Loading chat stream…</div>
+          </div>
+        </div>
+
+        <div class="support-chat-input-bar">
+          <input type="text" id="suppChatMsgInput" class="support-chat-input" placeholder="${isResolved ? 'This ticket is resolved. Type to reply and reopen…' : 'Type your reply to support…'}" onkeydown="if(event.key==='Enter') window.SupportChat.sendMessage();" />
+          <button class="support-chat-send-btn" onclick="window.SupportChat.sendMessage()" title="Send Message">➤</button>
+        </div>
+      </div>
+    `;
+
+    // Mark unread for user as 0
+    const client = getClient();
+    if (client) {
+      client.from('support_conversations').update({ unread_user: 0 }).eq('id', _activeConvId).then();
+    }
+
+    // Load messages stream
+    await loadMessagesStream(_activeConvId);
+
+    // Subscribe to realtime changes
+    if (_realtimeSub) _realtimeSub.unsubscribe();
+    if (client) {
+      _realtimeSub = client.channel('user-conv-' + _activeConvId)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+          filter: `conversation_id=eq.${_activeConvId}`
+        }, () => {
+          loadMessagesStream(_activeConvId);
+        })
+        .subscribe();
+    }
+  }
+
+  // ─── Load Messages for Chat Room ────────────────────────────────────────────
+  async function loadMessagesStream(convId) {
+    const stream = document.getElementById('suppMsgStream');
+    if (!stream) return;
+
+    const client = getClient();
+    if (!client) return;
+
+    try {
+      const { data: messages, error } = await client
+        .from('support_messages')
+        .select('*')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (!messages || messages.length === 0) {
+        stream.innerHTML = `
+          <div style="text-align:center;padding:30px;color:rgba(224,170,255,0.6);font-size:0.85rem;">
+            💬 No messages in this ticket yet. Send a message below.
+          </div>
+        `;
+        return;
+      }
+
+      stream.innerHTML = messages.map(m => {
+        const isAdmin = m.sender_role === 'admin';
+        return `
+          <div class="support-msg ${isAdmin ? 'admin' : 'user'}">
+            <div class="support-msg-sender">
+              ${isAdmin ? '🛡️ Support Desk' : '👤 You'}
+            </div>
+            <div class="support-msg-bubble">
+              ${escapeHtml(m.message).replace(/\n/g, '<br>')}
+            </div>
+            <div class="support-msg-time">
+              ${formatChatTime(m.created_at)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Auto scroll to bottom
+      stream.scrollTop = stream.scrollHeight;
+
+    } catch (e) {
+      console.warn('Error loading messages stream:', e);
+    }
+  }
+
+  // ─── Send User Reply Message ────────────────────────────────────────────────
+  async function sendMessage() {
+    if (!_activeConvId || !_activeUser) return;
+    const input = document.getElementById('suppChatMsgInput');
+    const msg = input?.value?.trim();
+    if (!msg) return;
+
+    const client = getClient();
+    if (!client) return;
+
+    input.value = '';
+    input.disabled = true;
+
+    try {
+      const { error: msgErr } = await client
+        .from('support_messages')
+        .insert({
+          conversation_id: _activeConvId,
+          sender_id: _activeUser.id,
+          sender_role: 'user',
+          message: msg,
+          created_at: new Date().toISOString()
+        });
+
+      if (msgErr) throw msgErr;
+
+      // Update conversation last message & unread_admin
+      await client.from('support_conversations').update({
+        status: 'open',
+        last_message: msg,
+        last_message_at: new Date().toISOString(),
+        unread_admin: 1,
+        updated_at: new Date().toISOString()
+      }).eq('id', _activeConvId);
+
+      await loadMessagesStream(_activeConvId);
+    } catch (err) {
+      console.error('Send message error:', err);
+      alert('Failed to send message: ' + err.message);
+      input.value = msg;
+    } finally {
+      input.disabled = false;
+      input.focus();
+    }
+  }
+
+  // ─── Render: Ticket History List ────────────────────────────────────────────
+  function renderHistoryList(container) {
+    if (_conversations.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:50px 20px;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">📁</div>
+          <div style="font-weight:700;font-size:1rem;color:#ffffff;margin-bottom:6px;">No Support Tickets Found</div>
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px;">You haven't opened any support requests yet.</p>
+          <button class="support-submit-btn" style="width:auto;padding:10px 22px;margin:auto;" onclick="window.SupportChat.switchTab('new')">Open New Ticket 🚀</button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <h4 style="font-size:1rem;font-weight:800;color:#ffffff;">Your Support Tickets (${_conversations.length})</h4>
+        <button class="support-submit-btn" style="width:auto;padding:6px 14px;font-size:0.8rem;margin:0;" onclick="window.SupportChat.switchTab('new')">➕ New Request</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${_conversations.map(c => `
+          <div class="support-history-item" onclick="window.SupportChat.selectConversation('${c.id}')">
+            <div>
+              <div style="font-weight:700;font-size:0.9rem;color:#ffffff;margin-bottom:4px;">${c.subject || 'Support Ticket'}</div>
+              <div style="font-size:0.76rem;color:rgba(224,170,255,0.7);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.last_message || 'No messages'}</div>
+              <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;">${formatChatTime(c.updated_at || c.created_at)}</div>
+            </div>
+            <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+              <span class="support-ticket-badge ${c.status === 'resolved' ? 'resolved' : 'open'}">${c.status}</span>
+              ${c.unread_user > 0 ? `<span style="background:#ff0055;color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:10px;">${c.unread_user} new</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function selectConversation(convId) {
+    _activeConvId = convId;
+    switchSupportTab('chat');
+  }
+
+  // ─── Modal HTML Injection Helper ────────────────────────────────────────────
+  function injectSupportModalHtml() {
+    if (document.getElementById('supportModalBackdrop')) return;
+
+    const modalHtml = `
+      <div class="support-modal-backdrop" id="supportModalBackdrop" onclick="if(event.target===this) window.SupportChat.closeModal();">
+        <div class="support-modal-card">
+          <!-- Header -->
+          <div class="support-modal-header">
+            <div class="support-header-left">
+              <div class="support-header-avatar">🛡️</div>
+              <div>
+                <div class="support-header-title">
+                  BITCHAIN SUPPORT
+                </div>
+                <div class="support-header-status">
+                  <span class="status-dot-pulse"></span> 24/7 Live Desk Online
+                </div>
+              </div>
+            </div>
+            <div class="support-header-actions">
+              <button class="support-btn-icon" onclick="window.SupportChat.closeModal()" title="Close">✕</button>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="support-tabs-bar">
+            <button class="support-tab-btn active" id="tabBtnSupportChat" onclick="window.SupportChat.switchTab('chat')">💬 Live Chat</button>
+            <button class="support-tab-btn" id="tabBtnSupportNew" onclick="window.SupportChat.switchTab('new')">➕ New Request</button>
+            <button class="support-tab-btn" id="tabBtnSupportHistory" onclick="window.SupportChat.switchTab('history')">📁 My Tickets</button>
+          </div>
+
+          <!-- Body -->
+          <div class="support-modal-body" id="supportModalBody">
+            <!-- Dynamic Tab Content -->
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  // ─── Format Utilities ───────────────────────────────────────────────────────
+  function formatChatTime(dateStr) {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+        d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ─── Global Export ──────────────────────────────────────────────────────────
+  window.SupportChat = {
+    openModal: openSupportChatModal,
+    closeModal: closeSupportChatModal,
+    switchTab: switchSupportTab,
+    submitNewTicket: submitNewTicket,
+    sendMessage: sendMessage,
+    selectConversation: selectConversation,
+    checkUnread: checkUnreadSupport
+  };
+
+  // Helper alias for onclick buttons
+  window.openSupportChatModal = openSupportChatModal;
+
+  // Auto initialize on DOM ready
+  document.addEventListener('DOMContentLoaded', () => {
+    initSupportModule();
+  });
+})();

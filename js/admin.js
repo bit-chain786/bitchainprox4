@@ -1093,7 +1093,28 @@ async function loadChat() {
   if (!list) return;
   list.innerHTML = `<div class="empty-state" style="padding:30px"><div class="loading-spinner" style="margin:auto"></div></div>`;
 
-  const { data } = await db.from('support_conversations').select('*, profiles!support_conversations_user_id_fkey(full_name, username)').order('updated_at', {ascending:false}).limit(50);
+  let data = null;
+  // Try joined query first
+  try {
+    const res = await db.from('support_conversations').select('*, profiles(full_name, username, email, phone)').order('updated_at', {ascending:false}).limit(50);
+    if (!res.error && res.data) {
+      data = res.data;
+    }
+  } catch (_) {}
+
+  // Fallback if join failed
+  if (!data) {
+    const { data: rawConvs } = await db.from('support_conversations').select('*').order('updated_at', {ascending:false}).limit(50);
+    data = rawConvs || [];
+    if (data.length > 0) {
+      const uids = [...new Set(data.map(c => c.user_id).filter(Boolean))];
+      if (uids.length > 0) {
+        const { data: profs } = await db.from('profiles').select('id, full_name, username, email, phone').in('id', uids);
+        const pMap = (profs || []).reduce((acc, p) => { acc[p.id] = p; return acc; }, {});
+        data.forEach(c => { c.profiles = pMap[c.user_id] || {}; });
+      }
+    }
+  }
 
   if (!data || data.length === 0) {
     list.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-state-icon">💬</div><div class="empty-state-text">No support conversations yet</div></div>`;
@@ -1102,13 +1123,17 @@ async function loadChat() {
 
   list.innerHTML = data.map(c => {
     const p = c.profiles || {};
+    const uName = p.full_name || p.username || 'User';
     return `
       <div class="chat-list-item ${_activeConvId === c.id ? 'active' : ''}" onclick="openConversation('${c.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div class="chat-list-user">${p.full_name || 'Unknown'}</div>
-          ${c.unread_admin > 0 ? `<span class="chat-unread">${c.unread_admin}</span>` : ''}
-          <span class="badge badge-${c.status === 'resolved' ? 'resolved' : 'open'}" style="font-size:0.62rem">${c.status}</span>
+          <div class="chat-list-user">${uName}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${c.unread_admin > 0 ? `<span class="chat-unread">${c.unread_admin}</span>` : ''}
+            <span class="badge badge-${c.status === 'resolved' ? 'resolved' : 'open'}" style="font-size:0.62rem">${c.status}</span>
+          </div>
         </div>
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.subject || 'Support Ticket'}</div>
         <div class="chat-list-preview">${c.last_message || 'No messages yet'}</div>
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">${fmtDate(c.last_message_at || c.created_at)}</div>
       </div>
@@ -1121,7 +1146,7 @@ async function openConversation(convId) {
   const db = getDB();
   if (!db) return;
 
-  // Mark as read
+  // Mark as read for admin
   await db.from('support_conversations').update({ unread_admin: 0 }).eq('id', convId);
 
   // Refresh list
@@ -1131,16 +1156,35 @@ async function openConversation(convId) {
   if (win) win.style.display = 'flex';
 
   const header = el('chatWindowHeader');
-  const { data: conv } = await db.from('support_conversations').select('*, profiles!support_conversations_user_id_fkey(full_name, username)').eq('id', convId).maybeSingle();
+  let conv = null;
+  try {
+    const res = await db.from('support_conversations').select('*, profiles(full_name, username, email, phone)').eq('id', convId).maybeSingle();
+    if (!res.error) conv = res.data;
+  } catch (_) {}
+
+  if (!conv) {
+    const { data: rawConv } = await db.from('support_conversations').select('*').eq('id', convId).maybeSingle();
+    conv = rawConv;
+    if (conv && conv.user_id) {
+      const { data: p } = await db.from('profiles').select('full_name, username, email, phone').eq('id', conv.user_id).maybeSingle();
+      conv.profiles = p || {};
+    }
+  }
+
   if (conv && header) {
     const p = conv.profiles || {};
+    const uName = p.full_name || p.username || 'User';
     header.innerHTML = `
       <div>
-        <div style="font-size:0.9rem;font-weight:700;color:var(--text-primary)">${p.full_name || 'Unknown'} (@${p.username || '—'})</div>
-        <div style="font-size:0.72rem;color:var(--text-muted)">${conv.subject || 'General Support'} · <span class="badge badge-${conv.status==='resolved'?'resolved':'open'}">${conv.status}</span></div>
+        <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px">
+          ${uName} <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);">(@${p.username || '—'} · ${p.email || '—'}${p.phone ? ' · 📞 ' + p.phone : ''})</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--accent-purple);font-weight:600;margin-top:2px;">
+          ${conv.subject || 'General Support'} · <span class="badge badge-${conv.status==='resolved'?'resolved':'open'}">${conv.status}</span>
+        </div>
       </div>
       <div style="display:flex;gap:8px">
-        ${conv.status !== 'resolved' ? `<button class="btn btn-success btn-sm" onclick="resolveConv('${convId}')">✓ Resolve</button>` : ''}
+        ${conv.status !== 'resolved' ? `<button class="btn btn-success btn-sm" onclick="resolveConv('${convId}')">✓ Resolve Ticket</button>` : `<button class="btn btn-secondary btn-sm" onclick="reopenConv('${convId}')">Reopen Ticket</button>`}
       </div>
     `;
   }
@@ -1154,6 +1198,7 @@ async function openConversation(convId) {
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'support_messages', filter:`conversation_id=eq.${convId}` }, () => loadMessages(convId))
     .subscribe();
 }
+
 
 async function loadMessages(convId) {
   const db = getDB();
@@ -1221,6 +1266,17 @@ async function resolveConv(convId) {
   loadChat();
   if (_activeConvId === convId) openConversation(convId);
 }
+
+async function reopenConv(convId) {
+  const db = getDB();
+  if (!db) return;
+  await db.from('support_conversations').update({ status: 'open', updated_at: new Date().toISOString() }).eq('id', convId);
+  await auditLog('CONVERSATION_REOPENED', null, 'support_conversations', convId);
+  toast('Conversation reopened.', 'info');
+  loadChat();
+  if (_activeConvId === convId) openConversation(convId);
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════
 // SECTION: REPORTS
