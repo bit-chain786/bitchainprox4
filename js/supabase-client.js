@@ -461,6 +461,37 @@ async function getUserActivities(userId, limit = 15) {
         }
       });
     }
+
+    // 7. Non-Working Income Distributions
+    try {
+      const { data: nwData } = await client
+        .from('non_working_distributions')
+        .select('*')
+        .eq('recipient_user_id', userId)
+        .order('distributed_at', { ascending: false })
+        .limit(limit);
+
+      if (nwData && nwData.length > 0) {
+        nwData.forEach(nw => {
+          const isDup = combinedList.some(item =>
+            item.category === 'non_working' && item.details && item.details.includes(`Pool #${nw.pool_num}`)
+          );
+          if (!isDup) {
+            combinedList.push({
+              id: nw.id,
+              title: `Non-Working Pool #${nw.pool_num} Won`,
+              details: `Level ${nw.level} Prize Pool Completed — $${parseFloat(nw.amount || 0).toFixed(2)} USDT (5 Members)`,
+              amount: parseFloat(nw.amount) || 0,
+              type: 'income',
+              status: 'completed',
+              category: 'non_working',
+              created_at: nw.distributed_at
+            });
+          }
+        });
+      }
+    } catch (_) {}
+
   } catch (e) {
     console.warn('Activities parallel fetch note:', e);
   }
@@ -469,6 +500,47 @@ async function getUserActivities(userId, limit = 15) {
   combinedList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return combinedList.slice(0, limit);
+}
+
+/**
+ * Calculates dynamic Today's Income based on actual transaction timestamps (since 00:00:00 today).
+ * At 12:00 AM, this automatically resets to 0.00 without deleting any historical transactions.
+ */
+async function getUserTodayIncome(userId) {
+  const client = getSupabase();
+  if (!client || !userId) return 0;
+
+  try {
+    // 1. Try PostgreSQL RPC function first
+    const { data, error } = await client.rpc('get_user_today_income', { p_user_id: userId });
+    if (!error && data !== null && data !== undefined) {
+      return parseFloat(data) || 0;
+    }
+  } catch (_) {}
+
+  // 2. Fallback: Query activities created since today midnight local/UTC
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfTodayIso = today.toISOString();
+
+    const { data: actData } = await client
+      .from('activities')
+      .select('amount')
+      .eq('user_id', userId)
+      .gt('amount', 0)
+      .in('category', ['direct', 'team', 'non_working', 'reward', 'income'])
+      .gte('created_at', startOfTodayIso);
+
+    if (actData && actData.length > 0) {
+      const sum = actData.reduce((acc, row) => acc + (parseFloat(row.amount) || 0), 0);
+      return parseFloat(sum.toFixed(2));
+    }
+  } catch (e) {
+    console.warn('Today income calculation note:', e);
+  }
+
+  return 0;
 }
 
 /**
@@ -497,6 +569,7 @@ window.BitchainAuth = {
   updateUserPassword,
   getUserProfile,
   getUserActivities,
+  getUserTodayIncome,
   signOutUser,
   onAuthStateChanged,
   getCurrentUser

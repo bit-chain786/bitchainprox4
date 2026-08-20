@@ -760,7 +760,7 @@
       </button>
     </div>
 
-    <!-- Mobile Slide-Down Menu (Dashboard) — My Team & Rewards only -->
+    <!-- Mobile Slide-Down Menu (Dashboard) — My Team, Rewards & Non-Working -->
     <div class="mobile-menu" id="mobileMenu">
       <ul class="mobile-nav-links dash-mob-nav">
         <li>
@@ -773,6 +773,12 @@
           <a href="rewards.html" class="mob-nav-link dash-mob-nav-link">
             <span class="dash-mob-emoji">🎁</span>
             Rewards
+          </a>
+        </li>
+        <li>
+          <a href="non-working.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🔄</span>
+            Non-Working
           </a>
         </li>
         <li>
@@ -1509,7 +1515,7 @@
             </div>
 
             <!-- 3. Non-Working Income (GREEN) -->
-            <div class="income-cat-item cat-item non-working">
+            <div class="income-cat-item cat-item non-working" style="cursor:pointer;" onclick="window.location.href='non-working.html';" title="View Non-Working Income 8-Level Pools">
               <div class="cat-left-info">
                 <div class="cat-icon-badge">
                   <svg viewBox="0 0 24 24" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
@@ -1835,8 +1841,30 @@
         // 4. Populate Financial Overview Cards
         const availBal = parseFloat(profile.available_balance) || 0;
         const totalInc = parseFloat(profile.total_income) || 0;
-        const todayInc = parseFloat(profile.today_income) || 0;
         let totalTeam = parseInt(profile.total_team) || 0;
+
+        // Authoritatively calculate dynamic Today's Income (Resets daily at 12:00 AM)
+        let todayInc = 0;
+        if (window.BitchainAuth && typeof window.BitchainAuth.getUserTodayIncome === 'function') {
+          todayInc = await window.BitchainAuth.getUserTodayIncome(userId);
+        } else {
+          try {
+            const todayMidnight = new Date();
+            todayMidnight.setHours(0, 0, 0, 0);
+            const { data: todayActs } = await client
+              .from('activities')
+              .select('amount')
+              .eq('user_id', userId)
+              .gt('amount', 0)
+              .in('category', ['direct', 'team', 'non_working', 'reward', 'income'])
+              .gte('created_at', todayMidnight.toISOString());
+            if (todayActs && todayActs.length > 0) {
+              todayInc = todayActs.reduce((acc, a) => acc + (parseFloat(a.amount) || 0), 0);
+            }
+          } catch (_) {
+            todayInc = 0;
+          }
+        }
 
         // Authoritatively calculate dynamic 10-level total team count
         if (window.BitchainTeam && typeof window.BitchainTeam.computeTeamHierarchy === 'function') {

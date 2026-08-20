@@ -188,7 +188,7 @@ function navigateTo(section, sub=null) {
     dashboard: 'Dashboard', users: 'Users',
     deposits: 'Payments / Deposits', withdrawals: 'Payments / Withdrawals',
     packages: 'Packages & Ranks', chat: 'Chat Support',
-    teamincome: 'Team Income (15%)',
+    teamincome: 'Team Income (15%)', nonworking: 'Non-Working (30%)',
     reports: 'Reports', settings: 'Settings', audit: 'Audit Logs'
   };
   const bc = el('topbarBreadcrumb');
@@ -203,6 +203,7 @@ function navigateTo(section, sub=null) {
     case 'packages':   loadPackages(); break;
     case 'chat':       loadChat(); break;
     case 'teamincome': loadTeamIncome(); break;
+    case 'nonworking': loadNonWorkingAdmin(); break;
     case 'reports':    loadReports(); break;
     case 'settings':   loadSettings(); break;
     case 'audit':      loadAuditLogs(); break;
@@ -1820,6 +1821,179 @@ function renderTeamIncomeTable() {
           ${isPaid ? '+$' + fmtNum(log.commission_amount) : '$0.00'}
         </td>
         <td>${badgeHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SECTION: NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM)
+// ══════════════════════════════════════════════════════════════════════════
+let _nwAdminPools = [];
+let _nwAdminMembers = [];
+let _nwAdminDistributions = [];
+let _nwAdminLevelFilter = 0; // 0 = All, 1..8
+
+const NW_ADMIN_TIERS = [
+  { level: 1, name: 'Starter', price: 5, contrib: 1.50, icon: '🌱' },
+  { level: 2, name: 'Basic', price: 10, contrib: 3.00, icon: '⚡' },
+  { level: 3, name: 'Silver', price: 20, contrib: 6.00, icon: '🥈' },
+  { level: 4, name: 'Gold', price: 40, contrib: 12.00, icon: '🥇' },
+  { level: 5, name: 'Diamond', price: 80, contrib: 24.00, icon: '💎' },
+  { level: 6, name: 'Elite', price: 160, contrib: 48.00, icon: '👑' },
+  { level: 7, name: 'Executive', price: 320, contrib: 96.00, icon: '🏆' },
+  { level: 8, name: 'Royal', price: 640, contrib: 192.00, icon: '💠' }
+];
+
+async function loadNonWorkingAdmin() {
+  const db = getDB();
+  if (!db) return;
+
+  const poolsTbody = el('nwAdminPoolsTableBody');
+  const membersTbody = el('nwAdminMembersTableBody');
+  if (poolsTbody) poolsTbody.innerHTML = `<tr><td colspan="8"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>`;
+  if (membersTbody) membersTbody.innerHTML = `<tr><td colspan="8"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>`;
+
+  try {
+    const [poolsRes, membersRes, distRes] = await Promise.all([
+      db.from('non_working_pools').select('*').order('level', { ascending: true }).order('pool_num', { ascending: true }),
+      db.from('non_working_members').select('*').order('created_at', { ascending: false }),
+      db.from('non_working_distributions').select('*').order('distributed_at', { ascending: false })
+    ]);
+
+    _nwAdminPools = poolsRes.data || [];
+    _nwAdminMembers = membersRes.data || [];
+    _nwAdminDistributions = distRes.data || [];
+
+    // Calculate Summary Stats
+    const totalContrib = _nwAdminMembers.reduce((acc, m) => acc + (parseFloat(m.contribution_amount) || 0), 0);
+    const totalPaid = _nwAdminDistributions.reduce((acc, d) => acc + (parseFloat(d.amount) || 0), 0);
+    const completedCount = _nwAdminPools.filter(p => p.status === 'completed').length;
+    const activeCount = _nwAdminPools.filter(p => p.status === 'active').length;
+
+    if (el('statNwTotalContrib')) el('statNwTotalContrib').textContent = '$' + fmtNum(totalContrib);
+    if (el('statNwTotalPaid')) el('statNwTotalPaid').textContent = '$' + fmtNum(totalPaid);
+    if (el('statNwCompletedPools')) el('statNwCompletedPools').textContent = completedCount;
+    if (el('statNwActivePools')) el('statNwActivePools').textContent = activeCount;
+
+    renderNwAdminPools();
+    renderNwAdminMembers();
+
+  } catch (err) {
+    console.warn('Error loading non-working admin:', err);
+    if (poolsTbody) poolsTbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">No non-working pool records found yet.</div></div></td></tr>`;
+    if (membersTbody) membersTbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">No member sequence records found yet.</div></div></td></tr>`;
+  }
+}
+
+function setNwAdminLevelFilter(lvl, btn) {
+  _nwAdminLevelFilter = parseInt(lvl) || 0;
+  document.querySelectorAll('#nwAdminLevelTabs .filter-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderNwAdminPools();
+}
+
+function renderNwAdminPools() {
+  const tbody = el('nwAdminPoolsTableBody');
+  if (!tbody) return;
+
+  let filtered = _nwAdminPools;
+  if (_nwAdminLevelFilter > 0) {
+    filtered = filtered.filter(p => p.level === _nwAdminLevelFilter);
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">🔄</div><div class="empty-state-text">No pools found for selected level filter</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const tier = NW_ADMIN_TIERS[p.level - 1] || { name: 'Level ' + p.level, icon: '💎', contrib: 0, price: 0 };
+    const isComp = p.status === 'completed';
+    const pct = Math.min(100, Math.round(((p.current_count || 0) / 5) * 100));
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>${tier.icon}</span>
+            <strong style="color:var(--text-primary);">L${p.level}: ${tier.name}</strong>
+          </div>
+        </td>
+        <td><span class="badge badge-primary">Pool #${p.pool_num}</span></td>
+        <td><strong>${p.current_count || 0} / 5</strong></td>
+        <td style="min-width:120px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:6px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+              <div style="width:${pct}%;height:100%;background:${isComp ? '#00ff88' : '#00f5d4'};border-radius:4px;"></div>
+            </div>
+            <span style="font-size:0.75rem;color:var(--text-muted);">${pct}%</span>
+          </div>
+        </td>
+        <td style="font-weight:800;color:#00f5d4;">$${fmtNum(p.total_pool_amount || tier.contrib * 5)}</td>
+        <td>
+          <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">
+            User #${p.target_recipient_seq} ${p.recipient_username ? `(@${p.recipient_username})` : ''}
+          </div>
+        </td>
+        <td>
+          <span class="badge ${isComp ? 'badge-success' : 'badge-warning'}">
+            ${isComp ? '✓ COMPLETED' : 'IN PROGRESS'}
+          </span>
+        </td>
+        <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">
+          ${isComp ? fmtDate(p.completed_at || p.updated_at) : '—'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterNwAdminMembers() {
+  renderNwAdminMembers();
+}
+
+function renderNwAdminMembers() {
+  const tbody = el('nwAdminMembersTableBody');
+  if (!tbody) return;
+
+  const query = (el('nwAdminMemberSearch')?.value || '').toLowerCase().trim();
+
+  let filtered = _nwAdminMembers.filter(m => {
+    if (query) {
+      const u = (m.username || '').toLowerCase();
+      const fn = (m.full_name || '').toLowerCase();
+      const r = (m.rank_name || '').toLowerCase();
+      if (!u.includes(query) && !fn.includes(query) && !r.includes(query)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No matching sequence members found</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(m => {
+    const tier = NW_ADMIN_TIERS[m.level - 1] || { icon: '💎', name: 'Level ' + m.level };
+
+    return `
+      <tr>
+        <td>
+          <span style="font-weight:700;color:var(--accent-purple);">${tier.icon} L${m.level} (${tier.name})</span>
+        </td>
+        <td><span class="badge badge-primary">#${m.sequence_num}</span></td>
+        <td>
+          <div style="font-weight:700;color:var(--text-primary);">${m.full_name || m.username}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">@${m.username}</div>
+        </td>
+        <td><span class="badge badge-secondary">${m.rank_name || tier.name}</span></td>
+        <td style="font-weight:700;color:var(--text-primary);">$${fmtNum(m.package_price)}</td>
+        <td style="font-weight:800;color:#00f5d4;">+$${fmtNum(m.contribution_amount)}</td>
+        <td><span class="badge badge-info">Pool #${m.pool_num}</span></td>
+        <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${fmtDate(m.created_at)}</td>
       </tr>
     `;
   }).join('');

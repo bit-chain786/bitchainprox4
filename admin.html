@@ -108,6 +108,11 @@
         <div class="nav-label">Team Income (15%)</div>
       </div>
 
+      <div class="nav-item" data-nav="nonworking" onclick="navigateTo('nonworking')">
+        <div class="nav-icon">🔄</div>
+        <div class="nav-label">Non-Working (30%)</div>
+      </div>
+
       <div class="nav-item" data-nav="reports" onclick="navigateTo('reports')">
         <div class="nav-icon">📊</div>
         <div class="nav-label">Reports</div>
@@ -536,6 +541,121 @@
               </thead>
               <tbody id="teamIncomeTableBody">
                 <tr><td colspan="9"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM)                   -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <section class="admin-section" id="section-nonworking">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-icon">🔄</div> Non-Working Income (30% 8-Level Pool Engine)</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="loadNonWorkingAdmin()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon purple">🌐</div>
+              <span class="stat-trend up">30% Share</span>
+            </div>
+            <div class="stat-value" id="statNwTotalContrib">$0.00</div>
+            <div class="stat-label">Total Contributions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon green">🏆</div>
+              <span class="stat-trend up">Awarded</span>
+            </div>
+            <div class="stat-value" id="statNwTotalPaid">$0.00</div>
+            <div class="stat-label">Total Prize Distributed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon blue">✅</div>
+              <span class="stat-trend up">Completed</span>
+            </div>
+            <div class="stat-value" id="statNwCompletedPools">0</div>
+            <div class="stat-label">Completed Pools</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div class="stat-icon yellow">⏳</div>
+              <span class="stat-trend neutral">In Progress</span>
+            </div>
+            <div class="stat-value" id="statNwActivePools">0</div>
+            <div class="stat-label">Active Pools</div>
+          </div>
+        </div>
+
+        <!-- 8 Level Pools Summary Table Card -->
+        <div class="glass-card" style="margin-bottom:20px;">
+          <div class="glass-card-header" style="flex-wrap:wrap;gap:10px">
+            <div class="glass-card-title">8-Level Prize Pools Live Status</div>
+            <div class="filter-tabs" id="nwAdminLevelTabs">
+              <button class="filter-tab active" onclick="setNwAdminLevelFilter(0, this)">All Levels</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(1, this)">L1: Starter ($5)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(2, this)">L2: Basic ($10)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(3, this)">L3: Silver ($20)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(4, this)">L4: Gold ($40)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(5, this)">L5: Diamond ($80)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(6, this)">L6: Elite ($160)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(7, this)">L7: Executive ($320)</button>
+              <button class="filter-tab" onclick="setNwAdminLevelFilter(8, this)">L8: Royal ($640)</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Pool #</th>
+                  <th>Members</th>
+                  <th>Progress</th>
+                  <th>Total Prize Pool</th>
+                  <th>Designated Winner</th>
+                  <th>Status</th>
+                  <th>Date Completed</th>
+                </tr>
+              </thead>
+              <tbody id="nwAdminPoolsTableBody">
+                <tr><td colspan="8"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Member Sequence Table Card -->
+        <div class="glass-card">
+          <div class="glass-card-header" style="flex-wrap:wrap;gap:10px">
+            <div class="glass-card-title">Chronological Member Sequence &amp; 30% Contributions</div>
+            <div class="search-box" style="margin:0">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="search-input" id="nwAdminMemberSearch" placeholder="Search member, rank…" oninput="filterNwAdminMembers()" />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Seq #</th>
+                  <th>User / Member</th>
+                  <th>Rank / Package</th>
+                  <th>Package Price</th>
+                  <th>30% Contribution</th>
+                  <th>Assigned Pool #</th>
+                  <th>Joined Date</th>
+                </tr>
+              </thead>
+              <tbody id="nwAdminMembersTableBody">
+                <tr><td colspan="8"><div class="empty-state" style="padding:40px"><div class="loading-spinner" style="margin:auto"></div></div></td></tr>
               </tbody>
             </table>
           </div>

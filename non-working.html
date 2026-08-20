@@ -1,0 +1,339 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BITCHAIN PRO X — Non-Working Income (30% 8-Level Pool System)</title>
+  <meta name="description" content="Earn automated prize pool income across 8 independent level pools through the 30% platform distribution sequence.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/rewards.css">
+  <link rel="stylesheet" href="css/non-working.css">
+  <link rel="stylesheet" href="css/support-chat.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+
+  <!-- Ambient Dynamic Canvas Background -->
+  <div class="auth-bg-wrapper">
+    <div class="auth-bg-gradient"></div>
+    <canvas id="authCanvas"></canvas>
+  </div>
+
+  <!-- Header Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-content-wrap">
+      <a href="index.html" class="brand-logo">
+        <div class="logo-anim-wrapper">
+          <div class="logo-glow-bg"></div>
+          <img src="images/logo-circle.png" alt="BitchainProx Logo" class="brand-logo-img anim-logo-pulse" onerror="this.src='images/logo.png'">
+        </div>
+        <div class="brand-name">BITCHAIN<span>PROX</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html#about">About Us</a></li>
+        <li><a href="index.html#packages">Package Plans</a></li>
+        <li><a href="index.html#income">Income</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- populated via auth.js -->
+      </div>
+
+      <!-- Hamburger Button (Mobile only) -->
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle Navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <!-- Mobile Slide-Down Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <ul class="mobile-nav-links dash-mob-nav">
+        <li>
+          <a href="my-team.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🏆</span>
+            My Team
+          </a>
+        </li>
+        <li>
+          <a href="rewards.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">🎁</span>
+            Rewards
+          </a>
+        </li>
+        <li>
+          <a href="non-working.html" class="mob-nav-link dash-mob-nav-link" style="color:#00f5d4;">
+            <span class="dash-mob-emoji">🔄</span>
+            Non-Working
+          </a>
+        </li>
+        <li>
+          <a href="dashboard.html" class="mob-nav-link dash-mob-nav-link">
+            <span class="dash-mob-emoji">📊</span>
+            Dashboard
+          </a>
+        </li>
+      </ul>
+      <div class="mobile-menu-actions">
+        <div class="mob-btn-register" id="mobNwLogoutBtn" style="cursor:pointer;text-align:center;">Logout</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN NON-WORKING PAGE CONTENT -->
+  <main class="nw-page-container">
+
+    <!-- 1. Top Header Banner -->
+    <div class="nw-header-card">
+      <div class="nw-title-group">
+        <a href="dashboard.html" class="btn-back-dashboard" title="Return to Dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Dashboard</span>
+        </a>
+        <h1 class="nw-main-title">NON-WORKING INCOME POOLS</h1>
+        <p class="nw-sub-title">8 Independent Level Pools · 30% Rank Purchase Platform Prize Engine (Blocks of 5 Users)</p>
+      </div>
+
+      <div style="text-align:right;">
+        <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,245,212,0.12);color:#00f5d4;border:1px solid rgba(0,245,212,0.4);padding:6px 16px;border-radius:20px;font-size:0.8rem;font-weight:800;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00f5d4;box-shadow:0 0 8px #00f5d4;"></span>
+          LIVE 30% AUTOMATED POOLS
+        </span>
+      </div>
+    </div>
+
+    <!-- 2. Top Metric Stats Row -->
+    <div class="nw-stats-grid">
+      <div class="nw-stat-card">
+        <span class="nw-stat-label">💰 Total Non-Working Earned</span>
+        <span class="nw-stat-value green" id="nwStatEarned">$0.00 USDT</span>
+        <span class="nw-stat-hint">Credited directly to available balance</span>
+      </div>
+
+      <div class="nw-stat-card">
+        <span class="nw-stat-label">⭐ Your Active Rank</span>
+        <span class="nw-stat-value purple" id="nwStatRank">LOADING…</span>
+        <span class="nw-stat-hint" id="nwStatLevel">Level Status</span>
+      </div>
+
+      <div class="nw-stat-card">
+        <span class="nw-stat-label">🔄 Pool Structure</span>
+        <span class="nw-stat-value gold">5 Members</span>
+        <span class="nw-stat-hint">1 Winner per 5 completed slots</span>
+      </div>
+
+      <div class="nw-stat-card">
+        <span class="nw-stat-label">🌐 Pool Contribution</span>
+        <span class="nw-stat-value green">30% Share</span>
+        <span class="nw-stat-hint">From every package purchase</span>
+      </div>
+    </div>
+
+    <!-- 3. Level Selector Tabs -->
+    <div class="nw-level-tabs-wrap">
+      <div class="nw-level-tabs" id="nwLevelTabs">
+        <!-- Populated dynamically by js/non-working.js -->
+      </div>
+    </div>
+
+    <!-- 4. Active Pool Showcase Card (Main Feature) -->
+    <div class="nw-active-pool-card" id="nwActivePoolCard">
+
+      <!-- Locked Overlay (Shown if user hasn't achieved this level) -->
+      <div class="nw-locked-overlay" id="nwLockedOverlay" style="display:none;">
+        <div class="nw-locked-icon">🔒</div>
+        <div class="nw-locked-title">Level Pool Locked</div>
+        <p class="nw-locked-desc">
+          Achieve <strong id="nwLockedRequiredRank" style="color:#00f5d4;">STARTER</strong> rank to unlock this Non-Working Income level and claim your chronological sequence number!
+        </p>
+        <a href="dashboard.html" class="btn-unlock-rank">⚡ Upgrade Rank on Dashboard</a>
+      </div>
+
+      <!-- Pool Header -->
+      <div class="nw-pool-header-row">
+        <div class="nw-pool-level-tag">
+          <div class="nw-level-icon-lg" id="nwActiveLevelIcon">🌱</div>
+          <div>
+            <div class="nw-pool-title-text" id="nwActiveLevelTitle">LEVEL 1 — STARTER POOL</div>
+            <div class="nw-pool-subtitle-text" id="nwActiveLevelSub">Rank Upgrade Tier: $5 USDT · 30% Contribution = $1.50 USDT per user</div>
+          </div>
+        </div>
+
+        <span class="nw-pool-status-badge active" id="nwActivePoolBadge">POOL #1 — IN PROGRESS</span>
+      </div>
+
+      <!-- Prize Box -->
+      <div class="nw-prize-hero-box">
+        <div class="nw-prize-title">🏆 Total Accumulated Prize Pool</div>
+        <div class="nw-prize-amount" id="nwPrizeAmount">$0.00 USDT</div>
+        <div class="nw-prize-formula" id="nwPrizeFormula">5 Users × 30% Contribution = Total Prize Pool</div>
+      </div>
+
+      <!-- 5-Slot User Track -->
+      <div class="nw-slots-section">
+        <div class="nw-slots-header">
+          <span>👥 5-Member Pool Progress Track</span>
+          <span id="nwProgressText">0 of 5 Members Joined (0%)</span>
+        </div>
+
+        <div class="nw-slots-row" id="nwSlotsRow">
+          <!-- 5 slot cards populated by js/non-working.js -->
+        </div>
+
+        <div class="nw-progress-bar-wrap">
+          <div class="nw-progress-fill" id="nwProgressFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Winner Announcement & User Position Tag -->
+      <div class="nw-winner-banner">
+        <div class="nw-winner-info">
+          <div class="nw-winner-icon">👑</div>
+          <div>
+            <div class="nw-winner-label">Designated Pool Winner</div>
+            <div class="nw-winner-name" id="nwWinnerName">User #1 (@username)</div>
+          </div>
+        </div>
+
+        <div class="nw-user-pos-tag" id="nwUserPositionTag">
+          👤 Your Position: Not in sequence
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 5. 8-Level Mini Overview Grid -->
+    <div style="margin-bottom:12px;">
+      <h3 style="font-size:1.15rem;font-weight:800;color:#ffffff;display:flex;align-items:center;gap:8px;">
+        <span>🌐</span> 8 Level Pools Overview
+      </h3>
+      <p style="font-size:0.78rem;color:rgba(224,170,255,0.7);margin:2px 0 16px;">
+        Click on any level to view its active pool, member sequence, and completed prize archives.
+      </p>
+    </div>
+
+    <div class="nw-levels-grid" id="nwLevelsGrid">
+      <!-- 8 Mini Level Cards populated dynamically -->
+    </div>
+
+    <!-- 6. Tables: Achievers & Completed Pools -->
+    <div class="nw-tables-container">
+
+      <!-- Table 1: Real Level Achievers -->
+      <div class="nw-table-card">
+        <div class="nw-table-title">
+          <span>📜</span> Real Level Achievers (Chronological Sequence)
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="nw-table">
+            <thead>
+              <tr>
+                <th>Seq #</th>
+                <th>Member</th>
+                <th>Package</th>
+                <th>30% Contrib</th>
+                <th>Achieved</th>
+              </tr>
+            </thead>
+            <tbody id="nwAchieversTbody">
+              <tr><td colspan="5" class="nw-empty-state"><div class="loading-spinner" style="margin:auto;"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Table 2: Completed Pools History -->
+      <div class="nw-table-card">
+        <div class="nw-table-title">
+          <span>🎉</span> Completed Prize Pools Archive
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="nw-table">
+            <thead>
+              <tr>
+                <th>Pool #</th>
+                <th>Prize Winner</th>
+                <th>Prize Paid</th>
+                <th>Completed</th>
+              </tr>
+            </thead>
+            <tbody id="nwCompletedPoolsTbody">
+              <tr><td colspan="4" class="nw-empty-state"><div class="loading-spinner" style="margin:auto;"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Global Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.42.0/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/support-chat.js"></script>
+  <script src="js/non-working.js"></script>
+
+  <!-- Particle Background -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('authCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let w = canvas.width = window.innerWidth;
+      let h = canvas.height = window.innerHeight;
+      window.addEventListener('resize', () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; });
+      const pts = Array.from({length: 40}, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+        r: Math.random() * 2 + 1, c: ['#c77dff', '#e0aaff', '#00f5d4'][Math.floor(Math.random()*3)]
+      }));
+      function loop() {
+        ctx.clearRect(0, 0, w, h);
+        pts.forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > w) p.vx *= -1;
+          if (p.y < 0 || p.y > h) p.vy *= -1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+          ctx.fillStyle = p.c; ctx.globalAlpha = 0.4; ctx.fill();
+        });
+        requestAnimationFrame(loop);
+      }
+      loop();
+    })();
+
+    // Hamburger Mobile Menu toggle
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('hamburgerBtn');
+      const menu = document.getElementById('mobileMenu');
+      if (btn && menu) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          btn.classList.toggle('open');
+          menu.classList.toggle('open');
+        });
+        document.addEventListener('click', (e) => {
+          if (!menu.contains(e.target) && !btn.contains(e.target)) {
+            btn.classList.remove('open');
+            menu.classList.remove('open');
+          }
+        });
+      }
+      const logoutBtn = document.getElementById('mobNwLogoutBtn');
+      if (logoutBtn && window.BitchainAuth) {
+        logoutBtn.addEventListener('click', () => window.BitchainAuth.signOutUser());
+      }
+    });
+  </script>
+</body>
+</html>
