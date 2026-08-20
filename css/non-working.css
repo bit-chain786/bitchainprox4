@@ -334,6 +334,27 @@
   box-shadow: 0 4px 16px rgba(0, 245, 212, 0.15);
 }
 
+.nw-slot-card.is-me {
+  border: 2px solid #00f5d4 !important;
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.25) 0%, rgba(157, 78, 221, 0.35) 100%) !important;
+  box-shadow: 0 0 22px rgba(0, 245, 212, 0.4) !important;
+}
+
+.nw-slot-badge-you {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  background: #00f5d4;
+  color: #000;
+  font-size: 0.62rem;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 245, 212, 0.5);
+}
+
 .nw-slot-card.winner {
   border-color: #ffd166;
   background: linear-gradient(135deg, rgba(255, 209, 102, 0.2) 0%, rgba(157, 78, 221, 0.2) 100%);

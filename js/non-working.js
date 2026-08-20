@@ -206,13 +206,30 @@
 
     try {
       // 1. Fetch all members in this level ordered by sequence_num
-      const { data: members } = await client
+      let { data: members } = await client
         .from('non_working_members')
         .select('*')
         .eq('level', lvl)
         .order('sequence_num', { ascending: true });
 
-      const levelMembers = members || [];
+      let levelMembers = members || [];
+
+      // Auto self-heal / sync if current user has achieved this level but is missing from members table
+      const hasMe = levelMembers.some(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
+      if (!hasMe && isUnlocked) {
+        try {
+          await client.rpc('sync_existing_purchases_to_non_working');
+          const { data: refetched } = await client
+            .from('non_working_members')
+            .select('*')
+            .eq('level', lvl)
+            .order('sequence_num', { ascending: true });
+          if (refetched && refetched.length > 0) {
+            levelMembers = refetched;
+          }
+        } catch (_) {}
+      }
+
       const totalMembersCount = levelMembers.length;
 
       // 2. Fetch all pools for this level
@@ -260,7 +277,7 @@
       badgeEl.textContent = isCompleted ? `✓ POOL #${poolNum} COMPLETED` : `POOL #${poolNum} — IN PROGRESS (${count}/5)`;
     }
 
-    // Accumulated Prize Amount: Sum of actual 30% contributions in this block (or expected $tier.contrib * 5)
+    // Accumulated Prize Amount
     let currentPoolAmount = blockMembers.reduce((acc, m) => acc + (parseFloat(m.contribution_amount) || tier.contrib), 0);
     if (currentPoolAmount === 0) currentPoolAmount = tier.contrib * 5;
 
@@ -292,11 +309,13 @@
     }
 
     // User's own position in this level
-    const myEntry = allLevelMembers.find(m => m.user_id === _activeUser.id);
+    const myEntry = allLevelMembers.find(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
     const posTag = document.getElementById('nwUserPositionTag');
     if (posTag) {
       if (myEntry) {
-        posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> · You win Pool #${myEntry.sequence_num}!`;
+        posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · You win Pool #${myEntry.sequence_num} Prize!`;
+      } else if (_userMaxLevel >= tier.level) {
+        posTag.innerHTML = `👤 Level ${tier.level} Achieved · Your slot will appear upon pool entry!`;
       } else {
         posTag.innerHTML = `👤 Not in Sequence yet · Upgrade to join as <strong>#${allLevelMembers.length + 1}</strong>`;
       }
@@ -310,14 +329,17 @@
         const targetSeq = startSeq + i;
         const member = blockMembers[i] || null;
         const isWinner = (targetSeq === poolNum);
+        const isMe = member && (member.user_id === _activeUser.id || (member.username && _userProfile?.username && member.username.toLowerCase() === _userProfile.username.toLowerCase()));
 
         if (member) {
           slotsHtml += `
-            <div class="nw-slot-card filled ${isWinner ? 'winner' : ''}">
-              ${isWinner ? '<span class="nw-slot-badge-winner">🏆 Winner</span>' : ''}
+            <div class="nw-slot-card filled ${isMe ? 'is-me' : ''} ${isWinner ? 'winner' : ''}">
+              ${isMe ? '<span class="nw-slot-badge-you">⭐ You</span>' : (isWinner ? '<span class="nw-slot-badge-winner">🏆 Winner</span>' : '')}
               <div class="nw-slot-avatar">${(member.full_name || member.username || 'U').charAt(0).toUpperCase()}</div>
               <div class="nw-slot-seq">Sequence #${member.sequence_num}</div>
-              <div class="nw-slot-user" title="${member.full_name || member.username}">${member.username || 'Member'}</div>
+              <div class="nw-slot-user" title="${member.full_name || member.username}">
+                ${member.username || 'Member'} ${isMe ? '<span style="color:#00f5d4;font-size:0.7rem;">(You)</span>' : ''}
+              </div>
               <div class="nw-slot-contrib">+$${fmt(member.contribution_amount || tier.contrib)}</div>
             </div>
           `;

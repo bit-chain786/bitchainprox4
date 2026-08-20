@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) + 2 DIRECTS REQUIREMENT
 -- ============================================================================
 
@@ -426,8 +426,108 @@ CREATE INDEX IF NOT EXISTS idx_nw_members_level_seq ON public.non_working_member
 CREATE INDEX IF NOT EXISTS idx_nw_members_user ON public.non_working_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_nw_distrib_user ON public.non_working_distributions(recipient_user_id);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_pools;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_members;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_distributions;
+-- 13. Backfill & Sync for existing packages
+CREATE OR REPLACE FUNCTION public.sync_existing_purchases_to_non_working()
+RETURNS INT AS $$
+DECLARE
+  v_rec RECORD;
+  v_count INT := 0;
+  v_user RECORD;
+  v_lvl INT;
+  v_price NUMERIC;
+  v_dummy RECORD;
+BEGIN
+  -- Sync any completed package_purchases not yet in non_working_members
+  FOR v_rec IN 
+    SELECT * FROM public.package_purchases 
+     WHERE status = 'completed' OR status IS NULL 
+     ORDER BY purchased_at ASC
+  LOOP
+    IF NOT EXISTS (SELECT 1 FROM public.non_working_members WHERE purchase_id = v_rec.id) THEN
+      BEGIN
+        -- Trigger process
+        v_lvl := public.get_rank_level(COALESCE(v_rec.rank_name, v_rec.package_name, v_rec.package_key));
+        IF v_lvl > 0 THEN
+          INSERT INTO public.non_working_members (
+            level, user_id, username, full_name, rank_name,
+            package_price, contribution_amount, purchase_id,
+            sequence_num, pool_num, created_at
+          ) VALUES (
+            v_lvl, v_rec.user_id,
+            'member_' || SUBSTRING(v_rec.user_id::text, 1, 6),
+            'Member',
+            public.get_level_name(v_lvl),
+            v_rec.amount,
+            ROUND((v_rec.amount * 0.30), 2),
+            v_rec.id,
+            (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM public.non_working_members WHERE level = v_lvl),
+            (((SELECT COALESCE(MAX(sequence_num), 0) FROM public.non_working_members WHERE level = v_lvl) / 5) + 1),
+            COALESCE(v_rec.purchased_at, NOW())
+          );
+          v_count := v_count + 1;
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END;
+    END IF;
+  END LOOP;
+
+  -- Sync profiles with active rank who don't have a record
+  FOR v_user IN 
+    SELECT p.id, p.username, p.full_name, p.current_rank, p.rank, p.current_package, p.rank_value, p.created_at 
+      FROM public.profiles p
+     WHERE (p.current_rank IS NOT NULL AND p.current_rank != '' AND LOWER(p.current_rank) != 'unranked')
+        OR (p.rank IS NOT NULL AND p.rank != '' AND LOWER(p.rank) != 'unranked')
+        OR (p.rank_value > 0)
+     ORDER BY p.created_at ASC
+  LOOP
+    v_lvl := public.get_rank_level(COALESCE(v_user.current_rank, v_user.rank, v_user.current_package));
+    IF v_lvl = 0 AND v_user.rank_value > 0 THEN v_lvl := v_user.rank_value; END IF;
+
+    IF v_lvl > 0 THEN
+      IF NOT EXISTS (SELECT 1 FROM public.non_working_members WHERE user_id = v_user.id AND level = v_lvl) THEN
+        CASE v_lvl
+          WHEN 1 THEN v_price := 5.00;
+          WHEN 2 THEN v_price := 10.00;
+          WHEN 3 THEN v_price := 20.00;
+          WHEN 4 THEN v_price := 40.00;
+          WHEN 5 THEN v_price := 80.00;
+          WHEN 6 THEN v_price := 160.00;
+          WHEN 7 THEN v_price := 320.00;
+          WHEN 8 THEN v_price := 640.00;
+          ELSE v_price := 5.00;
+        END CASE;
+
+        BEGIN
+          INSERT INTO public.non_working_members (
+            level, user_id, username, full_name, rank_name,
+            package_price, contribution_amount, purchase_id,
+            sequence_num, pool_num, created_at
+          ) VALUES (
+            v_lvl, v_user.id,
+            COALESCE(v_user.username, 'user_' || SUBSTRING(v_user.id::text, 1, 6)),
+            COALESCE(v_user.full_name, 'Member'),
+            public.get_level_name(v_lvl),
+            v_price,
+            ROUND((v_price * 0.30), 2),
+            gen_random_uuid(),
+            (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM public.non_working_members WHERE level = v_lvl),
+            (((SELECT COALESCE(MAX(sequence_num), 0) FROM public.non_working_members WHERE level = v_lvl) / 5) + 1),
+            COALESCE(v_user.created_at, NOW())
+          );
+          v_count := v_count + 1;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+      END IF;
+    END IF;
+  END LOOP;
+
+  RETURN v_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.sync_existing_purchases_to_non_working() TO authenticated, anon;
+
+-- Run backfill immediately
+SELECT public.sync_existing_purchases_to_non_working();
 
 SELECT 'Non-Working Income 30% 8-Level Pool Engine + 2 Directs Requirement Setup Successfully!' AS result;
