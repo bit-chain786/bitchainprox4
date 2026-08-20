@@ -172,6 +172,7 @@
     renderLevelTabs();
     renderMiniLevelsGrid();
     await loadLevelData(lvl);
+    await loadDirectsRequirement();
   }
 
   // ─── Load Level Data (Pools, Active Block, Achievers, History) ──────────────
@@ -509,8 +510,25 @@
 
       const count = directs.length;
       // Requirement: Starter Level 1 requires 1 direct, Higher ranks require 2 directs
-      const requiredDirects = (_selectedLevel === 1 ? 1 : 2);
+      const isStarter = (_selectedLevel === 1);
+      const requiredDirects = isStarter ? 1 : 2;
       const isQualified = count >= requiredDirects;
+      const tier = NW_TIERS[_selectedLevel - 1] || NW_TIERS[0];
+
+      // Update Card Heading & Subtext
+      const heading = document.getElementById('nwReqHeading');
+      if (heading) {
+        heading.textContent = isStarter
+          ? 'Reward Claim Requirement: 1 Direct Referral'
+          : 'Reward Claim Requirement: 2 Direct Referrals';
+      }
+
+      const subtext = document.getElementById('nwReqSubtext');
+      if (subtext) {
+        subtext.textContent = isStarter
+          ? 'Starter rank ($5 Tier) requires only 1 active direct referral to unlock and claim Non-Working prize earnings.'
+          : `${tier.name} rank ($${tier.price} Tier) requires 2 active direct referrals to unlock and claim Non-Working prize earnings.`;
+      }
 
       // Status Pill
       const pill = document.getElementById('nwReqStatusPill');
@@ -524,10 +542,19 @@
           : `${count} / ${requiredDirects} Direct${requiredDirects > 1 ? 's' : ''} Active`;
       }
 
-      // Slot 1 (Required for Starter)
+      // Slot 1 (Required for Starter and Higher)
       const slot1 = document.getElementById('nwReqSlot1');
       const status1 = document.getElementById('nwReqStatus1');
       const badge1 = document.getElementById('nwReqBadge1');
+      if (slot1) {
+        slot1.style.display = 'flex';
+        const label1 = slot1.querySelector('.nw-req-slot-label');
+        if (label1) {
+          label1.innerHTML = isStarter
+            ? 'Direct Referral #1 <span style="color:#00f5d4;font-size:0.7rem;">(Starter Requirement)</span>'
+            : 'Direct Referral #1';
+        }
+      }
       if (directs[0]) {
         if (slot1) slot1.className = 'nw-req-slot active';
         if (status1) status1.textContent = `${directs[0].full_name || directs[0].username} (@${directs[0].username})`;
@@ -538,18 +565,27 @@
         if (badge1) { badge1.textContent = '⏳'; badge1.style.opacity = '0.5'; }
       }
 
-      // Slot 2 (Required for Basic & Higher)
+      // Slot 2: Hide on Starter (Level 1), Show on Basic & Higher (Level 2..8)
       const slot2 = document.getElementById('nwReqSlot2');
       const status2 = document.getElementById('nwReqStatus2');
       const badge2 = document.getElementById('nwReqBadge2');
-      if (directs[1]) {
-        if (slot2) slot2.className = 'nw-req-slot active';
-        if (status2) status2.textContent = `${directs[1].full_name || directs[1].username} (@${directs[1].username})`;
-        if (badge2) { badge2.textContent = '✅'; badge2.style.opacity = '1'; }
+      const slotsGrid = document.getElementById('nwReqSlotsGrid');
+
+      if (isStarter) {
+        if (slot2) slot2.style.display = 'none';
+        if (slotsGrid) slotsGrid.style.gridTemplateColumns = '1fr';
       } else {
-        if (slot2) slot2.className = 'nw-req-slot';
-        if (status2) status2.textContent = 'Waiting for direct signup…';
-        if (badge2) { badge2.textContent = '⏳'; badge2.style.opacity = '0.5'; }
+        if (slot2) slot2.style.display = 'flex';
+        if (slotsGrid) slotsGrid.style.gridTemplateColumns = '';
+        if (directs[1]) {
+          if (slot2) slot2.className = 'nw-req-slot active';
+          if (status2) status2.textContent = `${directs[1].full_name || directs[1].username} (@${directs[1].username})`;
+          if (badge2) { badge2.textContent = '✅'; badge2.style.opacity = '1'; }
+        } else {
+          if (slot2) slot2.className = 'nw-req-slot';
+          if (status2) status2.textContent = 'Waiting for direct signup…';
+          if (badge2) { badge2.textContent = '⏳'; badge2.style.opacity = '0.5'; }
+        }
       }
 
       // Referral Link Input
