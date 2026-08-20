@@ -447,90 +447,77 @@ BEGIN
      ORDER BY purchased_at ASC
   LOOP
     IF NOT EXISTS (SELECT 1 FROM public.non_working_members WHERE purchase_id = v_rec.id) THEN
-      BEGIN
-        -- Trigger process
-        v_lvl := public.get_rank_level(COALESCE(v_rec.rank_name, v_rec.package_name, v_rec.package_key));
-        IF v_lvl > 0 THEN
-          INSERT INTO public.non_working_members (
-            level, user_id, username, full_name, rank_name,
-            package_price, contribution_amount, purchase_id,
-            sequence_num, pool_num, created_at
-          ) VALUES (
-            v_lvl, v_rec.user_id,
-            'member_' || SUBSTRING(v_rec.user_id::text, 1, 6),
-            'Member',
-            public.get_level_name(v_lvl),
-            v_rec.amount,
-            ROUND((v_rec.amount * 0.30), 2),
-            v_rec.id,
-            (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM public.non_working_members WHERE level = v_lvl),
-            (((SELECT COALESCE(MAX(sequence_num), 0) FROM public.non_working_members WHERE level = v_lvl) / 5) + 1),
-            COALESCE(v_rec.purchased_at, NOW())
-          );
-          v_count := v_count + 1;
-        END IF;
-      EXCEPTION WHEN OTHERS THEN NULL;
-      END;
-    END IF;
+-- 13. Backfill & Sync for existing packages with deduplication
+CREATE OR REPLACE FUNCTION public.clean_and_deduplicate_non_working_members()
+RETURNS INT AS $$
+DECLARE
+  v_rec RECORD;
+  v_seq INT;
+  v_pool_num INT;
+  v_count INT := 0;
+BEGIN
+  -- 1. Remove duplicate entries for the same user in the same level (keep earliest)
+  DELETE FROM public.non_working_members
+   WHERE id NOT IN (
+     SELECT DISTINCT ON (user_id, level) id
+       FROM public.non_working_members
+      ORDER BY user_id, level, created_at ASC
+   );
+
+  -- 2. Update real usernames and full names from profiles
+  UPDATE public.non_working_members m
+     SET username  = COALESCE(p.username, m.username),
+         full_name = COALESCE(p.full_name, m.full_name)
+    FROM public.profiles p
+   WHERE m.user_id = p.id;
+
+  -- 3. Renumber sequence_num sequentially from 1..N per level
+  FOR v_rec IN 
+    SELECT id, level, ROW_NUMBER() OVER (PARTITION BY level ORDER BY created_at ASC) as new_seq
+      FROM public.non_working_members
+     ORDER BY level, created_at ASC
+  LOOP
+    v_pool_num := ((v_rec.new_seq - 1) / 5) + 1;
+    UPDATE public.non_working_members
+       SET sequence_num = v_rec.new_seq,
+           pool_num     = v_pool_num
+     WHERE id = v_rec.id;
+    v_count := v_count + 1;
   END LOOP;
 
-  -- Sync profiles with active rank who don't have a record
-  FOR v_user IN 
-    SELECT p.id, p.username, p.full_name, p.current_rank, p.rank, p.current_package, p.rank_value, p.created_at 
-      FROM public.profiles p
-     WHERE (p.current_rank IS NOT NULL AND p.current_rank != '' AND LOWER(p.current_rank) != 'unranked')
-        OR (p.rank IS NOT NULL AND p.rank != '' AND LOWER(p.rank) != 'unranked')
-        OR (p.rank_value > 0)
-     ORDER BY p.created_at ASC
+  -- 4. Rebuild non_working_pools
+  DELETE FROM public.non_working_pools;
+
+  FOR v_rec IN 
+    SELECT level, pool_num, COUNT(*) as cnt, SUM(contribution_amount) as total_amt
+      FROM public.non_working_members
+     GROUP BY level, pool_num
+     ORDER BY level, pool_num
   LOOP
-    v_lvl := public.get_rank_level(COALESCE(v_user.current_rank, v_user.rank, v_user.current_package));
-    IF v_lvl = 0 AND v_user.rank_value > 0 THEN v_lvl := v_user.rank_value; END IF;
-
-    IF v_lvl > 0 THEN
-      IF NOT EXISTS (SELECT 1 FROM public.non_working_members WHERE user_id = v_user.id AND level = v_lvl) THEN
-        CASE v_lvl
-          WHEN 1 THEN v_price := 5.00;
-          WHEN 2 THEN v_price := 10.00;
-          WHEN 3 THEN v_price := 20.00;
-          WHEN 4 THEN v_price := 40.00;
-          WHEN 5 THEN v_price := 80.00;
-          WHEN 6 THEN v_price := 160.00;
-          WHEN 7 THEN v_price := 320.00;
-          WHEN 8 THEN v_price := 640.00;
-          ELSE v_price := 5.00;
-        END CASE;
-
-        BEGIN
-          INSERT INTO public.non_working_members (
-            level, user_id, username, full_name, rank_name,
-            package_price, contribution_amount, purchase_id,
-            sequence_num, pool_num, created_at
-          ) VALUES (
-            v_lvl, v_user.id,
-            COALESCE(v_user.username, 'user_' || SUBSTRING(v_user.id::text, 1, 6)),
-            COALESCE(v_user.full_name, 'Member'),
-            public.get_level_name(v_lvl),
-            v_price,
-            ROUND((v_price * 0.30), 2),
-            gen_random_uuid(),
-            (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM public.non_working_members WHERE level = v_lvl),
-            (((SELECT COALESCE(MAX(sequence_num), 0) FROM public.non_working_members WHERE level = v_lvl) / 5) + 1),
-            COALESCE(v_user.created_at, NOW())
-          );
-          v_count := v_count + 1;
-        EXCEPTION WHEN OTHERS THEN NULL;
-        END;
-      END IF;
-    END IF;
+    INSERT INTO public.non_working_pools (
+      level, level_name, pool_num, status, target_recipient_seq,
+      recipient_user_id, recipient_username, current_count, total_pool_amount, created_at
+    ) VALUES (
+      v_rec.level,
+      public.get_level_name(v_rec.level),
+      v_rec.pool_num,
+      CASE WHEN v_rec.cnt >= 5 THEN 'completed' ELSE 'active' END,
+      v_rec.pool_num,
+      (SELECT user_id FROM public.non_working_members WHERE level = v_rec.level AND sequence_num = v_rec.pool_num),
+      (SELECT username FROM public.non_working_members WHERE level = v_rec.level AND sequence_num = v_rec.pool_num),
+      v_rec.cnt,
+      COALESCE(v_rec.total_amt, 0.00),
+      NOW()
+    );
   END LOOP;
 
   RETURN v_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.sync_existing_purchases_to_non_working() TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.clean_and_deduplicate_non_working_members() TO authenticated, anon;
 
--- Run backfill immediately
-SELECT public.sync_existing_purchases_to_non_working();
+-- Run deduplication & sequence renumbering immediately
+SELECT public.clean_and_deduplicate_non_working_members();
 
-SELECT 'Non-Working Income 30% 8-Level Pool Engine + 2 Directs Requirement Setup Successfully!' AS result;
+SELECT 'Non-Working Deduplication & Clean Sequence Setup Successfully!' AS result;
