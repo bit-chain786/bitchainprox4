@@ -455,7 +455,10 @@
       const refInput = document.getElementById('nwRefLinkInput');
       if (refInput) {
         const refParam = _userProfile?.referral_code || _userProfile?.username || _activeUser.id.substring(0, 8);
-        const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        let origin = window.location.origin;
+        if (!origin || origin === 'null' || origin.startsWith('file')) {
+          origin = 'https://bitchainprox.com';
+        }
         refInput.value = `${origin}/register.html?ref=${refParam}`;
       }
 

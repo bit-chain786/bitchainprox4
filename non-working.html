@@ -181,15 +181,21 @@
 
       <!-- Pending Claim Actions / Referral Link Footer -->
       <div class="nw-req-footer">
-        <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;">
-          <span style="font-size:0.75rem;font-weight:700;color:#ffd166;">🔗 Invite Direct Users:</span>
+        <div class="nw-ref-group">
+          <div class="nw-ref-label">
+            <span>🔗</span>
+            <span>Invite Direct Users to Unlock Rewards:</span>
+          </div>
           <div class="nw-ref-link-box">
             <input type="text" class="nw-ref-input" id="nwRefLinkInput" readonly value="Loading referral link…" />
-            <button class="btn-copy-ref" onclick="window.NonWorkingSystem.copyReferralLink()">📋 Copy Link</button>
+            <button class="btn-copy-ref" onclick="window.NonWorkingSystem.copyReferralLink()">
+              <span>📋</span>
+              <span class="btn-copy-text">Copy Link</span>
+            </button>
           </div>
         </div>
 
-        <div id="nwPendingClaimAction" style="display:none;">
+        <div id="nwPendingClaimAction" style="display:none;width:100%;margin-top:6px;">
           <!-- Claim button dynamically shown if pending rewards exist -->
         </div>
       </div>

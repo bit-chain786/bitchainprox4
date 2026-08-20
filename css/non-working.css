@@ -777,46 +777,74 @@
 
 .nw-req-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 12px;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nw-ref-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.nw-ref-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffd166;
 }
 
 .nw-ref-link-box {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(199, 125, 255, 0.25);
-  border-radius: 10px;
-  padding: 6px 12px;
-  flex: 1;
-  max-width: 460px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(199, 125, 255, 0.3);
+  border-radius: 12px;
+  padding: 6px 8px 6px 14px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.nw-ref-link-box:focus-within {
+  border-color: #00f5d4;
 }
 
 .nw-ref-input {
   background: transparent;
   border: none;
   color: #e0aaff;
-  font-size: 0.78rem;
-  width: 100%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
   outline: none;
   font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-copy-ref {
-  background: rgba(199, 125, 255, 0.2);
-  border: 1px solid rgba(199, 125, 255, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(157, 78, 221, 0.35) 0%, rgba(0, 245, 212, 0.25) 100%);
+  border: 1px solid rgba(0, 245, 212, 0.4);
   color: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
@@ -824,6 +852,7 @@
   background: #00f5d4;
   color: #000;
   border-color: #00f5d4;
+  box-shadow: 0 0 12px rgba(0, 245, 212, 0.4);
 }
 
 .btn-claim-reward {
@@ -831,12 +860,14 @@
   color: #000;
   font-weight: 900;
   font-size: 0.82rem;
-  padding: 8px 18px;
+  padding: 10px 20px;
   border-radius: 10px;
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 245, 212, 0.35);
   transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
 }
 
 .btn-claim-reward:hover {
@@ -857,7 +888,26 @@
   .nw-slots-row { grid-template-columns: 1fr; gap: 8px; }
   .nw-slot-card { flex-direction: row; justify-content: space-between; padding: 10px 14px; }
   .nw-slot-user { max-width: none; }
-  .nw-ref-link-box { max-width: 100%; width: 100%; }
-  .nw-req-footer { flex-direction: column; align-items: stretch; }
+  .nw-req-card { padding: 16px 18px; }
+  .nw-ref-link-box { padding: 6px 6px 6px 12px; }
+  .btn-copy-ref { padding: 7px 12px; font-size: 0.74rem; }
+}
+
+@media (max-width: 480px) {
+  .nw-ref-link-box {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .nw-ref-input {
+    font-size: 0.74rem;
+    padding: 4px 0;
+  }
+  .btn-copy-ref {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 12px;
+  }
 }
 
