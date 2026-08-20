@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) + TODAY INCOME ENGINE
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
@@ -123,7 +123,7 @@ GRANT ALL ON public.non_working_members TO authenticated, anon, service_role;
 GRANT ALL ON public.non_working_distributions TO authenticated, anon, service_role;
 
 -- 7. CORE PROCESSING FUNCTION (SECURITY DEFINER)
-CREATE OR REPLACE FUNCTION public.process_non_working_purchase()
+CREATE OR REPLACE FUNCTION public.process_non_working_income()
 RETURNS TRIGGER AS $$
 DECLARE
   v_level               INT;
