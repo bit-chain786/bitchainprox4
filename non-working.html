@@ -137,31 +137,31 @@
       </div>
     </div>
 
-    <!-- 2.5 Non-Working Income Claim Requirement Card (2 Direct Users) -->
+    <!-- 2.5 Non-Working Income Claim Requirement Card -->
     <div class="nw-req-card" id="nwReqCard">
       <div class="nw-req-top">
         <div class="nw-req-title-wrap">
           <div class="nw-req-icon">📌</div>
           <div>
-            <h3 class="nw-req-heading">Reward Claim Requirement: 2 Direct Referrals</h3>
-            <p class="nw-req-subtext">You must have at least 2 active direct referrals to claim and receive Non-Working Prize Pool earnings.</p>
+            <h3 class="nw-req-heading" id="nwReqHeading">Reward Requirement: 1 Direct (Starter) / 2 Directs (Higher Ranks)</h3>
+            <p class="nw-req-subtext" id="nwReqSubtext">Starter rank requires only 1 active direct referral to unlock and claim Non-Working prize earnings.</p>
           </div>
         </div>
 
         <div class="nw-req-status-pill pending" id="nwReqStatusPill">
           <span id="nwReqStatusIcon">⏳</span>
-          <span id="nwReqStatusText">0 / 2 Directs Active</span>
+          <span id="nwReqStatusText">0 / 1 Direct Active</span>
         </div>
       </div>
 
-      <!-- 2 Directs Status Slots -->
-      <div class="nw-req-slots-grid">
+      <!-- Directs Status Slots -->
+      <div class="nw-req-slots-grid" id="nwReqSlotsGrid">
         <div class="nw-req-slot" id="nwReqSlot1">
           <div class="nw-req-slot-info">
             <div class="nw-req-slot-avatar" id="nwReqAvatar1">1</div>
             <div>
-              <div class="nw-req-slot-label">Direct Referral #1</div>
-              <div class="nw-req-slot-status" id="nwReqStatus1">Waiting for signup…</div>
+              <div class="nw-req-slot-label">Direct Referral #1 <span style="color:#00f5d4;font-size:0.7rem;">(Starter Requirement)</span></div>
+              <div class="nw-req-slot-status" id="nwReqStatus1">Waiting for direct signup…</div>
             </div>
           </div>
           <span id="nwReqBadge1" style="font-size:1.1rem;opacity:0.5;">⏳</span>
@@ -171,8 +171,8 @@
           <div class="nw-req-slot-info">
             <div class="nw-req-slot-avatar" id="nwReqAvatar2">2</div>
             <div>
-              <div class="nw-req-slot-label">Direct Referral #2</div>
-              <div class="nw-req-slot-status" id="nwReqStatus2">Waiting for signup…</div>
+              <div class="nw-req-slot-label">Direct Referral #2 <span style="color:#ffd166;font-size:0.7rem;">(For Basic & Higher)</span></div>
+              <div class="nw-req-slot-status" id="nwReqStatus2">Waiting for direct signup…</div>
             </div>
           </div>
           <span id="nwReqBadge2" style="font-size:1.1rem;opacity:0.5;">⏳</span>
@@ -269,6 +269,27 @@
 
         <div class="nw-user-pos-tag" id="nwUserPositionTag">
           👤 Your Position: Not in sequence
+        </div>
+      </div>
+
+      <!-- Toggle Arrow Button for Full Sequence Members List -->
+      <div class="nw-all-members-toggle-wrap">
+        <button class="btn-toggle-all-members" id="btnToggleAllMembers" onclick="window.NonWorkingSystem.toggleAllMembers()">
+          <span>👥 View Full Sequence Members List (<span id="nwAllMembersCount">0</span>)</span>
+          <span class="toggle-arrow" id="nwToggleArrow">▼</span>
+        </button>
+      </div>
+
+      <!-- Expandable Sequence Drawer -->
+      <div class="nw-all-members-drawer" id="nwAllMembersDrawer" style="display:none;">
+        <div class="nw-all-members-header">
+          <h4 id="nwAllMembersHeading">📜 Chronological Sequence in Level 1</h4>
+          <div>
+            <input type="text" class="nw-seq-search-input" id="nwSeqSearch" placeholder="Search member, handle, #..." oninput="window.NonWorkingSystem.filterSequenceList()" />
+          </div>
+        </div>
+        <div class="nw-seq-list" id="nwSeqList">
+          <!-- Populated dynamically by js/non-working.js -->
         </div>
       </div>
 

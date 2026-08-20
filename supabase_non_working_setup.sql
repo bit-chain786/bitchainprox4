@@ -255,10 +255,10 @@ BEGIN
      WHERE level = v_level AND sequence_num = v_pool.target_recipient_seq;
 
     IF v_recip_id IS NOT NULL THEN
-      -- Check 2 Direct Referrals Requirement
+      -- Determine Direct Referrals Requirement (Starter = 1 direct, Higher ranks = 2 directs)
       v_direct_count := public.get_user_direct_count(v_recip_id);
 
-      IF v_direct_count >= 2 THEN
+      IF (v_level = 1 AND v_direct_count >= 1) OR (v_level > 1 AND v_direct_count >= 2) THEN
         -- Eligible: Credit Recipient's Profile Immediately
         UPDATE public.profiles
            SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
@@ -286,16 +286,16 @@ BEGIN
           amount, status, requires_directs, distributed_at
         ) VALUES (
           v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-          v_pool.total_pool_amount, 'paid', 2, NOW()
+          v_pool.total_pool_amount, 'paid', (CASE WHEN v_level = 1 THEN 1 ELSE 2 END), NOW()
         );
       ELSE
-        -- Ineligible (needs 2 directs): Record Distribution as Pending Claim
+        -- Ineligible (needs 1 direct for L1 or 2 directs for L2+): Record Distribution as Pending Claim
         INSERT INTO public.non_working_distributions (
           pool_id, level, pool_num, recipient_user_id, recipient_username,
           amount, status, requires_directs, distributed_at
         ) VALUES (
           v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-          v_pool.total_pool_amount, 'pending_directs', 2, NOW()
+          v_pool.total_pool_amount, 'pending_directs', (CASE WHEN v_level = 1 THEN 1 ELSE 2 END), NOW()
         );
       END IF;
 
@@ -321,13 +321,14 @@ CREATE TRIGGER trg_package_non_working_income
   FOR EACH ROW
   EXECUTE FUNCTION public.process_non_working_income();
 
--- 10. CLAIM FUNCTION FOR USERS (when 2 directs achieved)
+-- 10. CLAIM FUNCTION FOR USERS (when 1 direct for Starter or 2 directs for higher levels achieved)
 CREATE OR REPLACE FUNCTION public.claim_non_working_reward(p_distribution_id UUID)
 RETURNS JSONB AS $$
 DECLARE
   v_user_id UUID;
   v_dist RECORD;
   v_direct_count INT;
+  v_needed INT;
   v_level_name TEXT;
 BEGIN
   v_user_id := auth.uid();
@@ -347,12 +348,14 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Reward has already been claimed');
   END IF;
 
-  -- Verify 2 Direct Referrals
+  v_needed := CASE WHEN v_dist.level = 1 THEN 1 ELSE 2 END;
+
+  -- Verify Direct Referrals
   v_direct_count := public.get_user_direct_count(v_user_id);
-  IF v_direct_count < 2 THEN
+  IF v_direct_count < v_needed THEN
     RETURN jsonb_build_object(
       'success', false,
-      'error', '2 Direct Referrals required to claim (You have: ' || v_direct_count || '/2)'
+      'error', v_needed || ' Direct Referral(s) required to claim (You have: ' || v_direct_count || '/' || v_needed || ')'
     );
   END IF;
 

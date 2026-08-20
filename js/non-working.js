@@ -230,8 +230,6 @@
         } catch (_) {}
       }
 
-      const totalMembersCount = levelMembers.length;
-
       // 2. Fetch all pools for this level
       const { data: pools } = await client
         .from('non_working_pools')
@@ -242,7 +240,7 @@
       const levelPools = pools || [];
 
       // Determine active pool number: ((totalMembersCount) / 5) + 1
-      const activePoolNum = Math.floor(totalMembersCount / 5) + 1;
+      const activePoolNum = Math.floor(levelMembers.length / 5) + 1;
       const activePoolRecord = levelPools.find(p => p.pool_num === activePoolNum) || null;
 
       // Members in active pool block: sequence ((activePoolNum-1)*5 + 1) to (activePoolNum*5)
@@ -252,6 +250,16 @@
 
       // Render Active Pool Card
       renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers);
+
+      // Render Sequence List in Drawer
+      _currentLevelMembers = levelMembers;
+      const countEl = document.getElementById('nwAllMembersCount');
+      if (countEl) countEl.textContent = levelMembers.length;
+
+      const headingEl = document.getElementById('nwAllMembersHeading');
+      if (headingEl) headingEl.textContent = `📜 Chronological Sequence in Level ${lvl} (${tier.name})`;
+
+      renderSequenceList(levelMembers, tier);
 
       // Render Achievers Table
       renderAchieversTable(levelMembers, tier);
@@ -358,6 +366,73 @@
     }
   }
 
+  // ─── Render All Members Sequence Drawer List ──────────────────────────────
+  let _currentLevelMembers = [];
+
+  function renderSequenceList(members, tier) {
+    const listEl = document.getElementById('nwSeqList');
+    if (!listEl) return;
+
+    const t = tier || NW_TIERS[_selectedLevel - 1];
+    const query = (document.getElementById('nwSeqSearch')?.value || '').toLowerCase().trim();
+
+    let filtered = members || [];
+    if (query) {
+      filtered = filtered.filter(m => {
+        const u = (m.username || '').toLowerCase();
+        const fn = (m.full_name || '').toLowerCase();
+        const seq = String(m.sequence_num);
+        return u.includes(query) || fn.includes(query) || seq.includes(query) || ('#' + seq).includes(query);
+      });
+    }
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = `<div class="nw-empty-state" style="padding:20px;text-align:center;">No sequence members matching "${query}" in this level yet.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(m => {
+      const isMe = (m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
+
+      return `
+        <div class="nw-seq-item ${isMe ? 'is-me' : ''}">
+          <div class="nw-seq-item-left">
+            <div class="nw-seq-num-badge">#${m.sequence_num}</div>
+            <div class="nw-seq-user-info">
+              <div class="nw-seq-user-name">
+                <span>${m.full_name || m.username}</span>
+                <span style="color:rgba(224,170,255,0.6);font-weight:400;font-size:0.75rem;">(@${m.username})</span>
+                ${isMe ? '<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;">⭐ YOU</span>' : ''}
+              </div>
+              <div class="nw-seq-user-details">
+                ${m.rank_name || t.name} · Joined: ${fmtDate(m.created_at)}
+              </div>
+            </div>
+          </div>
+          <div class="nw-seq-item-right">
+            <div class="nw-seq-contrib-val">+$${fmt(m.contribution_amount || t.contrib)} USDT</div>
+            <div class="nw-seq-pool-tag">Assigned to Pool #${m.pool_num}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ─── Toggle All Members Drawer ────────────────────────────────────────────
+  function toggleAllMembers() {
+    const drawer = document.getElementById('nwAllMembersDrawer');
+    const btn = document.getElementById('btnToggleAllMembers');
+    if (!drawer || !btn) return;
+
+    const isOpen = drawer.style.display !== 'none';
+    drawer.style.display = isOpen ? 'none' : 'block';
+    btn.classList.toggle('open', !isOpen);
+  }
+
+  function filterSequenceList() {
+    renderSequenceList(_currentLevelMembers, NW_TIERS[_selectedLevel - 1]);
+  }
+
   // ─── Render Achievers Table ────────────────────────────────────────────────
   function renderAchieversTable(members, tier) {
     const tbody = document.getElementById('nwAchieversTbody');
@@ -433,7 +508,9 @@
       });
 
       const count = directs.length;
-      const isQualified = count >= 2;
+      // Requirement: Starter Level 1 requires 1 direct, Higher ranks require 2 directs
+      const requiredDirects = (_selectedLevel === 1 ? 1 : 2);
+      const isQualified = count >= requiredDirects;
 
       // Status Pill
       const pill = document.getElementById('nwReqStatusPill');
@@ -442,10 +519,12 @@
       if (pill && icon && text) {
         pill.className = `nw-req-status-pill ${isQualified ? 'qualified' : 'pending'}`;
         icon.textContent = isQualified ? '✅' : '⏳';
-        text.textContent = isQualified ? `${count} / 2 Directs (Qualified & Ready)` : `${count} / 2 Directs Active`;
+        text.textContent = isQualified
+          ? `${count} / ${requiredDirects} Direct${requiredDirects > 1 ? 's' : ''} (Qualified & Ready)`
+          : `${count} / ${requiredDirects} Direct${requiredDirects > 1 ? 's' : ''} Active`;
       }
 
-      // Slot 1
+      // Slot 1 (Required for Starter)
       const slot1 = document.getElementById('nwReqSlot1');
       const status1 = document.getElementById('nwReqStatus1');
       const badge1 = document.getElementById('nwReqBadge1');
@@ -459,7 +538,7 @@
         if (badge1) { badge1.textContent = '⏳'; badge1.style.opacity = '0.5'; }
       }
 
-      // Slot 2
+      // Slot 2 (Required for Basic & Higher)
       const slot2 = document.getElementById('nwReqSlot2');
       const status2 = document.getElementById('nwReqStatus2');
       const badge2 = document.getElementById('nwReqBadge2');
@@ -495,17 +574,20 @@
       if (claimWrap) {
         if (pendingDists && pendingDists.length > 0) {
           claimWrap.style.display = 'block';
-          if (isQualified) {
-            const firstPending = pendingDists[0];
+          const firstPending = pendingDists[0];
+          const needed = (firstPending.level === 1 ? 1 : 2);
+          const hasEnough = count >= needed;
+
+          if (hasEnough) {
             claimWrap.innerHTML = `
               <button class="btn-claim-reward" onclick="window.NonWorkingSystem.claimReward('${firstPending.id}')">
-                ⚡ Claim $${fmt(firstPending.amount)} USDT Reward (2 Directs Qualified)
+                ⚡ Claim $${fmt(firstPending.amount)} USDT Reward (${needed} Direct${needed > 1 ? 's' : ''} Qualified)
               </button>
             `;
           } else {
             claimWrap.innerHTML = `
               <span style="font-size:0.75rem;color:#ffd166;font-weight:700;">
-                🔒 $${fmt(pendingDists[0].amount)} Reward Pending — Invite 2 Directs to Claim!
+                🔒 $${fmt(firstPending.amount)} Reward Pending — Invite ${needed} Direct${needed > 1 ? 's' : ''} to Claim!
               </span>
             `;
           }
@@ -614,7 +696,9 @@
     init: initNonWorkingPage,
     selectLevel: selectLevel,
     copyReferralLink: copyReferralLink,
-    claimReward: claimReward
+    claimReward: claimReward,
+    toggleAllMembers: toggleAllMembers,
+    filterSequenceList: filterSequenceList
   };
 
   document.addEventListener('DOMContentLoaded', () => {
