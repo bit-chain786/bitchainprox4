@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) CSS
    Dark Luxury Theme, Glowing 5-User Progress Rings, Animated Prize Badges
    ========================================================================== */
@@ -639,11 +639,217 @@
   font-size: 0.82rem;
 }
 
+/* ── 2 Directs Requirement Card ── */
+.nw-req-card {
+  background: linear-gradient(135deg, rgba(30, 8, 58, 0.95) 0%, rgba(14, 0, 30, 0.98) 100%);
+  border: 1px solid rgba(255, 209, 102, 0.35);
+  border-radius: 18px;
+  padding: 22px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 209, 102, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.nw-req-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nw-req-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nw-req-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.2), rgba(157, 78, 221, 0.3));
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.nw-req-heading {
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0;
+}
+
+.nw-req-subtext {
+  font-size: 0.78rem;
+  color: rgba(224, 170, 255, 0.75);
+  margin: 2px 0 0;
+}
+
+.nw-req-status-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nw-req-status-pill.qualified {
+  background: rgba(0, 245, 212, 0.15);
+  color: #00f5d4;
+  border: 1px solid rgba(0, 245, 212, 0.5);
+  box-shadow: 0 0 12px rgba(0, 245, 212, 0.2);
+}
+
+.nw-req-status-pill.pending {
+  background: rgba(255, 209, 102, 0.15);
+  color: #ffd166;
+  border: 1px solid rgba(255, 209, 102, 0.5);
+}
+
+.nw-req-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nw-req-slot {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(199, 125, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nw-req-slot.active {
+  background: rgba(0, 245, 212, 0.08);
+  border: 1px solid rgba(0, 245, 212, 0.4);
+}
+
+.nw-req-slot-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nw-req-slot-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.nw-req-slot.active .nw-req-slot-avatar {
+  background: linear-gradient(135deg, #7b2cbf, #00f5d4);
+  color: #fff;
+}
+
+.nw-req-slot-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.nw-req-slot-status {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nw-req-slot.active .nw-req-slot-status {
+  color: #00f5d4;
+  font-weight: 700;
+}
+
+.nw-req-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nw-ref-link-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(199, 125, 255, 0.25);
+  border-radius: 10px;
+  padding: 6px 12px;
+  flex: 1;
+  max-width: 460px;
+}
+
+.nw-ref-input {
+  background: transparent;
+  border: none;
+  color: #e0aaff;
+  font-size: 0.78rem;
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+}
+
+.btn-copy-ref {
+  background: rgba(199, 125, 255, 0.2);
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-ref:hover {
+  background: #00f5d4;
+  color: #000;
+  border-color: #00f5d4;
+}
+
+.btn-claim-reward {
+  background: linear-gradient(135deg, #00f5d4 0%, #06d6a0 100%);
+  color: #000;
+  font-weight: 900;
+  font-size: 0.82rem;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 245, 212, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-claim-reward:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 245, 212, 0.6);
+}
+
 /* ── Responsive ── */
 @media (max-width: 992px) {
   .nw-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .nw-levels-grid { grid-template-columns: repeat(2, 1fr); }
   .nw-tables-container { grid-template-columns: 1fr; }
+  .nw-req-slots-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -651,4 +857,7 @@
   .nw-slots-row { grid-template-columns: 1fr; gap: 8px; }
   .nw-slot-card { flex-direction: row; justify-content: space-between; padding: 10px 14px; }
   .nw-slot-user { max-width: none; }
+  .nw-ref-link-box { max-width: 100%; width: 100%; }
+  .nw-req-footer { flex-direction: column; align-items: stretch; }
 }
+

@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) JS
    Live Supabase Realtime Synchronization, 5-Member Progression & Lock Engine
    ========================================================================== */
@@ -87,6 +87,9 @@
       renderHeaderStats();
       renderLevelTabs();
       renderMiniLevelsGrid();
+
+      // Load 2 Directs Requirement & Pending Rewards
+      await loadDirectsRequirement();
 
       // Load live pool data
       await loadLevelData(_selectedLevel);
@@ -387,6 +390,178 @@
     `).join('');
   }
 
+  // ─── 2 Direct Referrals Requirement Engine ───────────────────────────────
+  async function loadDirectsRequirement() {
+    const client = getClient();
+    if (!client || !_activeUser) return;
+
+    try {
+      const uName = (_userProfile?.username || '').trim().toLowerCase();
+      const refCode = (_userProfile?.referral_code || '').trim().toLowerCase();
+
+      // Query Direct Referrals
+      const { data: allDirects } = await client
+        .from('profiles')
+        .select('id, username, full_name, current_rank, created_at, sponsor_username')
+        .neq('id', _activeUser.id);
+
+      const directs = (allDirects || []).filter(p => {
+        const sp = (p.sponsor_username || '').trim().toLowerCase();
+        return (uName && sp === uName) || (refCode && sp === refCode);
+      });
+
+      const count = directs.length;
+      const isQualified = count >= 2;
+
+      // Status Pill
+      const pill = document.getElementById('nwReqStatusPill');
+      const icon = document.getElementById('nwReqStatusIcon');
+      const text = document.getElementById('nwReqStatusText');
+      if (pill && icon && text) {
+        pill.className = `nw-req-status-pill ${isQualified ? 'qualified' : 'pending'}`;
+        icon.textContent = isQualified ? '✅' : '⏳';
+        text.textContent = isQualified ? `${count} / 2 Directs (Qualified & Ready)` : `${count} / 2 Directs Active`;
+      }
+
+      // Slot 1
+      const slot1 = document.getElementById('nwReqSlot1');
+      const status1 = document.getElementById('nwReqStatus1');
+      const badge1 = document.getElementById('nwReqBadge1');
+      if (directs[0]) {
+        if (slot1) slot1.className = 'nw-req-slot active';
+        if (status1) status1.textContent = `${directs[0].full_name || directs[0].username} (@${directs[0].username})`;
+        if (badge1) { badge1.textContent = '✅'; badge1.style.opacity = '1'; }
+      } else {
+        if (slot1) slot1.className = 'nw-req-slot';
+        if (status1) status1.textContent = 'Waiting for direct signup…';
+        if (badge1) { badge1.textContent = '⏳'; badge1.style.opacity = '0.5'; }
+      }
+
+      // Slot 2
+      const slot2 = document.getElementById('nwReqSlot2');
+      const status2 = document.getElementById('nwReqStatus2');
+      const badge2 = document.getElementById('nwReqBadge2');
+      if (directs[1]) {
+        if (slot2) slot2.className = 'nw-req-slot active';
+        if (status2) status2.textContent = `${directs[1].full_name || directs[1].username} (@${directs[1].username})`;
+        if (badge2) { badge2.textContent = '✅'; badge2.style.opacity = '1'; }
+      } else {
+        if (slot2) slot2.className = 'nw-req-slot';
+        if (status2) status2.textContent = 'Waiting for direct signup…';
+        if (badge2) { badge2.textContent = '⏳'; badge2.style.opacity = '0.5'; }
+      }
+
+      // Referral Link Input
+      const refInput = document.getElementById('nwRefLinkInput');
+      if (refInput) {
+        const refParam = _userProfile?.referral_code || _userProfile?.username || _activeUser.id.substring(0, 8);
+        const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        refInput.value = `${origin}/register.html?ref=${refParam}`;
+      }
+
+      // Check for Pending Claimable Distributions
+      const { data: pendingDists } = await client
+        .from('non_working_distributions')
+        .select('*')
+        .eq('recipient_user_id', _activeUser.id)
+        .eq('status', 'pending_directs');
+
+      const claimWrap = document.getElementById('nwPendingClaimAction');
+      if (claimWrap) {
+        if (pendingDists && pendingDists.length > 0) {
+          claimWrap.style.display = 'block';
+          if (isQualified) {
+            const firstPending = pendingDists[0];
+            claimWrap.innerHTML = `
+              <button class="btn-claim-reward" onclick="window.NonWorkingSystem.claimReward('${firstPending.id}')">
+                ⚡ Claim $${fmt(firstPending.amount)} USDT Reward (2 Directs Qualified)
+              </button>
+            `;
+          } else {
+            claimWrap.innerHTML = `
+              <span style="font-size:0.75rem;color:#ffd166;font-weight:700;">
+                🔒 $${fmt(pendingDists[0].amount)} Reward Pending — Invite 2 Directs to Claim!
+              </span>
+            `;
+          }
+        } else {
+          claimWrap.style.display = 'none';
+        }
+      }
+
+    } catch (e) {
+      console.warn('Error loading directs requirement:', e);
+    }
+  }
+
+  // ─── Copy Referral Link ───────────────────────────────────────────────────
+  function copyReferralLink() {
+    const input = document.getElementById('nwRefLinkInput');
+    if (!input || !input.value) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(input.value).then(() => {
+        showCopyToast('Referral Link Copied to Clipboard!');
+      });
+    } else {
+      input.select();
+      document.execCommand('copy');
+      showCopyToast('Referral Link Copied to Clipboard!');
+    }
+  }
+
+  function showCopyToast(msg) {
+    const btn = document.querySelector('.btn-copy-ref');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      btn.style.background = '#00f5d4';
+      btn.style.color = '#000';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2500);
+    }
+  }
+
+  // ─── Claim Non-Working Reward ─────────────────────────────────────────────
+  async function claimReward(distributionId) {
+    const client = getClient();
+    if (!client || !distributionId) return;
+
+    const btn = document.querySelector('.btn-claim-reward');
+    if (btn) { btn.disabled = true; btn.textContent = 'Claiming…'; }
+
+    try {
+      const { data, error } = await client.rpc('claim_non_working_reward', { p_distribution_id: distributionId });
+
+      if (error) {
+        alert(error.message || 'Failed to claim reward');
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+        return;
+      }
+
+      if (data && data.success) {
+        alert(`🎉 Success! $${parseFloat(data.amount).toFixed(2)} USDT has been credited to your available balance!`);
+        // Refresh balance & requirements
+        if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
+          _userProfile = await window.BitchainAuth.getUserProfile(_activeUser.id);
+        }
+        renderHeaderStats();
+        await loadDirectsRequirement();
+        await loadLevelData(_selectedLevel);
+      } else {
+        alert(data?.error || 'Could not claim reward');
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+      }
+    } catch (err) {
+      console.error('Claim exception:', err);
+      alert('Network error while claiming reward.');
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+    }
+  }
+
   // ─── Realtime Subscriptions ────────────────────────────────────────────────
   function setupRealtimeSubscriptions() {
     const client = getClient();
@@ -396,10 +571,15 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'non_working_members' }, () => {
         loadLevelData(_selectedLevel);
         renderHeaderStats();
+        loadDirectsRequirement();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'non_working_pools' }, () => {
         loadLevelData(_selectedLevel);
         renderHeaderStats();
+        loadDirectsRequirement();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'non_working_distributions' }, () => {
+        loadDirectsRequirement();
       })
       .subscribe();
   }
@@ -407,7 +587,9 @@
   // Global exports
   window.NonWorkingSystem = {
     init: initNonWorkingPage,
-    selectLevel: selectLevel
+    selectLevel: selectLevel,
+    copyReferralLink: copyReferralLink,
+    claimReward: claimReward
   };
 
   document.addEventListener('DOMContentLoaded', () => {

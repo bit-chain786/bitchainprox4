@@ -1,6 +1,5 @@
--- ============================================================================
--- BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) + TODAY INCOME ENGINE
--- Run this script in the Supabase SQL Editor (https://app.supabase.com)
+﻿-- ============================================================================
+-- BITCHAIN PRO X — NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM) + 2 DIRECTS REQUIREMENT
 -- ============================================================================
 
 -- 1. Helper function for Rank Levels (1..8)
@@ -41,10 +40,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 2. Ensure non_working_income column exists in profiles
+-- 2. Direct Referrals Count Helper
+CREATE OR REPLACE FUNCTION public.get_user_direct_count(p_user_id UUID)
+RETURNS INT AS $$
+DECLARE
+  v_uname TEXT;
+  v_refcode TEXT;
+  v_count INT;
+BEGIN
+  SELECT username, referral_code INTO v_uname, v_refcode
+    FROM public.profiles WHERE id = p_user_id;
+
+  SELECT COUNT(*) INTO v_count
+    FROM public.profiles
+   WHERE id != p_user_id
+     AND (
+       (sponsor_id = p_user_id) OR
+       (v_uname IS NOT NULL AND TRIM(v_uname) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_uname))) OR
+       (v_refcode IS NOT NULL AND TRIM(v_refcode) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_refcode)))
+     );
+
+  RETURN COALESCE(v_count, 0);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_user_direct_count(UUID) TO authenticated, anon;
+
+-- 3. Ensure non_working_income column exists in profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS non_working_income NUMERIC(14,2) DEFAULT 0.00;
 
--- 3. Non-Working Pools Table (8 Levels, non-overlapping blocks of 5)
+-- 4. Non-Working Pools Table (8 Levels, non-overlapping blocks of 5)
 CREATE TABLE IF NOT EXISTS public.non_working_pools (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   level                 INT NOT NULL, -- 1..8
@@ -62,7 +87,7 @@ CREATE TABLE IF NOT EXISTS public.non_working_pools (
   CONSTRAINT uq_non_working_pool UNIQUE (level, pool_num)
 );
 
--- 4. Non-Working Members Table (Chronological Sequence Numbers per Level)
+-- 5. Non-Working Members Table (Chronological Sequence Numbers per Level)
 CREATE TABLE IF NOT EXISTS public.non_working_members (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   level                 INT NOT NULL, -- 1..8
@@ -80,7 +105,7 @@ CREATE TABLE IF NOT EXISTS public.non_working_members (
   CONSTRAINT uq_non_working_seq UNIQUE (level, sequence_num)
 );
 
--- 5. Non-Working Distribution Log
+-- 6. Non-Working Distribution Log
 CREATE TABLE IF NOT EXISTS public.non_working_distributions (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pool_id               UUID NOT NULL REFERENCES public.non_working_pools(id) ON DELETE CASCADE,
@@ -89,16 +114,16 @@ CREATE TABLE IF NOT EXISTS public.non_working_distributions (
   recipient_user_id     UUID NOT NULL,
   recipient_username    TEXT,
   amount                NUMERIC(14,2) NOT NULL,
-  status                TEXT NOT NULL DEFAULT 'paid',
+  status                TEXT NOT NULL DEFAULT 'paid', -- 'paid' or 'pending_directs'
+  requires_directs      INT NOT NULL DEFAULT 2,
   distributed_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 6. Enable RLS on all Non-Working tables
+-- 7. Enable RLS on all Non-Working tables
 ALTER TABLE public.non_working_pools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.non_working_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.non_working_distributions ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
 DROP POLICY IF EXISTS "Public can view non_working_pools" ON public.non_working_pools;
 CREATE POLICY "Public can view non_working_pools"
   ON public.non_working_pools FOR SELECT
@@ -117,12 +142,11 @@ CREATE POLICY "Public can view non_working_distributions"
   TO authenticated, anon
   USING (true);
 
--- Grant permissions
 GRANT ALL ON public.non_working_pools TO authenticated, anon, service_role;
 GRANT ALL ON public.non_working_members TO authenticated, anon, service_role;
 GRANT ALL ON public.non_working_distributions TO authenticated, anon, service_role;
 
--- 7. CORE PROCESSING FUNCTION (SECURITY DEFINER)
+-- 8. CORE PROCESSING FUNCTION (SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.process_non_working_income()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -136,11 +160,11 @@ DECLARE
   v_recip_id            UUID;
   v_recip_username      TEXT;
   v_already_processed   BOOLEAN;
+  v_direct_count        INT;
 BEGIN
   -- 1. Determine Level from rank / package
   v_level := public.get_rank_level(COALESCE(NEW.rank_name, NEW.package_name, NEW.package_key));
   IF v_level <= 0 OR v_level > 8 THEN
-    -- Fallback by purchase amount
     IF NEW.amount >= 640 THEN v_level := 8;
     ELSIF NEW.amount >= 320 THEN v_level := 7;
     ELSIF NEW.amount >= 160 THEN v_level := 6;
@@ -180,9 +204,6 @@ BEGIN
    WHERE level = v_level;
 
   -- 6. Determine Non-Overlapping Pool Number (Blocks of 5)
-  -- User 1..5 -> Pool 1 (Winner: User 1)
-  -- User 6..10 -> Pool 2 (Winner: User 2)
-  -- User 11..15 -> Pool 3 (Winner: User 3)
   v_pool_num := ((v_seq - 1) / 5) + 1;
 
   -- 7. Find or Create Pool Record
@@ -192,7 +213,6 @@ BEGIN
    FOR UPDATE;
 
   IF NOT FOUND THEN
-    -- Look up designated winner for this pool (User with sequence_num = v_pool_num in this level)
     SELECT user_id, username INTO v_recip_id, v_recip_username
       FROM public.non_working_members
      WHERE level = v_level AND sequence_num = v_pool_num;
@@ -230,41 +250,54 @@ BEGIN
 
   -- 10. Check if 5-Member Block is Complete
   IF v_pool.current_count >= 5 AND v_pool.status = 'active' THEN
-    -- Look up recipient (User with sequence_num = v_pool_num in this level)
     SELECT user_id, username INTO v_recip_id, v_recip_username
       FROM public.non_working_members
      WHERE level = v_level AND sequence_num = v_pool.target_recipient_seq;
 
     IF v_recip_id IS NOT NULL THEN
-      -- Credit Recipient's Profile
-      UPDATE public.profiles
-         SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
-             total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
-             non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
-             updated_at         = NOW()
-       WHERE id = v_recip_id;
+      -- Check 2 Direct Referrals Requirement
+      v_direct_count := public.get_user_direct_count(v_recip_id);
 
-      -- Record in activities table
-      INSERT INTO public.activities (
-        user_id, category, type, title, details, amount, created_at
-      ) VALUES (
-        v_recip_id,
-        'non_working',
-        'income',
-        'Non-Working Income Received',
-        'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' Prize Completed — $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT (5 Members)',
-        v_pool.total_pool_amount,
-        NOW()
-      );
+      IF v_direct_count >= 2 THEN
+        -- Eligible: Credit Recipient's Profile Immediately
+        UPDATE public.profiles
+           SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
+               total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
+               non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
+               updated_at         = NOW()
+         WHERE id = v_recip_id;
 
-      -- Record Distribution
-      INSERT INTO public.non_working_distributions (
-        pool_id, level, pool_num, recipient_user_id, recipient_username,
-        amount, status, distributed_at
-      ) VALUES (
-        v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-        v_pool.total_pool_amount, 'paid', NOW()
-      );
+        -- Record Activity
+        INSERT INTO public.activities (
+          user_id, category, type, title, details, amount, created_at
+        ) VALUES (
+          v_recip_id,
+          'non_working',
+          'income',
+          'Non-Working Income Received',
+          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' Prize Completed — $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT (5 Members)',
+          v_pool.total_pool_amount,
+          NOW()
+        );
+
+        -- Record Distribution as Paid
+        INSERT INTO public.non_working_distributions (
+          pool_id, level, pool_num, recipient_user_id, recipient_username,
+          amount, status, requires_directs, distributed_at
+        ) VALUES (
+          v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
+          v_pool.total_pool_amount, 'paid', 2, NOW()
+        );
+      ELSE
+        -- Ineligible (needs 2 directs): Record Distribution as Pending Claim
+        INSERT INTO public.non_working_distributions (
+          pool_id, level, pool_num, recipient_user_id, recipient_username,
+          amount, status, requires_directs, distributed_at
+        ) VALUES (
+          v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
+          v_pool.total_pool_amount, 'pending_directs', 2, NOW()
+        );
+      END IF;
 
       -- Mark Pool as Completed
       UPDATE public.non_working_pools
@@ -281,21 +314,95 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 8. Bind Trigger to package_purchases
+-- 9. Trigger on package_purchases
 DROP TRIGGER IF EXISTS trg_package_non_working_income ON public.package_purchases;
 CREATE TRIGGER trg_package_non_working_income
   AFTER INSERT ON public.package_purchases
   FOR EACH ROW
   EXECUTE FUNCTION public.process_non_working_income();
 
--- 9. DYNAMIC TODAY'S INCOME FUNCTION (Calculates only today's income since 00:00:00)
+-- 10. CLAIM FUNCTION FOR USERS (when 2 directs achieved)
+CREATE OR REPLACE FUNCTION public.claim_non_working_reward(p_distribution_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_user_id UUID;
+  v_dist RECORD;
+  v_direct_count INT;
+  v_level_name TEXT;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+
+  SELECT * INTO v_dist
+    FROM public.non_working_distributions
+   WHERE id = p_distribution_id AND recipient_user_id = v_user_id;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward record not found');
+  END IF;
+
+  IF v_dist.status = 'paid' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward has already been claimed');
+  END IF;
+
+  -- Verify 2 Direct Referrals
+  v_direct_count := public.get_user_direct_count(v_user_id);
+  IF v_direct_count < 2 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', '2 Direct Referrals required to claim (You have: ' || v_direct_count || '/2)'
+    );
+  END IF;
+
+  v_level_name := public.get_level_name(v_dist.level);
+
+  -- Credit Balance
+  UPDATE public.profiles
+     SET available_balance  = COALESCE(available_balance, 0) + v_dist.amount,
+         total_income       = COALESCE(total_income, 0) + v_dist.amount,
+         non_working_income = COALESCE(non_working_income, 0) + v_dist.amount,
+         updated_at         = NOW()
+   WHERE id = v_user_id;
+
+  -- Mark Paid
+  UPDATE public.non_working_distributions
+     SET status = 'paid',
+         distributed_at = NOW()
+   WHERE id = v_dist.id;
+
+  -- Record Activity Log
+  INSERT INTO public.activities (
+    user_id, category, type, title, details, amount, created_at
+  ) VALUES (
+    v_user_id,
+    'non_working',
+    'income',
+    'Non-Working Income Claimed',
+    'Claimed Level ' || v_dist.level || ' (' || v_level_name || ') Pool #' || v_dist.pool_num || ' Prize — $' || TO_CHAR(v_dist.amount, 'FM999,990.00') || ' USDT (2 Directs Verified)',
+    v_dist.amount,
+    NOW()
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'amount', v_dist.amount,
+    'level', v_dist.level,
+    'pool_num', v_dist.pool_num
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.claim_non_working_reward(UUID) TO authenticated, anon;
+
+-- 11. DYNAMIC TODAY'S INCOME FUNCTION (Calculates only today's income since 00:00:00)
 CREATE OR REPLACE FUNCTION public.get_user_today_income(p_user_id UUID)
 RETURNS NUMERIC AS $$
 DECLARE
   v_today_start TIMESTAMPTZ;
   v_today_income NUMERIC(14,2);
 BEGIN
-  -- 12:00 AM Midnight boundary of today
   v_today_start := DATE_TRUNC('day', NOW());
 
   SELECT COALESCE(SUM(amount), 0.00)
@@ -312,16 +419,15 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_user_today_income(UUID) TO authenticated, anon;
 
--- 10. Performance Indexes
+-- 12. Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_nw_pools_level ON public.non_working_pools(level);
 CREATE INDEX IF NOT EXISTS idx_nw_pools_status ON public.non_working_pools(status);
 CREATE INDEX IF NOT EXISTS idx_nw_members_level_seq ON public.non_working_members(level, sequence_num);
 CREATE INDEX IF NOT EXISTS idx_nw_members_user ON public.non_working_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_nw_distrib_user ON public.non_working_distributions(recipient_user_id);
 
--- 11. Realtime Publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_pools;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_members;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.non_working_distributions;
 
-SELECT 'Non-Working Income 30% 8-Level Pool Engine Installed Successfully!' AS result;
+SELECT 'Non-Working Income 30% 8-Level Pool Engine + 2 Directs Requirement Setup Successfully!' AS result;

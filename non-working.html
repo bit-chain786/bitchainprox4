@@ -137,6 +137,64 @@
       </div>
     </div>
 
+    <!-- 2.5 Non-Working Income Claim Requirement Card (2 Direct Users) -->
+    <div class="nw-req-card" id="nwReqCard">
+      <div class="nw-req-top">
+        <div class="nw-req-title-wrap">
+          <div class="nw-req-icon">📌</div>
+          <div>
+            <h3 class="nw-req-heading">Reward Claim Requirement: 2 Direct Referrals</h3>
+            <p class="nw-req-subtext">You must have at least 2 active direct referrals to claim and receive Non-Working Prize Pool earnings.</p>
+          </div>
+        </div>
+
+        <div class="nw-req-status-pill pending" id="nwReqStatusPill">
+          <span id="nwReqStatusIcon">⏳</span>
+          <span id="nwReqStatusText">0 / 2 Directs Active</span>
+        </div>
+      </div>
+
+      <!-- 2 Directs Status Slots -->
+      <div class="nw-req-slots-grid">
+        <div class="nw-req-slot" id="nwReqSlot1">
+          <div class="nw-req-slot-info">
+            <div class="nw-req-slot-avatar" id="nwReqAvatar1">1</div>
+            <div>
+              <div class="nw-req-slot-label">Direct Referral #1</div>
+              <div class="nw-req-slot-status" id="nwReqStatus1">Waiting for signup…</div>
+            </div>
+          </div>
+          <span id="nwReqBadge1" style="font-size:1.1rem;opacity:0.5;">⏳</span>
+        </div>
+
+        <div class="nw-req-slot" id="nwReqSlot2">
+          <div class="nw-req-slot-info">
+            <div class="nw-req-slot-avatar" id="nwReqAvatar2">2</div>
+            <div>
+              <div class="nw-req-slot-label">Direct Referral #2</div>
+              <div class="nw-req-slot-status" id="nwReqStatus2">Waiting for signup…</div>
+            </div>
+          </div>
+          <span id="nwReqBadge2" style="font-size:1.1rem;opacity:0.5;">⏳</span>
+        </div>
+      </div>
+
+      <!-- Pending Claim Actions / Referral Link Footer -->
+      <div class="nw-req-footer">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;">
+          <span style="font-size:0.75rem;font-weight:700;color:#ffd166;">🔗 Invite Direct Users:</span>
+          <div class="nw-ref-link-box">
+            <input type="text" class="nw-ref-input" id="nwRefLinkInput" readonly value="Loading referral link…" />
+            <button class="btn-copy-ref" onclick="window.NonWorkingSystem.copyReferralLink()">📋 Copy Link</button>
+          </div>
+        </div>
+
+        <div id="nwPendingClaimAction" style="display:none;">
+          <!-- Claim button dynamically shown if pending rewards exist -->
+        </div>
+      </div>
+    </div>
+
     <!-- 3. Level Selector Tabs -->
     <div class="nw-level-tabs-wrap">
       <div class="nw-level-tabs" id="nwLevelTabs">
