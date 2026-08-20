@@ -101,9 +101,13 @@ CREATE TABLE IF NOT EXISTS public.non_working_members (
   sequence_num          INT NOT NULL, -- 1, 2, 3... per level
   pool_id               UUID REFERENCES public.non_working_pools(id) ON DELETE SET NULL,
   pool_num              INT NOT NULL,
+  was_moved             BOOLEAN NOT NULL DEFAULT FALSE, -- TRUE if moved to end due to missing directs
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uq_non_working_seq UNIQUE (level, sequence_num)
 );
+
+-- Add was_moved column if table already exists (safe migration)
+ALTER TABLE public.non_working_members ADD COLUMN IF NOT EXISTS was_moved BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- 6. Non-Working Distribution Log
 CREATE TABLE IF NOT EXISTS public.non_working_distributions (
@@ -161,6 +165,11 @@ DECLARE
   v_recip_username      TEXT;
   v_already_processed   BOOLEAN;
   v_direct_count        INT;
+  v_target_seq          INT;
+  v_new_end_seq         INT;
+  v_winner_found        BOOLEAN;
+  v_required_directs    INT;
+  v_check_limit         INT;
 BEGIN
   -- 1. Determine Level from rank / package
   v_level := public.get_rank_level(COALESCE(NEW.rank_name, NEW.package_name, NEW.package_key));
@@ -177,6 +186,7 @@ BEGIN
   END IF;
 
   v_level_name := public.get_level_name(v_level);
+  v_required_directs := CASE WHEN v_level = 1 THEN 1 ELSE 2 END;
 
   -- 2. Duplicate Protection Check
   SELECT EXISTS(
@@ -250,16 +260,28 @@ BEGIN
 
   -- 10. Check if 5-Member Block is Complete
   IF v_pool.current_count >= 5 AND v_pool.status = 'active' THEN
-    SELECT user_id, username INTO v_recip_id, v_recip_username
-      FROM public.non_working_members
-     WHERE level = v_level AND sequence_num = v_pool.target_recipient_seq;
 
-    IF v_recip_id IS NOT NULL THEN
-      -- Determine Direct Referrals Requirement (Starter = 1 direct, Higher ranks = 2 directs)
+    v_target_seq  := v_pool.target_recipient_seq;
+    v_winner_found := FALSE;
+    v_check_limit  := 0;  -- safety counter to avoid infinite loop
+
+    -- ── SKIP-AND-MOVE Logic ─────────────────────────────────────────────────
+    -- Loop through candidates starting from target_recipient_seq.
+    -- If unqualified: move them to END of sequence, try next person.
+    -- If qualified: pay them immediately.
+    WHILE NOT v_winner_found AND v_check_limit < 50 LOOP
+      v_check_limit := v_check_limit + 1;
+
+      SELECT user_id, username INTO v_recip_id, v_recip_username
+        FROM public.non_working_members
+       WHERE level = v_level AND sequence_num = v_target_seq;
+
+      EXIT WHEN v_recip_id IS NULL;
+
       v_direct_count := public.get_user_direct_count(v_recip_id);
 
       IF (v_level = 1 AND v_direct_count >= 1) OR (v_level > 1 AND v_direct_count >= 2) THEN
-        -- Eligible: Credit Recipient's Profile Immediately
+        -- ✅ QUALIFIED: Pay this person immediately
         UPDATE public.profiles
            SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
                total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
@@ -267,7 +289,6 @@ BEGIN
                updated_at         = NOW()
          WHERE id = v_recip_id;
 
-        -- Record Activity
         INSERT INTO public.activities (
           user_id, category, type, title, details, amount, created_at
         ) VALUES (
@@ -275,39 +296,63 @@ BEGIN
           'non_working',
           'income',
           'Non-Working Income Received',
-          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' Prize Completed — $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT (5 Members)',
+          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' Prize — $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT',
           v_pool.total_pool_amount,
           NOW()
         );
 
-        -- Record Distribution as Paid
         INSERT INTO public.non_working_distributions (
           pool_id, level, pool_num, recipient_user_id, recipient_username,
           amount, status, requires_directs, distributed_at
         ) VALUES (
           v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-          v_pool.total_pool_amount, 'paid', (CASE WHEN v_level = 1 THEN 1 ELSE 2 END), NOW()
+          v_pool.total_pool_amount, 'paid', v_required_directs, NOW()
         );
-      ELSE
-        -- Ineligible (needs 1 direct for L1 or 2 directs for L2+): Record Distribution as Pending Claim
-        INSERT INTO public.non_working_distributions (
-          pool_id, level, pool_num, recipient_user_id, recipient_username,
-          amount, status, requires_directs, distributed_at
-        ) VALUES (
-          v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-          v_pool.total_pool_amount, 'pending_directs', (CASE WHEN v_level = 1 THEN 1 ELSE 2 END), NOW()
-        );
-      END IF;
 
-      -- Mark Pool as Completed
-      UPDATE public.non_working_pools
-         SET status = 'completed',
-             recipient_user_id = v_recip_id,
-             recipient_username = v_recip_username,
-             completed_at = NOW(),
-             updated_at = NOW()
-       WHERE id = v_pool.id;
-    END IF;
+        v_winner_found := TRUE;
+
+      ELSE
+        -- ❌ NOT QUALIFIED: Move this person to END of sequence
+        SELECT COALESCE(MAX(sequence_num), 0) + 1 INTO v_new_end_seq
+          FROM public.non_working_members
+         WHERE level = v_level;
+
+        UPDATE public.non_working_members
+           SET sequence_num = v_new_end_seq,
+               pool_num     = ((v_new_end_seq - 1) / 5) + 1,
+               pool_id      = NULL,  -- detached from old pool
+               was_moved    = TRUE   -- flag: skipped due to missing directs
+         WHERE user_id = v_recip_id AND level = v_level;
+
+        -- Notify skipped person via activity
+        INSERT INTO public.activities (
+          user_id, category, type, title, details, amount, created_at
+        ) VALUES (
+          v_recip_id,
+          'non_working',
+          'skipped',
+          'Non-Working Prize Skipped',
+          'You did not meet the ' || v_required_directs || ' direct referral requirement for Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || '. You have been moved to sequence #' || v_new_end_seq || '. Invite more directs to qualify for the next pool!',
+          0,
+          NOW()
+        );
+
+        -- Move to next candidate
+        v_target_seq  := v_target_seq + 1;
+        v_recip_id    := NULL;
+      END IF;
+    END LOOP;
+    -- ────────────────────────────────────────────────────────────────────────
+
+    -- Mark Pool as Completed with actual winner
+    UPDATE public.non_working_pools
+       SET status             = 'completed',
+           recipient_user_id  = v_recip_id,
+           recipient_username = v_recip_username,
+           completed_at       = NOW(),
+           updated_at         = NOW()
+     WHERE id = v_pool.id;
+
   END IF;
 
   RETURN NEW;

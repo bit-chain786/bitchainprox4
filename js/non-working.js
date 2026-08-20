@@ -286,16 +286,27 @@
       badgeEl.textContent = isCompleted ? `✓ POOL #${poolNum} COMPLETED` : `POOL #${poolNum} — IN PROGRESS (${count}/5)`;
     }
 
-    // Accumulated Prize Amount
-    let currentPoolAmount = blockMembers.reduce((acc, m) => acc + (parseFloat(m.contribution_amount) || tier.contrib), 0);
-    if (currentPoolAmount === 0) currentPoolAmount = tier.contrib * 5;
+    // Accumulated Prize Amount — use DB record if available, else sum from members
+    // NEVER fall back to max prize for empty pools (pool starts fresh at $0.00)
+    let currentPoolAmount;
+    if (poolRecord && typeof poolRecord.total_pool_amount === 'number') {
+      currentPoolAmount = poolRecord.total_pool_amount;
+    } else {
+      currentPoolAmount = blockMembers.reduce((acc, m) => acc + (parseFloat(m.contribution_amount) || 0), 0);
+    }
+
+    const maxPrize = tier.contrib * 5;
 
     const prizeEl = document.getElementById('nwPrizeAmount');
     if (prizeEl) prizeEl.textContent = `$${fmt(currentPoolAmount)} USDT`;
 
     const formulaEl = document.getElementById('nwPrizeFormula');
     if (formulaEl) {
-      formulaEl.textContent = `5 Users × $${tier.contrib.toFixed(2)} (30% of $${tier.price}) = $${(tier.contrib * 5).toFixed(2)} Total Prize Pool`;
+      if (count === 0) {
+        formulaEl.textContent = `New pool starting — 5 users × $${tier.contrib.toFixed(2)} (30% of $${tier.price}) = $${maxPrize.toFixed(2)} target prize`;
+      } else {
+        formulaEl.textContent = `${count} Users × $${tier.contrib.toFixed(2)} (30% of $${tier.price}) = $${fmt(currentPoolAmount)} USDT accumulated`;
+      }
     }
 
     // Progress Bar
@@ -394,9 +405,10 @@
 
     listEl.innerHTML = filtered.map(m => {
       const isMe = (m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
+      const wasMoved = m.was_moved === true;
 
       return `
-        <div class="nw-seq-item ${isMe ? 'is-me' : ''}">
+        <div class="nw-seq-item ${isMe ? 'is-me' : ''} ${wasMoved ? 'was-moved' : ''}">
           <div class="nw-seq-item-left">
             <div class="nw-seq-num-badge">#${m.sequence_num}</div>
             <div class="nw-seq-user-info">
@@ -404,9 +416,11 @@
                 <span>${m.full_name || m.username}</span>
                 <span style="color:rgba(224,170,255,0.6);font-weight:400;font-size:0.75rem;">(@${m.username})</span>
                 ${isMe ? '<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;">⭐ YOU</span>' : ''}
+                ${wasMoved ? '<span class="nw-moved-badge">⟳ Moved to End</span>' : ''}
               </div>
               <div class="nw-seq-user-details">
                 ${m.rank_name || t.name} · Joined: ${fmtDate(m.created_at)}
+                ${wasMoved ? '<span style="color:#f59e0b;font-size:0.7rem;margin-left:6px;">⚠ Missing directs — invite more to qualify</span>' : ''}
               </div>
             </div>
           </div>

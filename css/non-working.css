@@ -582,6 +582,33 @@
   color: #000;
 }
 
+/* ── Was-Moved (skipped due to missing directs) ─────────────────── */
+.nw-seq-item.was-moved {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(180, 60, 60, 0.12) 100%);
+  border: 1.5px dashed rgba(245, 158, 11, 0.5);
+  opacity: 0.85;
+}
+
+.nw-seq-item.was-moved .nw-seq-num-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.nw-moved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 6px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 .nw-seq-user-info {
   display: flex;
   flex-direction: column;
