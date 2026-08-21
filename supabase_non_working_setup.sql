@@ -261,90 +261,40 @@ BEGIN
   -- 10. Check if 5-Member Block is Complete
   IF v_pool.current_count >= 5 AND v_pool.status = 'active' THEN
 
-    v_target_seq  := v_pool.target_recipient_seq;
-    v_winner_found := FALSE;
-    v_check_limit  := 0;  -- safety counter to avoid infinite loop
+    -- Find the designated winner = first member of this pool (pool's target_recipient_seq)
+    SELECT user_id, username INTO v_recip_id, v_recip_username
+      FROM public.non_working_members
+     WHERE level = v_level AND sequence_num = v_pool.target_recipient_seq;
 
-    -- ── SKIP-AND-MOVE Logic ─────────────────────────────────────────────────
-    -- Loop through candidates starting from target_recipient_seq.
-    -- If unqualified: move them to END of sequence, try next person.
-    -- If qualified: pay them immediately.
-    WHILE NOT v_winner_found AND v_check_limit < 50 LOOP
-      v_check_limit := v_check_limit + 1;
+    -- ✅ Always create a CLAIMABLE distribution (no auto-pay — user must claim manually)
+    -- Only insert if not already inserted for this pool
+    IF v_recip_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.non_working_distributions
+       WHERE pool_id = v_pool.id AND recipient_user_id = v_recip_id
+    ) THEN
+      INSERT INTO public.non_working_distributions (
+        pool_id, level, pool_num, recipient_user_id, recipient_username,
+        amount, status, requires_directs, distributed_at
+      ) VALUES (
+        v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
+        v_pool.total_pool_amount, 'claimable', v_required_directs, NOW()
+      );
 
-      SELECT user_id, username INTO v_recip_id, v_recip_username
-        FROM public.non_working_members
-       WHERE level = v_level AND sequence_num = v_target_seq;
+      -- Notify winner: their prize is ready to claim
+      INSERT INTO public.activities (
+        user_id, category, type, title, details, amount, created_at
+      ) VALUES (
+        v_recip_id,
+        'non_working',
+        'claimable',
+        '🎉 Non-Working Prize Ready to Claim!',
+        'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' is complete! Your prize of $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT is ready. Go to Non-Working page to claim it.',
+        v_pool.total_pool_amount,
+        NOW()
+      );
+    END IF;
 
-      EXIT WHEN v_recip_id IS NULL;
-
-      v_direct_count := public.get_user_direct_count(v_recip_id);
-
-      IF (v_level = 1 AND v_direct_count >= 1) OR (v_level > 1 AND v_direct_count >= 2) THEN
-        -- ✅ QUALIFIED: Pay this person immediately
-        UPDATE public.profiles
-           SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
-               total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
-               non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
-               updated_at         = NOW()
-         WHERE id = v_recip_id;
-
-        INSERT INTO public.activities (
-          user_id, category, type, title, details, amount, created_at
-        ) VALUES (
-          v_recip_id,
-          'non_working',
-          'income',
-          'Non-Working Income Received',
-          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' Prize — $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT',
-          v_pool.total_pool_amount,
-          NOW()
-        );
-
-        INSERT INTO public.non_working_distributions (
-          pool_id, level, pool_num, recipient_user_id, recipient_username,
-          amount, status, requires_directs, distributed_at
-        ) VALUES (
-          v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-          v_pool.total_pool_amount, 'paid', v_required_directs, NOW()
-        );
-
-        v_winner_found := TRUE;
-
-      ELSE
-        -- ❌ NOT QUALIFIED: Move this person to END of sequence
-        SELECT COALESCE(MAX(sequence_num), 0) + 1 INTO v_new_end_seq
-          FROM public.non_working_members
-         WHERE level = v_level;
-
-        UPDATE public.non_working_members
-           SET sequence_num = v_new_end_seq,
-               pool_num     = ((v_new_end_seq - 1) / 5) + 1,
-               pool_id      = NULL,  -- detached from old pool
-               was_moved    = TRUE   -- flag: skipped due to missing directs
-         WHERE user_id = v_recip_id AND level = v_level;
-
-        -- Notify skipped person via activity
-        INSERT INTO public.activities (
-          user_id, category, type, title, details, amount, created_at
-        ) VALUES (
-          v_recip_id,
-          'non_working',
-          'skipped',
-          'Non-Working Prize Skipped',
-          'You did not meet the ' || v_required_directs || ' direct referral requirement for Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || '. You have been moved to sequence #' || v_new_end_seq || '. Invite more directs to qualify for the next pool!',
-          0,
-          NOW()
-        );
-
-        -- Move to next candidate
-        v_target_seq  := v_target_seq + 1;
-        v_recip_id    := NULL;
-      END IF;
-    END LOOP;
-    -- ────────────────────────────────────────────────────────────────────────
-
-    -- Mark Pool as Completed with actual winner
+    -- Mark Pool as Completed
     UPDATE public.non_working_pools
        SET status             = 'completed',
            recipient_user_id  = v_recip_id,
@@ -366,7 +316,7 @@ CREATE TRIGGER trg_package_non_working_income
   FOR EACH ROW
   EXECUTE FUNCTION public.process_non_working_income();
 
--- 10. CLAIM FUNCTION FOR USERS (when 1 direct for Starter or 2 directs for higher levels achieved)
+-- 10. CLAIM FUNCTION FOR USERS
 CREATE OR REPLACE FUNCTION public.claim_non_working_reward(p_distribution_id UUID)
 RETURNS JSONB AS $$
 DECLARE
@@ -383,24 +333,28 @@ BEGIN
 
   SELECT * INTO v_dist
     FROM public.non_working_distributions
-   WHERE id = p_distribution_id AND recipient_user_id = v_user_id;
+   WHERE id = p_distribution_id AND recipient_user_id = v_user_id
+   FOR UPDATE;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Reward record not found');
   END IF;
 
   IF v_dist.status = 'paid' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Reward has already been claimed');
+    RETURN jsonb_build_object('success', false, 'error', 'Reward already claimed');
+  END IF;
+
+  IF v_dist.status <> 'claimable' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward is not yet claimable');
   END IF;
 
   v_needed := CASE WHEN v_dist.level = 1 THEN 1 ELSE 2 END;
-
-  -- Verify Direct Referrals
   v_direct_count := public.get_user_direct_count(v_user_id);
+
   IF v_direct_count < v_needed THEN
     RETURN jsonb_build_object(
       'success', false,
-      'error', v_needed || ' Direct Referral(s) required to claim (You have: ' || v_direct_count || '/' || v_needed || ')'
+      'error', 'You need ' || v_needed || ' direct referral(s) to claim. You have ' || v_direct_count || '/' || v_needed
     );
   END IF;
 
@@ -414,31 +368,23 @@ BEGIN
          updated_at         = NOW()
    WHERE id = v_user_id;
 
-  -- Mark Paid
+  -- Mark Claimed
   UPDATE public.non_working_distributions
-     SET status = 'paid',
+     SET status         = 'paid',
          distributed_at = NOW()
    WHERE id = v_dist.id;
 
-  -- Record Activity Log
+  -- Activity Log
   INSERT INTO public.activities (
     user_id, category, type, title, details, amount, created_at
   ) VALUES (
-    v_user_id,
-    'non_working',
-    'income',
-    'Non-Working Income Claimed',
-    'Claimed Level ' || v_dist.level || ' (' || v_level_name || ') Pool #' || v_dist.pool_num || ' Prize — $' || TO_CHAR(v_dist.amount, 'FM999,990.00') || ' USDT (2 Directs Verified)',
-    v_dist.amount,
-    NOW()
+    v_user_id, 'non_working', 'income',
+    'Non-Working Income Claimed ✅',
+    'Level ' || v_dist.level || ' (' || v_level_name || ') Pool #' || v_dist.pool_num || ' — $' || TO_CHAR(v_dist.amount, 'FM999,990.00') || ' USDT credited to your wallet',
+    v_dist.amount, NOW()
   );
 
-  RETURN jsonb_build_object(
-    'success', true,
-    'amount', v_dist.amount,
-    'level', v_dist.level,
-    'pool_num', v_dist.pool_num
-  );
+  RETURN jsonb_build_object('success', true, 'amount', v_dist.amount, 'level', v_dist.level, 'pool_num', v_dist.pool_num);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -1304,3 +1304,109 @@
   .nw-gate-ref-row { flex-direction: column; }
   .nw-gate-copy-btn { width: 100%; }
 }
+
+/* --------------------------------------------------------------
+   CLAIM CARDS — Pool Prize Claim Section
+   -------------------------------------------------------------- */
+.nw-claims-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.nw-claims-heading {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.nw-claim-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.nw-claim-card.qualified {
+  background: linear-gradient(135deg, rgba(0,245,212,0.08) 0%, rgba(157,78,221,0.15) 100%);
+  border: 2px solid rgba(0,245,212,0.5);
+  box-shadow: 0 0 20px rgba(0,245,212,0.15);
+}
+
+.nw-claim-card.locked {
+  background: rgba(255,255,255,0.03);
+  border: 1.5px dashed rgba(255,209,102,0.35);
+}
+
+.nw-claim-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nw-claim-badge {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.nw-claim-level {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+.nw-claim-amount {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #00f5d4;
+}
+
+.nw-claim-card.locked .nw-claim-amount {
+  color: #ffd166;
+}
+
+.btn-claim-reward {
+  background: linear-gradient(135deg, #00f5d4, #00c4a8);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 0.88rem;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.btn-claim-reward:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.btn-claim-reward:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nw-claim-locked-msg {
+  font-size: 0.78rem;
+  color: #ffd166;
+  font-weight: 700;
+  padding: 8px 14px;
+  background: rgba(255,209,102,0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(255,209,102,0.25);
+}
+
+@media (max-width: 480px) {
+  .nw-claim-card { flex-direction: column; align-items: flex-start; }
+  .btn-claim-reward { width: 100%; text-align: center; }
+}

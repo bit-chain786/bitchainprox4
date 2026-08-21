@@ -719,34 +719,59 @@
         refInput.value = `${origin}/register.html?ref=${refParam}`;
       }
 
-      // Check for Pending Claimable Distributions
-      const { data: pendingDists } = await client
+      // Check for Claimable Distributions (pool completed, waiting for user to claim)
+      const { data: claimableDists } = await client
         .from('non_working_distributions')
         .select('*')
         .eq('recipient_user_id', _activeUser.id)
-        .eq('status', 'pending_directs');
+        .eq('status', 'claimable')
+        .order('distributed_at', { ascending: true });
 
       const claimWrap = document.getElementById('nwPendingClaimAction');
       if (claimWrap) {
-        if (pendingDists && pendingDists.length > 0) {
+        if (claimableDists && claimableDists.length > 0) {
           claimWrap.style.display = 'block';
-          const firstPending = pendingDists[0];
-          const needed = (firstPending.level === 1 ? 1 : 2);
-          const hasEnough = count >= needed;
 
-          if (hasEnough) {
-            claimWrap.innerHTML = `
-              <button class="btn-claim-reward" onclick="window.NonWorkingSystem.claimReward('${firstPending.id}')">
-                ⚡ Claim $${fmt(firstPending.amount)} USDT Reward (${needed} Direct${needed > 1 ? 's' : ''} Qualified)
-              </button>
-            `;
-          } else {
-            claimWrap.innerHTML = `
-              <span style="font-size:0.75rem;color:#ffd166;font-weight:700;">
-                🔒 $${fmt(firstPending.amount)} Reward Pending — Invite ${needed} Direct${needed > 1 ? 's' : ''} to Claim!
-              </span>
-            `;
-          }
+          const buttons = claimableDists.map(dist => {
+            const needed = (dist.level === 1) ? 1 : 2;
+            const hasEnough = count >= needed;
+            const tierName = ['','Starter','Basic','Silver','Gold','Diamond','Elite','Executive','Royal'][dist.level] || `Level ${dist.level}`;
+
+            if (hasEnough) {
+              return `
+                <div class="nw-claim-card qualified">
+                  <div class="nw-claim-card-info">
+                    <span class="nw-claim-badge">🏆 Pool #${dist.pool_num} Prize Ready</span>
+                    <span class="nw-claim-level">${tierName} · Level ${dist.level}</span>
+                  </div>
+                  <div class="nw-claim-amount">$${fmt(dist.amount)} USDT</div>
+                  <button class="btn-claim-reward" onclick="window.NonWorkingSystem.claimReward('${dist.id}', this)">
+                    ⚡ Claim $${fmt(dist.amount)} USDT
+                  </button>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="nw-claim-card locked">
+                  <div class="nw-claim-card-info">
+                    <span class="nw-claim-badge">🔒 Pool #${dist.pool_num} Prize Locked</span>
+                    <span class="nw-claim-level">${tierName} · Level ${dist.level}</span>
+                  </div>
+                  <div class="nw-claim-amount">$${fmt(dist.amount)} USDT</div>
+                  <div class="nw-claim-locked-msg">
+                    ⏳ Need ${needed} direct${needed > 1 ? 's' : ''} · You have ${count}/${needed}
+                  </div>
+                </div>
+              `;
+            }
+          }).join('');
+
+          claimWrap.innerHTML = `
+            <div class="nw-claims-section">
+              <div class="nw-claims-heading">🎉 Your Pool Prizes</div>
+              ${buttons}
+            </div>
+          `;
         } else {
           claimWrap.style.display = 'none';
         }
@@ -789,25 +814,29 @@
   }
 
   // ─── Claim Non-Working Reward ─────────────────────────────────────────────
-  async function claimReward(distributionId) {
+  async function claimReward(distributionId, btnEl) {
     const client = getClient();
     if (!client || !distributionId) return;
 
-    const btn = document.querySelector('.btn-claim-reward');
-    if (btn) { btn.disabled = true; btn.textContent = 'Claiming…'; }
+    const btn = btnEl || document.querySelector('.btn-claim-reward');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Claiming…'; }
 
     try {
       const { data, error } = await client.rpc('claim_non_working_reward', { p_distribution_id: distributionId });
 
       if (error) {
-        alert(error.message || 'Failed to claim reward');
-        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim USDT'; }
+        showNwToast(error.message || 'Failed to claim reward', 'error');
         return;
       }
 
       if (data && data.success) {
-        alert(`🎉 Success! $${parseFloat(data.amount).toFixed(2)} USDT has been credited to your available balance!`);
-        // Refresh balance & requirements
+        showNwToast(`🎉 $${parseFloat(data.amount).toFixed(2)} USDT claimed and added to your wallet!`, 'success');
+        if (btn) {
+          btn.textContent = '✅ Claimed!';
+          btn.style.background = '#00f5d4';
+          btn.style.color = '#000';
+        }
         if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
           _userProfile = await window.BitchainAuth.getUserProfile(_activeUser.id);
         }
