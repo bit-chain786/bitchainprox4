@@ -871,12 +871,12 @@
 
       if (error) {
         if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim USDT'; }
-        showNwToast(error.message || 'Failed to claim reward', 'error');
+        alert(error.message || 'Failed to claim reward');
         return;
       }
 
       if (data && data.success) {
-        showNwToast(`🎉 $${parseFloat(data.amount).toFixed(2)} USDT claimed and added to your wallet!`, 'success');
+        alert(`🎉 $${parseFloat(data.amount).toFixed(2)} USDT claimed and added to your wallet!`);
         if (btn) {
           btn.textContent = '✅ Claimed!';
           btn.style.background = '#00f5d4';
