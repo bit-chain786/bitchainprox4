@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- BITCHAIN PRO X — RANDOM 5-CHAR REFERRAL CODE & RANK GATE SETUP
 -- Run this script in your Supabase SQL Editor (https://app.supabase.com)
 -- ============================================================================
@@ -16,7 +16,7 @@ BEGIN
     v_code := '';
     FOR v_i IN 1..5 LOOP
       v_code := v_code || SUBSTRING(v_chars FROM FLOOR(RANDOM() * LENGTH(v_chars) + 1)::INT FOR 1);
-    END FOR;
+    END LOOP;
 
     SELECT EXISTS (
       SELECT 1 FROM public.profiles WHERE UPPER(referral_code) = v_code
