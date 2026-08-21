@@ -55,7 +55,6 @@ BEGIN
     FROM public.profiles
    WHERE id != p_user_id
      AND (
-       (sponsor_id = p_user_id) OR
        (v_uname IS NOT NULL AND TRIM(v_uname) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_uname))) OR
        (v_refcode IS NOT NULL AND TRIM(v_refcode) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_refcode)))
      );
