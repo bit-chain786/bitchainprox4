@@ -346,18 +346,21 @@ async function getUserActivities(userId, limit = 15) {
       });
     }
 
-    // 2. Deposits
+    // 2. Deposits — only show PENDING and REJECTED from the raw deposits table.
+    // Approved/completed deposits are already in the activities table (inserted by admin_process_deposit RPC).
+    // Showing them here too would cause duplicates in the activity feed.
     if (depRes.status === 'fulfilled' && depRes.value.data) {
       depRes.value.data.forEach(dep => {
         const st = (dep.status || 'pending').toLowerCase();
+
+        // Skip approved/completed — already shown via activities table
+        if (st === 'approved' || st === 'completed') return;
+
         let detailText = '';
         let titleText = 'Wallet Deposit';
         if (st === 'pending') {
           titleText = 'Deposit Pending';
           detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Awaiting admin approval`;
-        } else if (st === 'approved' || st === 'completed') {
-          titleText = 'Deposit Approved';
-          detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Approved & credited`;
         } else if (st === 'rejected') {
           titleText = 'Deposit Rejected';
           detailText = `BEP-20 USDT Deposit of $${parseFloat(dep.amount).toFixed(2)} — Rejected by admin`;
