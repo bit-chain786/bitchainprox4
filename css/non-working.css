@@ -1131,3 +1131,176 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   DIRECTS REQUIREMENT GATE
+   ══════════════════════════════════════════════════════════════ */
+.nw-directs-gate {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 16px;
+  margin: 16px 0 24px;
+}
+
+.nw-gate-inner {
+  background: linear-gradient(135deg, rgba(20,10,40,0.98) 0%, rgba(30,15,60,0.98) 100%);
+  border: 2px solid rgba(199,125,255,0.3);
+  border-radius: 20px;
+  padding: 36px 32px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(157,78,221,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+.nw-gate-icon {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(199,125,255,0.5));
+}
+
+.nw-gate-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.nw-gate-desc {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+}
+
+.nw-gate-desc strong {
+  color: #c77dff;
+}
+
+/* Progress bar */
+.nw-gate-progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.nw-gate-prog-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.nw-gate-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9d4edd, #c77dff);
+  border-radius: 99px;
+  transition: width 0.6s ease;
+  min-width: 4px;
+}
+
+.nw-gate-prog-text {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+/* Steps checklist */
+.nw-gate-steps {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.nw-gate-step {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+.nw-gate-step.done {
+  background: rgba(0,245,212,0.1);
+  border-color: rgba(0,245,212,0.4);
+  color: #00f5d4;
+}
+
+/* Referral box */
+.nw-gate-ref-box {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(199,125,255,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nw-gate-ref-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.5);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nw-gate-ref-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.nw-gate-ref-input {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(199,125,255,0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #c77dff;
+  font-size: 0.78rem;
+  outline: none;
+  font-family: monospace;
+}
+
+.nw-gate-copy-btn {
+  background: linear-gradient(135deg, #9d4edd, #c77dff);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.nw-gate-copy-btn:hover { opacity: 0.85; }
+
+/* Note text */
+.nw-gate-note {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+@media (max-width: 480px) {
+  .nw-gate-inner { padding: 24px 16px; }
+  .nw-gate-ref-row { flex-direction: column; }
+  .nw-gate-copy-btn { width: 100%; }
+}

@@ -193,7 +193,7 @@
     const subEl = document.getElementById('nwActiveLevelSub');
     if (subEl) subEl.textContent = `Rank Upgrade Tier: $${tier.price} USDT · 30% Contribution = $${tier.contrib.toFixed(2)} USDT per user`;
 
-    // Handle locked overlay
+    // Handle rank-locked overlay
     const lockOverlay = document.getElementById('nwLockedOverlay');
     if (lockOverlay) {
       if (!isUnlocked) {
@@ -204,6 +204,35 @@
         lockOverlay.style.display = 'none';
       }
     }
+
+    // ── DIRECTS REQUIREMENT GATE ─────────────────────────────────────────────
+    // Check if user meets direct referral requirement BEFORE loading pool data
+    if (isUnlocked && _activeUser) {
+      try {
+        const uName = (_userProfile?.username || '').trim().toLowerCase();
+        const refCode = (_userProfile?.referral_code || '').trim().toLowerCase();
+        const { data: allP } = await client.from('profiles').select('id, sponsor_username').neq('id', _activeUser.id);
+        const directCount = (allP || []).filter(p => {
+          const sp = (p.sponsor_username || '').trim().toLowerCase();
+          return (uName && sp === uName) || (refCode && sp === refCode);
+        }).length;
+
+        const requiredDirects = (lvl === 1) ? 1 : 2;
+
+        if (directCount < requiredDirects) {
+          // Not qualified — show locked message, hide pool content
+          _showDirectsGate(tier, directCount, requiredDirects);
+          return; // stop here — don't load pool data
+        } else {
+          _hideDirectsGate(); // qualified — show pool content normally
+        }
+      } catch (_) {
+        _hideDirectsGate(); // on error, show data anyway
+      }
+    } else {
+      _hideDirectsGate();
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     try {
       // 1. Fetch all members in this level ordered by sequence_num
@@ -272,6 +301,83 @@
     } catch (err) {
       console.warn('Error loading level data:', err);
     }
+  }
+
+  // ─── Directs Gate: Show locked message over pool content ───────────────────
+  function _showDirectsGate(tier, currentCount, required) {
+    const refParam = _userProfile?.referral_code || _userProfile?.username || _activeUser?.id?.substring(0, 8) || '';
+    let origin = window.location.origin;
+    if (!origin || origin === 'null' || origin.startsWith('file')) origin = 'https://bitchainprox.com';
+    const refLink = `${origin}/register.html?ref=${refParam}`;
+
+    // Create or update the gate overlay
+    let gate = document.getElementById('nwDirectsGate');
+    if (!gate) {
+      gate = document.createElement('div');
+      gate.id = 'nwDirectsGate';
+      gate.className = 'nw-directs-gate';
+      // Insert it before the pool card section
+      const poolCard = document.querySelector('.nw-active-pool-card, #nwActivePoolSection, .nw-pool-card-wrapper');
+      if (poolCard) poolCard.parentNode.insertBefore(gate, poolCard);
+      else document.querySelector('.nw-level-content')?.appendChild(gate);
+    }
+
+    gate.style.display = 'flex';
+    gate.innerHTML = `
+      <div class="nw-gate-inner">
+        <div class="nw-gate-icon">🔒</div>
+        <div class="nw-gate-title">Direct Referral Requirement Not Met</div>
+        <div class="nw-gate-desc">
+          You need <strong>${required} direct referral${required > 1 ? 's' : ''}</strong> to view and receive rewards from the
+          <strong>${tier.name} Pool (Level ${tier.level})</strong>.
+        </div>
+        <div class="nw-gate-progress">
+          <div class="nw-gate-prog-bar">
+            <div class="nw-gate-prog-fill" style="width:${Math.min(100, (currentCount / required) * 100)}%"></div>
+          </div>
+          <div class="nw-gate-prog-text">${currentCount} / ${required} Direct${required > 1 ? 's' : ''} Invited</div>
+        </div>
+        <div class="nw-gate-steps">
+          <div class="nw-gate-step ${currentCount >= 1 ? 'done' : ''}">
+            ${currentCount >= 1 ? '✅' : '⏳'} Invite Direct #1
+          </div>
+          ${required >= 2 ? `<div class="nw-gate-step ${currentCount >= 2 ? 'done' : ''}">
+            ${currentCount >= 2 ? '✅' : '⏳'} Invite Direct #2
+          </div>` : ''}
+        </div>
+        <div class="nw-gate-ref-box">
+          <div class="nw-gate-ref-label">🔗 Your Referral Link</div>
+          <div class="nw-gate-ref-row">
+            <input class="nw-gate-ref-input" type="text" readonly value="${refLink}" onclick="this.select()" />
+            <button class="nw-gate-copy-btn" onclick="navigator.clipboard.writeText('${refLink}').then(()=>{this.textContent='✅ Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})">Copy</button>
+          </div>
+        </div>
+        <div class="nw-gate-note">
+          Once you invite ${required - currentCount} more direct user${(required - currentCount) > 1 ? 's' : ''}, this pool's data and rewards will automatically unlock.
+        </div>
+      </div>
+    `;
+
+    // Hide pool content sections
+    _togglePoolSections(false);
+  }
+
+  function _hideDirectsGate() {
+    const gate = document.getElementById('nwDirectsGate');
+    if (gate) gate.style.display = 'none';
+    _togglePoolSections(true);
+  }
+
+  function _togglePoolSections(visible) {
+    const display = visible ? '' : 'none';
+    const selectors = [
+      '.nw-active-pool-card', '.nw-pool-card-wrapper', '#nwActivePoolSection',
+      '.nw-winner-banner', '#btnToggleAllMembers', '.nw-achievers-section',
+      '.nw-completed-pools-section', '.nw-history-section'
+    ];
+    selectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => { el.style.display = display; });
+    });
   }
 
   // ─── Render Active Pool Card ───────────────────────────────────────────────
