@@ -76,14 +76,26 @@ async function checkSponsorExists(sponsorUsername) {
 }
 
 /**
+ * Helper: Generate random 5-character uppercase alphanumeric referral code (e.g. X8K2M)
+ */
+function generate5CharRefCode() {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+/**
  * Register a new user using Supabase Auth and save profile data.
  */
 async function signUpUser({ fullName, username, email, phone, password, sponsorUsername }) {
   const client = getSupabase();
   if (!client) throw new Error('Supabase client is not initialized.');
 
-  // Generate unique referral code for the new user
-  const generatedRefCode = username.toUpperCase().replace(/[^A-Z0-9]/g, '') + Math.floor(100 + Math.random() * 900);
+  // Generate unique 5-character referral code for the new user (e.g. X8K2M)
+  const generatedRefCode = generate5CharRefCode();
 
   // 1. Sign up with Supabase Auth
   const { data: authData, error: authError } = await client.auth.signUp({

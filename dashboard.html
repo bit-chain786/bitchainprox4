@@ -1940,10 +1940,12 @@
           document.getElementById('sliceReward').setAttribute('stroke-dashoffset', -offset);
         }
 
-        // 6. REFERRAL LINK — show/hide based on rank_value
+        // 6. REFERRAL LINK — show/hide based on STARTER rank or above (rankValue >= 1)
         const currentOrigin = window.location.origin;
         const dynamicRefUrl = `${currentOrigin}/register.html?ref=${userRefCode}`;
-        const rankValue = profile.rank_value !== undefined ? profile.rank_value : 0;
+        const activeRankStr = (profile.rank || profile.current_rank || '').toLowerCase().trim();
+        const isRankActive = Boolean(activeRankStr && activeRankStr !== 'none' && activeRankStr !== 'unranked' && activeRankStr !== 'null');
+        const rankValue = (profile.rank_value !== undefined && profile.rank_value > 0) ? profile.rank_value : (isRankActive ? 1 : 0);
 
         const refLockedSection   = document.getElementById('refLockedSection');
         const refUnlockedSection = document.getElementById('refUnlockedSection');

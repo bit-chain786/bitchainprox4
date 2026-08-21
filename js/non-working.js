@@ -748,15 +748,20 @@
         }
       }
 
-      // Referral Link Input
+      // Referral Link Input — Gate behind STARTER rank (level 1 or higher)
       const refInput = document.getElementById('nwRefLinkInput');
       if (refInput) {
-        const refParam = _userProfile?.referral_code || _userProfile?.username || _activeUser.id.substring(0, 8);
+        const isUserRankUnlocked = _userMaxLevel >= 1;
         let origin = window.location.origin;
         if (!origin || origin === 'null' || origin.startsWith('file')) {
           origin = 'https://bitchainprox.com';
         }
-        refInput.value = `${origin}/register.html?ref=${refParam}`;
+        if (isUserRankUnlocked) {
+          const refParam = _userProfile?.referral_code || _userProfile?.username || _activeUser.id.substring(0, 8);
+          refInput.value = `${origin}/register.html?ref=${refParam}`;
+        } else {
+          refInput.value = '🔒 Upgrade to STARTER rank ($5 Tier) to unlock your referral link';
+        }
       }
 
       // Check for Claimable Distributions (pool completed, waiting for user to claim)
