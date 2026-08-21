@@ -884,6 +884,9 @@
         }
         if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
           _userProfile = await window.BitchainAuth.getUserProfile(_activeUser.id);
+          if (_userProfile) {
+            localStorage.setItem('bitchain_user_profile', JSON.stringify(_userProfile));
+          }
         }
         renderHeaderStats();
         await loadDirectsRequirement();

@@ -384,7 +384,12 @@ BEGIN
     v_dist.amount, NOW()
   );
 
-  RETURN jsonb_build_object('success', true, 'amount', v_dist.amount, 'level', v_dist.level, 'pool_num', v_dist.pool_num);
+  RETURN jsonb_build_object(
+    'success', true, 
+    'amount', v_dist.amount, 
+    'level', v_dist.level, 
+    'pool_num', v_dist.pool_num
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -420,24 +425,7 @@ CREATE INDEX IF NOT EXISTS idx_nw_members_level_seq ON public.non_working_member
 CREATE INDEX IF NOT EXISTS idx_nw_members_user ON public.non_working_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_nw_distrib_user ON public.non_working_distributions(recipient_user_id);
 
--- 13. Backfill & Sync for existing packages
-CREATE OR REPLACE FUNCTION public.sync_existing_purchases_to_non_working()
-RETURNS INT AS $$
-DECLARE
-  v_rec RECORD;
-  v_count INT := 0;
-  v_user RECORD;
-  v_lvl INT;
-  v_price NUMERIC;
-  v_dummy RECORD;
-BEGIN
-  -- Sync any completed package_purchases not yet in non_working_members
-  FOR v_rec IN 
-    SELECT * FROM public.package_purchases 
-     WHERE status = 'completed' OR status IS NULL 
-     ORDER BY purchased_at ASC
-  LOOP
-    IF NOT EXISTS (SELECT 1 FROM public.non_working_members WHERE purchase_id = v_rec.id) THEN
+  -- Sync function was here but is now replaced by clean_and_deduplicate_non_working_members
 -- 13. Backfill & Sync for existing packages with deduplication
 CREATE OR REPLACE FUNCTION public.clean_and_deduplicate_non_working_members()
 RETURNS INT AS $$
