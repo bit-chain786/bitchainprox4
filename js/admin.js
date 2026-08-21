@@ -866,21 +866,8 @@ async function processDeposit(depositId, userId, amount, newStatus) {
 
       if (depErr) throw new Error(depErr.message);
 
-      // Attempt client-side balance update as secondary backup (non-blocking)
-      if (isApprove) {
-        try {
-          const { data: profile } = await db.from('profiles').select('available_balance').eq('id', userId).maybeSingle();
-          const currentBalance = parseFloat(profile?.available_balance || 0);
-          const newBalance = currentBalance + parseFloat(amount);
-
-          await db.from('profiles').update({
-            available_balance: newBalance,
-            updated_at: new Date().toISOString()
-          }).eq('id', userId);
-        } catch (balWarn) {
-          console.log('Database trigger handled balance crediting.');
-        }
-      }
+      // NOTE: Balance is credited by the DB trigger (handle_deposit_approval).
+      // Do NOT update balance here — would cause double-credit.
     }
 
     await auditLog(`DEPOSIT_${newStatus.toUpperCase()}`, userId, 'deposits', depositId, { amount, notes });

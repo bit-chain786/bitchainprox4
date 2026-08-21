@@ -69,25 +69,27 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Grant execution to authenticated users / admins
 GRANT EXECUTE ON FUNCTION public.admin_process_deposit(UUID, TEXT, TEXT) TO authenticated, anon;
 
--- 2. Automatic Deposit Approval Trigger (Fires on any update to deposits table)
+-- 2. Automatic Deposit Approval Trigger (Fires on UPDATE to deposits table)
+-- NOTE: Balance crediting is handled EXCLUSIVELY by admin_process_deposit() RPC.
+-- This trigger ONLY serves as a safety-net activity log for non-RPC paths.
+-- It does NOT credit the balance (to avoid double-credit).
 CREATE OR REPLACE FUNCTION public.handle_deposit_approval()
 RETURNS trigger AS $$
 BEGIN
-  IF (NEW.status = 'approved' OR NEW.status = 'completed') 
+  -- Only fire when status changes from pending → approved/completed
+  IF (NEW.status = 'approved' OR NEW.status = 'completed')
      AND (OLD IS NULL OR (OLD.status <> 'approved' AND OLD.status <> 'completed')) THEN
-    
-    -- Credit available_balance
-    UPDATE public.profiles
-       SET available_balance = COALESCE(available_balance, 0) + NEW.amount,
-           updated_at        = NOW()
-     WHERE id = NEW.user_id;
 
-    -- Activity
+    -- ⚠️  DO NOT UPDATE available_balance HERE.
+    -- Balance is credited by admin_process_deposit() RPC.
+    -- Crediting here would cause double-deposit.
+
+    -- Safety-net: insert activity ONLY if RPC hasn't already inserted one
     IF NOT EXISTS (
       SELECT 1 FROM public.activities
        WHERE user_id = NEW.user_id
          AND category = 'deposit'
-         AND (details ILIKE '%' || NEW.id::text || '%' OR (amount = NEW.amount AND created_at >= NOW() - INTERVAL '2 minutes'))
+         AND details ILIKE '%' || NEW.id::text || '%'
     ) THEN
       INSERT INTO public.activities (
         user_id, type, title, details, amount, category, created_at
