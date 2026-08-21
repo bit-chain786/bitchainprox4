@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- BITCHAIN PRO X — DEPOSIT APPROVAL ENGINE (FIXED: No Double-Credit)
 -- RUN THIS ENTIRE SCRIPT IN SUPABASE SQL EDITOR TO APPLY THE FIX
 -- ============================================================================
@@ -47,12 +47,12 @@ BEGIN
 
     INSERT INTO public.activities (user_id, type, title, details, amount, category, created_at)
     SELECT v_dep.user_id, 'deposit', 'Deposit Approved',
-           'BEP-20 USDT Deposit of $' || TO_CHAR(v_dep.amount, 'FM999,999,990.00') || ' USDT — Approved & credited to available balance',
+           'BEP-20 USDT Deposit of $' || TO_CHAR(v_dep.amount, 'FM999,999,990.00') || ' USDT — Approved & credited to available balance (Ref: ' || p_deposit_id::text || ')',
            v_dep.amount, 'deposit', NOW()
     WHERE NOT EXISTS (
       SELECT 1 FROM public.activities
        WHERE user_id = v_dep.user_id AND category = 'deposit'
-         AND details ILIKE '%' || p_deposit_id::text || '%'
+         AND (details ILIKE '%' || p_deposit_id::text || '%' OR (amount = v_dep.amount AND created_at >= NOW() - INTERVAL '2 minutes'))
     );
   END IF;
 
@@ -80,12 +80,12 @@ BEGIN
 
     INSERT INTO public.activities (user_id, type, title, details, amount, category, created_at)
     SELECT NEW.user_id, 'deposit', 'Deposit Approved',
-           'BEP-20 USDT Deposit of $' || TO_CHAR(NEW.amount, 'FM999,999,990.00') || ' USDT — Approved & credited to available balance',
+           'BEP-20 USDT Deposit of $' || TO_CHAR(NEW.amount, 'FM999,999,990.00') || ' USDT — Approved & credited to available balance (Ref: ' || NEW.id::text || ')',
            NEW.amount, 'deposit', NOW()
     WHERE NOT EXISTS (
       SELECT 1 FROM public.activities
        WHERE user_id = NEW.user_id AND category = 'deposit'
-         AND details ILIKE '%' || NEW.id::text || '%'
+         AND (details ILIKE '%' || NEW.id::text || '%' OR (amount = NEW.amount AND created_at >= NOW() - INTERVAL '2 minutes'))
     );
   END IF;
   RETURN NEW;
