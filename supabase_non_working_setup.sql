@@ -502,6 +502,27 @@ BEGIN
     );
   END LOOP;
 
+  -- 5. Ensure claimable distributions exist for all completed pools
+  FOR v_rec IN 
+    SELECT p.id as pool_id, p.level, p.pool_num, p.total_pool_amount, m.user_id as recip_id, m.username as recip_username
+      FROM public.non_working_pools p
+      JOIN public.non_working_members m ON m.level = p.level AND m.sequence_num = p.pool_num
+     WHERE p.status = 'completed'
+  LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM public.non_working_distributions
+       WHERE pool_id = v_rec.pool_id AND recipient_user_id = v_rec.recip_id
+    ) THEN
+      INSERT INTO public.non_working_distributions (
+        pool_id, level, pool_num, recipient_user_id, recipient_username,
+        amount, status, requires_directs, distributed_at
+      ) VALUES (
+        v_rec.pool_id, v_rec.level, v_rec.pool_num, v_rec.recip_id, v_rec.recip_username,
+        v_rec.total_pool_amount, 'claimable', CASE WHEN v_rec.level = 1 THEN 1 ELSE 2 END, NOW()
+      );
+    END IF;
+  END LOOP;
+
   RETURN v_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

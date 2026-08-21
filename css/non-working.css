@@ -1410,3 +1410,98 @@
   .nw-claim-card { flex-direction: column; align-items: flex-start; }
   .btn-claim-reward { width: 100%; text-align: center; }
 }
+
+/* --------------------------------------------------------------
+   CLAIM HERO CARD (Prominent Green Claim Banner inside Active Pool Showcase Card)
+   -------------------------------------------------------------- */
+.nw-claim-hero-card {
+  margin: 16px 0;
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.15) 0%, rgba(157, 78, 221, 0.25) 100%);
+  border: 2.5px solid #00f5d4;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 0 35px rgba(0, 245, 212, 0.25);
+  animation: pulseGlowHero 3s infinite ease-in-out;
+  flex-wrap: wrap;
+}
+
+@keyframes pulseGlowHero {
+  0%, 100% { box-shadow: 0 0 25px rgba(0, 245, 212, 0.2); border-color: #00f5d4; }
+  50% { box-shadow: 0 0 45px rgba(0, 245, 212, 0.45); border-color: #7000ff; }
+}
+
+.nw-claim-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nw-claim-hero-badge {
+  display: inline-block;
+  background: rgba(0, 245, 212, 0.2);
+  color: #00f5d4;
+  border: 1px solid rgba(0, 245, 212, 0.5);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.nw-claim-hero-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.nw-claim-hero-title strong {
+  color: #00f5d4;
+  font-size: 1.4rem;
+}
+
+.nw-claim-hero-sub {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-claim-reward-hero {
+  background: linear-gradient(135deg, #00f5d4 0%, #00c4a8 100%);
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-claim-reward-hero:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 30px rgba(0, 245, 212, 0.7);
+  background: #00f5d4;
+}
+
+.btn-claim-reward-hero:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .nw-claim-hero-card {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .btn-claim-reward-hero {
+    width: 100%;
+  }
+}

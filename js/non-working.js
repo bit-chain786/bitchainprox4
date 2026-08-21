@@ -278,8 +278,18 @@
       const endSeq = activePoolNum * 5;
       const activeBlockMembers = levelMembers.filter(m => m.sequence_num >= startSeq && m.sequence_num <= endSeq);
 
-      // Render Active Pool Card
-      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers);
+      // Check if current user has a claimable reward for this level
+      const { data: levelClaimables } = await client
+        .from('non_working_distributions')
+        .select('*')
+        .eq('recipient_user_id', _activeUser.id)
+        .eq('level', lvl)
+        .eq('status', 'claimable');
+
+      const userClaimableForLevel = (levelClaimables && levelClaimables.length > 0) ? levelClaimables[0] : null;
+
+      // Render Active Pool Card (including claim banner if eligible)
+      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers, levelPools, userClaimableForLevel);
 
       // Render Sequence List in Drawer
       _currentLevelMembers = levelMembers;
@@ -381,7 +391,7 @@
   }
 
   // ─── Render Active Pool Card ───────────────────────────────────────────────
-  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers) {
+  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null) {
     const count = blockMembers.length;
     const isCompleted = count >= 5;
 
@@ -392,13 +402,19 @@
       badgeEl.textContent = isCompleted ? `✓ POOL #${poolNum} COMPLETED` : `POOL #${poolNum} — IN PROGRESS (${count}/5)`;
     }
 
-    // Accumulated Prize Amount — use DB record if available, else sum from members
-    // NEVER fall back to max prize for empty pools (pool starts fresh at $0.00)
-    let currentPoolAmount;
-    if (poolRecord && typeof poolRecord.total_pool_amount === 'number') {
+    // Accumulated Prize Amount
+    // If current pool has members, show current accumulation.
+    // If current pool has 0 members BUT previous pool completed, show previous completed pool amount ($15.00)
+    let currentPoolAmount = 0;
+    const completedPools = allPools.filter(p => p.status === 'completed');
+    const lastCompleted = completedPools.length > 0 ? completedPools[completedPools.length - 1] : null;
+
+    if (poolRecord && typeof poolRecord.total_pool_amount === 'number' && poolRecord.total_pool_amount > 0) {
       currentPoolAmount = poolRecord.total_pool_amount;
-    } else {
+    } else if (count > 0) {
       currentPoolAmount = blockMembers.reduce((acc, m) => acc + (parseFloat(m.contribution_amount) || 0), 0);
+    } else if (lastCompleted && typeof lastCompleted.total_pool_amount === 'number') {
+      currentPoolAmount = lastCompleted.total_pool_amount;
     }
 
     const maxPrize = tier.contrib * 5;
@@ -408,7 +424,9 @@
 
     const formulaEl = document.getElementById('nwPrizeFormula');
     if (formulaEl) {
-      if (count === 0) {
+      if (count === 0 && lastCompleted) {
+        formulaEl.textContent = `Pool #${lastCompleted.pool_num} Completed ($${fmt(lastCompleted.total_pool_amount)} USDT) · Next Pool #${poolNum} Starting (0/5)`;
+      } else if (count === 0) {
         formulaEl.textContent = `New pool starting — 5 users × $${tier.contrib.toFixed(2)} (30% of $${tier.price}) = $${maxPrize.toFixed(2)} target prize`;
       } else {
         formulaEl.textContent = `${count} Users × $${tier.contrib.toFixed(2)} (30% of $${tier.price}) = $${fmt(currentPoolAmount)} USDT accumulated`;
@@ -444,6 +462,28 @@
         posTag.innerHTML = `👤 Level ${tier.level} Achieved · Your slot will appear upon pool entry!`;
       } else {
         posTag.innerHTML = `👤 Not in Sequence yet · Upgrade to join as <strong>#${allLevelMembers.length + 1}</strong>`;
+      }
+    }
+
+    // ── Render Claim Banner directly inside Active Pool Showcase Card ─────────
+    const claimBannerEl = document.getElementById('nwClaimBanner');
+    if (claimBannerEl) {
+      if (userClaimable) {
+        claimBannerEl.style.display = 'block';
+        claimBannerEl.innerHTML = `
+          <div class="nw-claim-hero-card">
+            <div class="nw-claim-hero-info">
+              <span class="nw-claim-hero-badge">🎉 POOL #${userClaimable.pool_num} COMPLETED — REWARD READY</span>
+              <span class="nw-claim-hero-title">You Won <strong>$${fmt(userClaimable.amount)} USDT</strong> Prize!</span>
+              <span class="nw-claim-hero-sub">Click below to claim your Non-Working prize directly to your available wallet balance.</span>
+            </div>
+            <button class="btn-claim-reward-hero" onclick="window.NonWorkingSystem.claimReward('${userClaimable.id}', this)">
+              ⚡ CLAIM $${fmt(userClaimable.amount)} USDT NOW
+            </button>
+          </div>
+        `;
+      } else {
+        claimBannerEl.style.display = 'none';
       }
     }
 
