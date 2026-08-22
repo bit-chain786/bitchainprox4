@@ -726,12 +726,14 @@
       // Query Direct Referrals
       const { data: allDirects } = await client
         .from('profiles')
-        .select('id, username, full_name, current_rank, created_at, sponsor_username')
+        .select('id, username, full_name, current_rank, rank_value, current_package, created_at, sponsor_username')
         .neq('id', _activeUser.id);
 
       const directs = (allDirects || []).filter(p => {
         const sp = (p.sponsor_username || '').trim().toLowerCase();
-        return (uName && sp === uName) || (refCode && sp === refCode);
+        const isDirect = (uName && sp === uName) || (refCode && sp === refCode);
+        const hasRank = !!(p.current_rank || p.current_package || (p.rank_value && p.rank_value >= 1));
+        return isDirect && hasRank;
       });
 
       const count = directs.length;

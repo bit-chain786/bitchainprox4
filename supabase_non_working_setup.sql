@@ -57,6 +57,11 @@ BEGIN
      AND (
        (v_uname IS NOT NULL AND TRIM(v_uname) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_uname))) OR
        (v_refcode IS NOT NULL AND TRIM(v_refcode) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_refcode)))
+     )
+     AND (
+       current_rank IS NOT NULL 
+       OR current_package IS NOT NULL 
+       OR (rank_value IS NOT NULL AND rank_value >= 1)
      );
 
   RETURN COALESCE(v_count, 0);
