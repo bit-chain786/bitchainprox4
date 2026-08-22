@@ -393,8 +393,9 @@
       gate.id = 'nwClaimedGate';
       gate.className = 'nw-directs-gate'; // Reuse existing styles
       
-      const container = document.querySelector('.nw-level-content');
-      if (container) container.appendChild(gate);
+      const poolCard = document.querySelector('.nw-active-pool-card, #nwActivePoolSection, .nw-pool-card-wrapper');
+      if (poolCard) poolCard.parentNode.insertBefore(gate, poolCard);
+      else document.body.appendChild(gate);
     }
 
     gate.style.display = 'flex';
