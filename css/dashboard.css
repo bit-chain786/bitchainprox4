@@ -786,6 +786,8 @@
   letter-spacing: 1px;
   color: var(--text-muted);
   text-transform: uppercase;
+  position: relative;
+  z-index: 10;
 }
 
 .fin-card-value {
@@ -794,6 +796,8 @@
   font-weight: 900;
   color: #ffffff;
   line-height: 1.1;
+  position: relative;
+  z-index: 10;
 }
 
 .fin-card-bottom {
