@@ -414,8 +414,8 @@
           <div style="color: #00f5d4; font-size: 2.2rem; font-weight: 900;">$${parseFloat(userPaid.amount).toFixed(2)} USDT</div>
         </div>
 
-        <div class="nw-gate-note" style="color: rgba(255,255,255,0.5);">
-          This non-working level is now fully completed and locked for your account. You will not see further pool progress here.
+        <div class="nw-gate-note" style="color: rgba(255,255,255,0.7); font-weight: 500;">
+          To earn more rewards, upgrade to the next Non-Working Level!
         </div>
       </div>
     `;
