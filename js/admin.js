@@ -1327,6 +1327,8 @@ function closeAdminImagePreview() {
   if (modal) modal.style.display = 'none';
 }
 
+function escapeHtml(str) { if(!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+
 async function loadMessages(convId) {
   const db = getDB();
   if (!db) return;
@@ -2011,3 +2013,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   tryInit();
 });
+
