@@ -211,10 +211,12 @@
       try {
         const uName = (_userProfile?.username || '').trim().toLowerCase();
         const refCode = (_userProfile?.referral_code || '').trim().toLowerCase();
-        const { data: allP } = await client.from('profiles').select('id, sponsor_username').neq('id', _activeUser.id);
+        const { data: allP } = await client.from('profiles').select('id, sponsor_username, rank_value').neq('id', _activeUser.id);
         const directCount = (allP || []).filter(p => {
           const sp = (p.sponsor_username || '').trim().toLowerCase();
-          return (uName && sp === uName) || (refCode && sp === refCode);
+          const isDirect = (uName && sp === uName) || (refCode && sp === refCode);
+          const hasRank = p.rank_value && parseInt(p.rank_value) >= 1;
+          return isDirect && hasRank;
         }).length;
 
         const requiredDirects = (lvl === 1) ? 1 : 2;
