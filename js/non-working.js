@@ -288,6 +288,14 @@
       const userClaimableForLevel = userDists?.find(d => d.status === 'claimable') || null;
       const userPaidForLevel = userDists?.find(d => d.status === 'paid') || null;
 
+      if (userPaidForLevel && !userClaimableForLevel) {
+        _hideDirectsGate();
+        _showClaimedGate(tier, userPaidForLevel);
+        return; // Stop rendering the rest of the pool
+      } else {
+        _hideClaimedGate();
+      }
+
       // Render Active Pool Card (including claim banner if eligible)
       renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers, levelPools, userClaimableForLevel, userPaidForLevel);
 
@@ -374,6 +382,48 @@
 
   function _hideDirectsGate() {
     const gate = document.getElementById('nwDirectsGate');
+    if (gate) gate.style.display = 'none';
+    _togglePoolSections(true);
+  }
+
+  function _showClaimedGate(tier, userPaid) {
+    let gate = document.getElementById('nwClaimedGate');
+    if (!gate) {
+      gate = document.createElement('div');
+      gate.id = 'nwClaimedGate';
+      gate.className = 'nw-directs-gate'; // Reuse existing styles
+      
+      const container = document.querySelector('.nw-level-content');
+      if (container) container.appendChild(gate);
+    }
+
+    gate.style.display = 'flex';
+    gate.innerHTML = `
+      <div class="nw-gate-inner" style="border: 1px solid rgba(0, 245, 212, 0.4); background: rgba(0, 245, 212, 0.05); box-shadow: 0 8px 32px rgba(0,245,212,0.1);">
+        <div class="nw-gate-icon" style="font-size: 4rem; margin-bottom: 10px;">🏆</div>
+        <div class="nw-gate-title" style="color: #00f5d4; font-size: 1.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(0,245,212,0.3);">
+          Level Completed & Reward Received
+        </div>
+        <div class="nw-gate-desc" style="font-size: 1.1rem; color: #fff; margin-top: 15px; line-height: 1.5;">
+          You have successfully completed the <strong>${tier.name} Pool (Level ${tier.level})</strong> and your reward has been credited.
+        </div>
+        
+        <div style="margin: 25px 0; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px dashed rgba(0, 245, 212, 0.3);">
+          <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-bottom: 5px;">Total Prize Received</div>
+          <div style="color: #00f5d4; font-size: 2.2rem; font-weight: 900;">$${parseFloat(userPaid.amount).toFixed(2)} USDT</div>
+        </div>
+
+        <div class="nw-gate-note" style="color: rgba(255,255,255,0.5);">
+          This non-working level is now fully completed and locked for your account. You will not see further pool progress here.
+        </div>
+      </div>
+    `;
+
+    _togglePoolSections(false);
+  }
+
+  function _hideClaimedGate() {
+    const gate = document.getElementById('nwClaimedGate');
     if (gate) gate.style.display = 'none';
     _togglePoolSections(true);
   }
