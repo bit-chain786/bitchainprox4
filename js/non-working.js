@@ -732,7 +732,14 @@
       const directs = (allDirects || []).filter(p => {
         const sp = (p.sponsor_username || '').trim().toLowerCase();
         const isDirect = (uName && sp === uName) || (refCode && sp === refCode);
-        const hasRank = !!(p.current_rank || p.current_package || (p.rank_value && p.rank_value >= 1));
+        const rankStr = (p.current_rank || '').trim().toLowerCase();
+        const pkgStr = (p.current_package || '').trim().toLowerCase();
+        const rv = p.rank_value || 0;
+        
+        const hasRank = (rv >= 1) || 
+                        (rankStr !== '' && rankStr !== 'none' && rankStr !== 'unranked' && rankStr !== 'no package') ||
+                        (pkgStr !== '' && pkgStr !== 'none' && pkgStr !== 'unranked' && pkgStr !== 'no package');
+                        
         return isDirect && hasRank;
       });
 

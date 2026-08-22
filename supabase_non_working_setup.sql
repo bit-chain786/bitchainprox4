@@ -59,9 +59,11 @@ BEGIN
        (v_refcode IS NOT NULL AND TRIM(v_refcode) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_refcode)))
      )
      AND (
-       current_rank IS NOT NULL 
-       OR current_package IS NOT NULL 
-       OR (rank_value IS NOT NULL AND rank_value >= 1)
+       (current_rank IS NOT NULL AND LOWER(TRIM(current_rank)) NOT IN ('', 'none', 'unranked', 'no package'))
+       OR 
+       (current_package IS NOT NULL AND LOWER(TRIM(current_package)) NOT IN ('', 'none', 'unranked', 'no package'))
+       OR 
+       (rank_value IS NOT NULL AND rank_value >= 1)
      );
 
   RETURN COALESCE(v_count, 0);
