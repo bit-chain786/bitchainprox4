@@ -278,18 +278,18 @@
       const endSeq = activePoolNum * 5;
       const activeBlockMembers = levelMembers.filter(m => m.sequence_num >= startSeq && m.sequence_num <= endSeq);
 
-      // Check if current user has a claimable reward for this level
-      const { data: levelClaimables } = await client
+      // Check if current user has any distributions for this level
+      const { data: userDists } = await client
         .from('non_working_distributions')
         .select('*')
         .eq('recipient_user_id', _activeUser.id)
-        .eq('level', lvl)
-        .eq('status', 'claimable');
+        .eq('level', lvl);
 
-      const userClaimableForLevel = (levelClaimables && levelClaimables.length > 0) ? levelClaimables[0] : null;
+      const userClaimableForLevel = userDists?.find(d => d.status === 'claimable') || null;
+      const userPaidForLevel = userDists?.find(d => d.status === 'paid') || null;
 
       // Render Active Pool Card (including claim banner if eligible)
-      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers, levelPools, userClaimableForLevel);
+      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers, levelPools, userClaimableForLevel, userPaidForLevel);
 
       // Render Sequence List in Drawer
       _currentLevelMembers = levelMembers;
@@ -391,7 +391,7 @@
   }
 
   // ─── Render Active Pool Card ───────────────────────────────────────────────
-  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null) {
+  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null, userPaid = null) {
     const count = blockMembers.length;
     const isCompleted = count >= 5;
 
@@ -457,7 +457,11 @@
     const posTag = document.getElementById('nwUserPositionTag');
     if (posTag) {
       if (myEntry) {
-        posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · You win Pool #${myEntry.sequence_num} Prize!`;
+        if (userPaid) {
+          posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · <strong>✅ Reward CLAIMED!</strong>`;
+        } else {
+          posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · You win Pool #${myEntry.sequence_num} Prize!`;
+        }
       } else if (_userMaxLevel >= tier.level) {
         posTag.innerHTML = `👤 Level ${tier.level} Achieved · Your slot will appear upon pool entry!`;
       } else {
@@ -480,6 +484,17 @@
             <button class="btn-claim-reward-hero" onclick="window.NonWorkingSystem.claimReward('${userClaimable.id}', this)">
               ⚡ CLAIM $${fmt(userClaimable.amount)} USDT NOW
             </button>
+          </div>
+        `;
+      } else if (userPaid) {
+        claimBannerEl.style.display = 'block';
+        claimBannerEl.innerHTML = `
+          <div class="nw-claim-hero-card" style="border: 1px solid rgba(0, 245, 212, 0.3); background: rgba(0, 245, 212, 0.05);">
+            <div class="nw-claim-hero-info">
+              <span class="nw-claim-hero-badge" style="background: rgba(0, 245, 212, 0.2); color: #00f5d4; border: 1px solid rgba(0, 245, 212, 0.4);">✅ POOL #${userPaid.pool_num} CLAIMED</span>
+              <span class="nw-claim-hero-title" style="color: #00f5d4;">You Received <strong>$${fmt(userPaid.amount)} USDT</strong>!</span>
+              <span class="nw-claim-hero-sub">Your reward for this level has been successfully added to your wallet.</span>
+            </div>
           </div>
         `;
       } else {
