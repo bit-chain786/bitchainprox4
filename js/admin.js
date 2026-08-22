@@ -286,6 +286,7 @@ async function loadDashboard() {
     setStatCard('statAppWd',        appWdRes.count || 0);
     setStatCard('statTotalPkg',     totalPkgRes.count || 0);
     setStatCard('statOutgoingIncome', '$' + fmt(totalMaint));
+    setStatCard('statTotalOutgoing', '$' + fmt(totalWd));
 
     // Charts
     await loadDashboardCharts();
