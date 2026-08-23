@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1633,7 +1633,7 @@
       </section>
 
       <!-- 🔓 UNLOCKED STATE — shown for STARTER+ users (rank_value >= 1) -->
-      <section class="referral-section-card" id="refUnlockedSection" style="display:none;">
+      <section class="referral-section-card" id="refUnlockedSection">
         <div class="ref-left-block">
           <div class="ref-link-icon-wrap">🔗</div>
           <div class="ref-text-title">
@@ -1976,35 +1976,32 @@
         const isRankActive = Boolean(activeRankStr && activeRankStr !== 'none' && activeRankStr !== 'unranked' && activeRankStr !== 'null');
         const rankValue = (profile.rank_value !== undefined && profile.rank_value > 0) ? profile.rank_value : (isRankActive ? 1 : 0);
 
-        const refLockedSection   = document.getElementById('refLockedSection');
-        const refUnlockedSection = document.getElementById('refUnlockedSection');
+                const refUnlockedSection = document.getElementById('refUnlockedSection');
+        if (refUnlockedSection) refUnlockedSection.style.display = 'flex';
 
-        if (rankValue >= 1) {
-          // ✅ STARTER or above — show the real referral link
-          if (refLockedSection)   refLockedSection.style.display   = 'none';
-          if (refUnlockedSection) refUnlockedSection.style.display = 'flex';
-
-          const refInput = document.getElementById('dashRefLinkInput');
-          if (refInput) refInput.value = dynamicRefUrl;
-
-          const copyBtn  = document.getElementById('btnDashCopyRef');
-          const copyText = document.getElementById('btnCopyText');
-          if (copyBtn) {
-            copyBtn.addEventListener('click', () => {
-              if (refInput) refInput.select();
-              navigator.clipboard.writeText(dynamicRefUrl);
-              if (copyText) copyText.textContent = 'Copied!';
-              copyBtn.style.background = 'linear-gradient(135deg, #00f5d4 0%, #2ec4b6 100%)';
-              setTimeout(() => {
-                if (copyText) copyText.textContent = 'Copy Link';
-                copyBtn.style.background = '';
-              }, 2000);
+        const refInput = document.getElementById('dashRefLinkInput');
+        const btnCopy = document.getElementById('btnDashCopyRef');
+        
+        let urlToDisplayAndCopy = dynamicRefUrl;
+        
+        if (rankValue < 1) {
+            // UNRANKED - show only base URL without ?ref=
+            urlToDisplayAndCopy = window.location.origin + '/register.html';
+        }
+        
+        if (refInput) refInput.value = urlToDisplayAndCopy;
+        
+        if (btnCopy) {
+            const newBtnCopy = btnCopy.cloneNode(true);
+            btnCopy.parentNode.replaceChild(newBtnCopy, btnCopy);
+            newBtnCopy.addEventListener('click', () => {
+              navigator.clipboard.writeText(urlToDisplayAndCopy).then(() => {
+                const txt = newBtnCopy.querySelector('span') || newBtnCopy;
+                const original = txt.textContent;
+                txt.textContent = 'Copied!';
+                setTimeout(() => txt.textContent = original, 2000);
+              });
             });
-          }
-        } else {
-          // 🔒 UNRANKED — hide referral link, show locked state
-          if (refLockedSection)   refLockedSection.style.display   = 'flex';
-          if (refUnlockedSection) refUnlockedSection.style.display = 'none';
         }
 
         // 7. Recent Activity Table & Mobile List
@@ -2553,3 +2550,7 @@
   </script>
 </body>
 </html>
+
+
+
+
