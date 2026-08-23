@@ -275,7 +275,15 @@ async function loadDashboard() {
 
     // Total System Maintenance (10% of all successful purchases)
     const totalMaint = (maintRes.data || []).reduce((s, r) => s + parseFloat(r.maintenance_amount || 0), 0);
-    window._adminOutgoingBalance = (outgoingLedgerRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+    
+    const outgoingData = outgoingLedgerRes.data || [];
+    const totalOutgoingUnpaid = outgoingData.reduce((s, r) => s + (r.amount > 0 ? parseFloat(r.amount) : 0), 0);
+    const totalAdminWithdrawn = outgoingData.reduce((s, r) => s + (r.amount < 0 ? Math.abs(parseFloat(r.amount)) : 0), 0);
+    
+    const totalAdminEarned = totalMaint + totalOutgoingUnpaid;
+    const adminAvailableBal = totalAdminEarned - totalAdminWithdrawn;
+    
+    window._adminOutgoingBalance = adminAvailableBal;
 
     setStatCard('statTotalUsers',   totalUsersRes.count || 0);
     setStatCard('statActiveUsers',  activeUsersRes.count || 0);
@@ -288,7 +296,12 @@ async function loadDashboard() {
     setStatCard('statAppWd',        appWdRes.count || 0);
     setStatCard('statTotalPkg',     totalPkgRes.count || 0);
     setStatCard('statOutgoingIncome', '$' + fmt(totalMaint));
-    setStatCard('statTotalOutgoing', '$' + fmt(window._adminOutgoingBalance));
+    setStatCard('statTotalOutgoing', '$' + fmt(totalOutgoingUnpaid));
+    setStatCard('statAdminWalletBal', '$' + fmt(adminAvailableBal));
+    const elEarned = document.getElementById('statAdminEarned');
+    if (elEarned) elEarned.textContent = '$' + fmt(totalAdminEarned);
+    const elWithdrawn = document.getElementById('statAdminWithdrawn');
+    if (elWithdrawn) elWithdrawn.textContent = '$' + fmt(totalAdminWithdrawn);
 
     // Charts
     await loadDashboardCharts();
@@ -2075,5 +2088,7 @@ window.submitAdminOutgoingWithdraw = async function() {
     btn.disabled = false;
   }
 };
+
+
 
 
