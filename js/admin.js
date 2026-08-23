@@ -248,7 +248,7 @@ async function loadDashboard() {
       totalUsersRes, activeUsersRes, newTodayRes,
       totalDepRes, pendDepRes, appDepRes,
       totalWdRes, pendWdRes, appWdRes,
-      totalPkgRes, maintRes
+      totalPkgRes, maintRes, outgoingLedgerRes
     ] = await Promise.all([
       db.from('profiles').select('id', {count:'exact',head:true}),
       db.from('profiles').select('id', {count:'exact',head:true}).eq('status','active'),
@@ -260,7 +260,8 @@ async function loadDashboard() {
       db.from('withdrawals').select('id', {count:'exact',head:true}).eq('status','pending'),
       db.from('withdrawals').select('id', {count:'exact',head:true}).eq('status','approved'),
       db.from('package_purchases').select('id', {count:'exact',head:true}),
-      db.from('system_maintenance').select('maintenance_amount').eq('status','completed')
+      db.from('system_maintenance').select('maintenance_amount').eq('status','completed'),
+      db.from('outgoing_income_ledger').select('amount')
     ]);
 
     const totalDep = (totalDepRes.data || []).reduce((s,r) => s + parseFloat(r.amount||0), 0);
@@ -274,6 +275,7 @@ async function loadDashboard() {
 
     // Total System Maintenance (10% of all successful purchases)
     const totalMaint = (maintRes.data || []).reduce((s, r) => s + parseFloat(r.maintenance_amount || 0), 0);
+    window._adminOutgoingBalance = (outgoingLedgerRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0);
 
     setStatCard('statTotalUsers',   totalUsersRes.count || 0);
     setStatCard('statActiveUsers',  activeUsersRes.count || 0);
@@ -286,7 +288,7 @@ async function loadDashboard() {
     setStatCard('statAppWd',        appWdRes.count || 0);
     setStatCard('statTotalPkg',     totalPkgRes.count || 0);
     setStatCard('statOutgoingIncome', '$' + fmt(totalMaint));
-    setStatCard('statTotalOutgoing', '$' + fmt(totalWd));
+    setStatCard('statTotalOutgoing', '$' + fmt(window._adminOutgoingBalance));
 
     // Charts
     await loadDashboardCharts();
@@ -2014,4 +2016,64 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   tryInit();
 });
+
+
+
+// Admin Outgoing Income Withdrawal
+window.openAdminOutgoingWithdrawModal = function() {
+  const modal = document.getElementById('modalAdminOutgoingWithdraw');
+  const balEl = document.getElementById('modalOutgoingBalance');
+  if (modal && balEl) {
+    balEl.textContent = '$' + (window._adminOutgoingBalance || 0).toFixed(2);
+    document.getElementById('adminOutgoingAmount').value = '';
+    document.getElementById('adminOutgoingAddress').value = '';
+    modal.style.display = 'flex';
+  }
+};
+
+window.closeAdminOutgoingWithdrawModal = function() {
+  const modal = document.getElementById('modalAdminOutgoingWithdraw');
+  if (modal) modal.style.display = 'none';
+};
+
+window.submitAdminOutgoingWithdraw = async function() {
+  const amtStr = document.getElementById('adminOutgoingAmount').value;
+  const addr = document.getElementById('adminOutgoingAddress').value;
+  const amt = parseFloat(amtStr);
+
+  if (isNaN(amt) || amt <= 0) return alert('Enter a valid amount.');
+  if (amt > window._adminOutgoingBalance) return alert('Amount exceeds available unpaid income balance.');
+  if (!addr || addr.trim().length < 10) return alert('Enter a valid wallet address.');
+
+  const btn = document.getElementById('btnAdminOutgoingWithdraw');
+  btn.textContent = 'Processing...';
+  btn.disabled = true;
+
+  try {
+    const db = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
+    if (!db) throw new Error('Supabase client not found.');
+
+    const { error } = await db.from('outgoing_income_ledger').insert({
+      income_type: 'Admin Withdrawal',
+      amount: -amt, // Negative amount to subtract from total
+      reason: 'Withdrawn to ' + addr
+    });
+
+    if (error) throw error;
+
+    alert('Withdrawal recorded successfully!');
+    closeAdminOutgoingWithdrawModal();
+    // Refresh dashboard stats
+    if (typeof loadDashboardStats === 'function') {
+      await loadDashboardStats();
+    }
+  } catch(e) {
+    console.error(e);
+    alert('Error: ' + e.message);
+  } finally {
+    btn.textContent = 'Withdraw';
+    btn.disabled = false;
+  }
+};
+
 
