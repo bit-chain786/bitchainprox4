@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel — BITCHAIN PRO X</title>
+  <title>Admin Panel â€” BITCHAIN PRO X</title>
   <meta name="description" content="BitChain Pro X Admin Control Panel">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="images/logo-circle.png">
@@ -15,7 +15,7 @@
 
 
 <style>
-       CRYPTO DEPOSIT & WITHDRAW MODALS — Exact Design Match
+       CRYPTO DEPOSIT & WITHDRAW MODALS â€” Exact Design Match
     ===================================================== */
     .wallet-crypto-card {
       width: 100%;
@@ -529,24 +529,24 @@
 </head>
 <body>
 
-<!-- ═══ LOADING OVERLAY ═══════════════════════════════════════════════════ -->
+<!-- â•â•â• LOADING OVERLAY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="adminLoadingOverlay">
   <div class="loading-spinner"></div>
-  <div style="font-size:0.85rem;color:var(--text-muted)">Verifying admin access…</div>
+  <div style="font-size:0.85rem;color:var(--text-muted)">Verifying admin accessâ€¦</div>
 </div>
 
-<!-- ═══ ACCESS DENIED ═════════════════════════════════════════════════════ -->
+<!-- â•â•â• ACCESS DENIED â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="adminAccessDenied">
-  <div class="denied-icon">🔒</div>
+  <div class="denied-icon">ðŸ”’</div>
   <h2>Access Denied</h2>
   <p id="deniedMessage">You do not have permission to view this page.</p>
-  <a href="dashboard.html" class="btn btn-primary">← Return to Dashboard</a>
+  <a href="dashboard.html" class="btn btn-primary">â† Return to Dashboard</a>
 </div>
 
-<!-- ═══ CONFIRM DIALOG ════════════════════════════════════════════════════ -->
+<!-- â•â•â• CONFIRM DIALOG â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="confirmBackdrop" class="confirm-backdrop">
   <div class="confirm-box">
-    <div class="confirm-icon">⚡</div>
+    <div class="confirm-icon">âš¡</div>
     <div class="confirm-title" id="confirmTitle">Are you sure?</div>
     <div class="confirm-message" id="confirmMessage">This action cannot be undone.</div>
     <div class="confirm-actions">
@@ -556,50 +556,50 @@
   </div>
 </div>
 
-<!-- ═══ MOBILE OVERLAY ════════════════════════════════════════════════════ -->
+<!-- â•â•â• MOBILE OVERLAY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
 
-<!-- ═══ MAIN LAYOUT ═══════════════════════════════════════════════════════ -->
+<!-- â•â•â• MAIN LAYOUT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="admin-layout" id="adminLayout" style="display:none">
 
-  <!-- ─── SIDEBAR ──────────────────────────────────────────────────────── -->
+  <!-- â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <aside class="admin-sidebar" id="adminSidebar">
     <!-- Logo -->
     <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">⚡</div>
+      <div class="sidebar-logo-icon">âš¡</div>
       <div class="sidebar-logo-text">BITCHAIN<span>PROX</span> Admin</div>
     </div>
     <!-- Collapse button (desktop) -->
-    <div class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">‹</div>
+    <div class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">â€¹</div>
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main</div>
 
       <div class="nav-item active" data-nav="dashboard" onclick="navigateTo('dashboard')">
-        <div class="nav-icon">🏠</div>
+        <div class="nav-icon">ðŸ </div>
         <div class="nav-label">Dashboard</div>
       </div>
 
       <div class="nav-item" data-nav="users" onclick="navigateTo('users')">
-        <div class="nav-icon">👥</div>
+        <div class="nav-icon">ðŸ‘¥</div>
         <div class="nav-label">Users</div>
       </div>
 
       <div class="nav-section-label">Payments</div>
 
       <div class="nav-item" onclick="toggleSubmenu('paymentsSubmenu')">
-        <div class="nav-icon">💳</div>
+        <div class="nav-icon">ðŸ’³</div>
         <div class="nav-label">Payments</div>
-        <div class="nav-arrow">›</div>
+        <div class="nav-arrow">â€º</div>
       </div>
       <div class="nav-submenu" id="paymentsSubmenu">
         <div class="nav-sub-item" data-subnav="deposits" onclick="navigateTo('deposits')">
-          <span>💰</span> Deposits
+          <span>ðŸ’°</span> Deposits
           <span class="nav-badge" id="badgeDeposits" style="display:none;margin-left:auto">0</span>
         </div>
         <div class="nav-sub-item" data-subnav="withdrawals" onclick="navigateTo('withdrawals')">
-          <span>💸</span> Withdrawals
+          <span>ðŸ’¸</span> Withdrawals
           <span class="nav-badge" id="badgeWithdrawals" style="display:none;margin-left:auto">0</span>
         </div>
       </div>
@@ -607,28 +607,28 @@
       <div class="nav-section-label">Management</div>
 
       <div class="nav-item" data-nav="packages" onclick="navigateTo('packages')">
-        <div class="nav-icon">📦</div>
+        <div class="nav-icon">ðŸ“¦</div>
         <div class="nav-label">Packages & Ranks</div>
       </div>
 
       <div class="nav-item" data-nav="chat" onclick="navigateTo('chat')">
-        <div class="nav-icon">💬</div>
+        <div class="nav-icon">ðŸ’¬</div>
         <div class="nav-label">Chat Support</div>
         <span class="nav-badge" id="badgeChat" style="display:none">0</span>
       </div>
 
       <div class="nav-item" data-nav="teamincome" onclick="navigateTo('teamincome')" style="display: none !important;">
-        <div class="nav-icon">👥</div>
+        <div class="nav-icon">ðŸ‘¥</div>
         <div class="nav-label">Team Income (15%)</div>
       </div>
 
       <div class="nav-item" data-nav="nonworking" onclick="navigateTo('nonworking')">
-        <div class="nav-icon">🔄</div>
+        <div class="nav-icon">ðŸ”„</div>
         <div class="nav-label">Non-Working (30%)</div>
       </div>
 
       <div class="nav-item" data-nav="reports" onclick="navigateTo('reports')">
-        <div class="nav-icon">📊</div>
+        <div class="nav-icon">ðŸ“Š</div>
         <div class="nav-label">Reports</div>
       </div>
 
@@ -636,12 +636,12 @@
       <div class="nav-section-label">System</div>
 
       <div class="nav-item" data-nav="audit" onclick="navigateTo('audit')">
-        <div class="nav-icon">📋</div>
+        <div class="nav-icon">ðŸ“‹</div>
         <div class="nav-label">Audit Logs</div>
       </div>
 
       <div class="nav-item" data-nav="settings" onclick="navigateTo('settings')">
-        <div class="nav-icon">⚙️</div>
+        <div class="nav-icon">âš™ï¸</div>
         <div class="nav-label">Settings</div>
       </div>
     </nav>
@@ -656,35 +656,35 @@
         </div>
       </div>
       <div class="nav-item" onclick="adminLogout()" style="margin-top:4px">
-        <div class="nav-icon">🚪</div>
+        <div class="nav-icon">ðŸšª</div>
         <div class="nav-label" style="color:var(--accent-red)">Logout</div>
       </div>
     </div>
   </aside>
 
-  <!-- ─── MAIN ─────────────────────────────────────────────────────────── -->
+  <!-- â”€â”€â”€ MAIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <main class="admin-main">
     <!-- Topbar -->
     <header class="admin-topbar">
       <div class="topbar-left">
-        <button class="topbar-hamburger" onclick="toggleMobileSidebar()" id="hamburgerBtn">☰</button>
+        <button class="topbar-hamburger" onclick="toggleMobileSidebar()" id="hamburgerBtn">â˜°</button>
         <div class="topbar-breadcrumb">Admin / <span id="topbarBreadcrumb">Dashboard</span></div>
       </div>
       <div class="topbar-right">
-        <a href="dashboard.html" class="topbar-btn">← User Dashboard</a>
-        <button class="topbar-btn topbar-logout" onclick="adminLogout()">🚪 Logout</button>
+        <a href="dashboard.html" class="topbar-btn">â† User Dashboard</a>
+        <button class="topbar-btn topbar-logout" onclick="adminLogout()">ðŸšª Logout</button>
       </div>
     </header>
 
     <!-- Content -->
     <div class="admin-content">
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- DASHBOARD SECTION                                               -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section active" id="section-dashboard">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">🏠</div> Dashboard</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ </div> Dashboard</div>
           <div style="font-size:0.8rem;color:var(--text-muted)" id="dashLastUpdate"></div>
         </div>
 
@@ -692,96 +692,96 @@
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon purple">👥</div>
+              <div class="stat-icon purple">ðŸ‘¥</div>
               <span class="stat-trend neutral">All Time</span>
             </div>
-            <div class="stat-value" id="statTotalUsers">—</div>
+            <div class="stat-value" id="statTotalUsers">â€”</div>
             <div class="stat-label">Total Users</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">✅</div>
+              <div class="stat-icon green">âœ…</div>
               <span class="stat-trend up">Active</span>
             </div>
-            <div class="stat-value" id="statActiveUsers">—</div>
+            <div class="stat-value" id="statActiveUsers">â€”</div>
             <div class="stat-label">Active Users</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon blue">🌟</div>
+              <div class="stat-icon blue">ðŸŒŸ</div>
               <span class="stat-trend up">Today</span>
             </div>
-            <div class="stat-value" id="statNewToday">—</div>
+            <div class="stat-value" id="statNewToday">â€”</div>
             <div class="stat-label">New Today</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">💰</div>
+              <div class="stat-icon green">ðŸ’°</div>
               <span class="stat-trend up">USDT</span>
             </div>
-            <div class="stat-value" id="statTotalDep">—</div>
+            <div class="stat-value" id="statTotalDep">â€”</div>
             <div class="stat-label">Total Deposits</div>
           </div>
 <div class="stat-card">
   <div class="stat-card-top">
-    <div class="stat-icon green">💰</div>
+    <div class="stat-icon green">ðŸ’°</div>
     <span class="stat-trend up">Today</span>
   </div>
-  <div class="stat-value" id="statTodayDep">—</div>
+  <div class="stat-value" id="statTodayDep">â€”</div>
   <div class="stat-label">Today Deposits</div>
 </div>
 <div class="stat-card">
   <div class="stat-card-top">
-    <div class="stat-icon yellow">⏳</div>
+    <div class="stat-icon yellow">â³</div>
     <span class="stat-trend neutral">Pending</span>
   </div>
-  <div class="stat-value" id="statPendDep">—</div>
+  <div class="stat-value" id="statPendDep">â€”</div>
   <div class="stat-label">Pending Deposits</div>
 </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">✓</div>
+              <div class="stat-icon green">âœ“</div>
               <span class="stat-trend up">Done</span>
             </div>
-            <div class="stat-value" id="statAppDep">—</div>
+            <div class="stat-value" id="statAppDep">â€”</div>
             <div class="stat-label">Approved Deposits</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon red">⏳</div>
+              <div class="stat-icon red">â³</div>
               <span class="stat-trend neutral">Pending</span>
             </div>
-            <div class="stat-value" id="statPendWd">—</div>
+            <div class="stat-value" id="statPendWd">â€”</div>
             <div class="stat-label">Pending Withdrawals</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">💸</div>
+              <div class="stat-icon green">ðŸ’¸</div>
               <span class="stat-trend up">Done</span>
             </div>
-            <div class="stat-value" id="statAppWd">—</div>
+            <div class="stat-value" id="statAppWd">â€”</div>
             <div class="stat-label">Processed Withdrawals</div>
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon blue">🛠️</div>
+              <div class="stat-icon blue">ðŸ› ï¸</div>
               <span class="stat-trend up">All Time</span>
             </div>
-            <div class="stat-value" id="statOutgoingIncome">—</div>
+            <div class="stat-value" id="statOutgoingIncome">â€”</div>
             <div class="stat-label">Maintenance Income</div>
           </div>
 
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon purple">📦</div>
+              <div class="stat-icon purple">ðŸ“¦</div>
               <span class="stat-trend up">All Time</span>
             </div>
-            <div class="stat-value" id="statTotalPkg">—</div>
+            <div class="stat-value" id="statTotalPkg">â€”</div>
             <div class="stat-label">Package Purchases</div>
           </div>
           <div class="stat-card" style="display: none !important;">
             <div class="stat-card-top">
-              <div class="stat-icon blue">⚡</div>
+              <div class="stat-icon blue">âš¡</div>
               <span class="stat-trend up">Today</span>
             </div>
             <div class="stat-value" id="statTodayBusiness">-</div>
@@ -791,17 +791,17 @@
           <!-- -->
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon red">??</div><span class="stat-trend up">All Time</span></div>
+              <div class="stat-icon red">💸</div><span class="stat-trend up">All Time</span></div>
             <div class="stat-value" id="statTotalOutgoing">-</div>
-            <div class="stat-label">Outgoing Income (Unpaid)</div>
+            <div class="stat-label">Outgoing Income (Unpaid) <span style="font-size:0.65rem;font-weight:800;margin-left:8px;background:linear-gradient(135deg, #00f5d4, #00b4d8);padding:3px 10px;border-radius:8px;color:#030814;box-shadow:0 0 12px rgba(0,245,212,0.5);text-transform:uppercase;letter-spacing:0.5px;">Withdraw</span></div>
           </div>
           <div class="stat-card" style="cursor:pointer; border: 1px solid #00f5d4; grid-column: span 1;" onclick="openAdminOutgoingWithdrawModal()">
             <div class="stat-card-top">
-              <div class="stat-icon" style="background:rgba(0,245,212,0.1);color:#00f5d4; width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">??</div>
+              <div class="stat-icon" style="background:rgba(0,245,212,0.1);color:#00f5d4; width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🏦</div>
               <span class="stat-trend up" style="color:#00f5d4;background:rgba(0,245,212,0.1);">Admin Wallet</span>
             </div>
             <div class="stat-value" id="statAdminWalletBal" style="color:#00f5d4;">.00</div>
-            <div class="stat-label">Available Balance <span style="font-size:0.6rem;opacity:0.9;margin-left:5px;background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;color:#fff;">Click to Withdraw</span></div>
+            <div class="stat-label">Available Balance <span style="font-size:0.65rem;font-weight:800;margin-left:8px;background:linear-gradient(135deg, #00f5d4, #00b4d8);padding:3px 10px;border-radius:8px;color:#030814;box-shadow:0 0 12px rgba(0,245,212,0.5);text-transform:uppercase;letter-spacing:0.5px;">Withdraw</span></div>
             <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:0.75rem; color:rgba(255,255,255,0.6); padding-top:10px; border-top:1px solid rgba(255,255,255,0.08);">
               <div>Earned: <strong id="statAdminEarned" style="color:#fff;">.00</strong></div>
               <div>Withdrawn: <strong id="statAdminWithdrawn" style="color:#ff4d4d;">.00</strong></div>
@@ -812,11 +812,11 @@
         <!-- Charts -->
         <div class="charts-grid">
           <div class="chart-card">
-            <div class="chart-title">💰 Deposits — Last 7 Days</div>
+            <div class="chart-title">ðŸ’° Deposits â€” Last 7 Days</div>
             <div style="height:220px"><canvas id="chartDeposits7d"></canvas></div>
           </div>
           <div class="chart-card">
-            <div class="chart-title">👥 New Users — Last 7 Days</div>
+            <div class="chart-title">ðŸ‘¥ New Users â€” Last 7 Days</div>
             <div style="height:220px"><canvas id="chartUsers7d"></canvas></div>
           </div>
         </div>
@@ -824,7 +824,7 @@
         <!-- Recent activity -->
         <div class="glass-card">
           <div class="glass-card-header">
-            <div class="glass-card-title">📋 Recent Admin Activity</div>
+            <div class="glass-card-title">ðŸ“‹ Recent Admin Activity</div>
           </div>
           <div class="table-wrap">
             <table class="admin-table">
@@ -837,19 +837,19 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- USERS SECTION                                                   -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-users">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">👥</div> Users</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ‘¥</div> Users</div>
         </div>
 
         <div class="glass-card">
           <div class="table-controls">
             <div class="search-input-wrap">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" class="search-input" id="usersSearchInput" placeholder="Search by name, email, username…" oninput="_usersSearch=this.value;loadUsers(1)">
+              <input type="text" class="search-input" id="usersSearchInput" placeholder="Search by name, email, usernameâ€¦" oninput="_usersSearch=this.value;loadUsers(1)">
             </div>
             <div class="filter-tabs">
               <button class="filter-tab active" id="usersFilterAll" onclick="setUsersFilter('all',this)">All</button>
@@ -872,19 +872,19 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- DEPOSITS SECTION                                                -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-deposits">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">💰</div> Deposits</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ’°</div> Deposits</div>
         </div>
 
         <div class="glass-card">
           <div class="table-controls">
             <div class="search-input-wrap">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" class="search-input" id="depositsSearchInput" placeholder="Search by transaction ID…" oninput="_depositsSearch=this.value;loadDeposits(1)">
+              <input type="text" class="search-input" id="depositsSearchInput" placeholder="Search by transaction IDâ€¦" oninput="_depositsSearch=this.value;loadDeposits(1)">
             </div>
             <div class="filter-tabs">
               <button class="filter-tab active" onclick="setDepositsFilter('all',this)">All</button>
@@ -896,7 +896,7 @@
           <div class="table-wrap">
             <table class="admin-table">
               <thead>
-                <tr><th>ID</th><th>User</th><th>Amount</th><th>Method</th><th>Tx ID</th><th>Date</th><th>📸 Proof</th><th>Status</th><th>Action</th></tr>
+                <tr><th>ID</th><th>User</th><th>Amount</th><th>Method</th><th>Tx ID</th><th>Date</th><th>ðŸ“¸ Proof</th><th>Status</th><th>Action</th></tr>
               </thead>
               <tbody id="depositsTbody"></tbody>
             </table>
@@ -905,19 +905,19 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- WITHDRAWALS SECTION                                             -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-withdrawals">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">💸</div> Withdrawals</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ’¸</div> Withdrawals</div>
         </div>
 
         <div class="glass-card">
           <div class="table-controls">
             <div class="search-input-wrap">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" class="search-input" id="wdSearchInput" placeholder="Search by destination address…" oninput="_withdrawalsSearch=this.value;loadWithdrawals(1)">
+              <input type="text" class="search-input" id="wdSearchInput" placeholder="Search by destination addressâ€¦" oninput="_withdrawalsSearch=this.value;loadWithdrawals(1)">
             </div>
             <div class="filter-tabs">
               <button class="filter-tab active" onclick="setWdFilter('all',this)">All</button>
@@ -938,24 +938,24 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- PACKAGES SECTION                                                -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-packages">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">📦</div> Packages & Ranks</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ“¦</div> Packages & Ranks</div>
         </div>
         <div class="pkg-admin-grid" id="packagesGrid">
           <!-- Rendered by JS -->
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- CHAT SECTION                                                    -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-chat">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">💬</div> Chat Support</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ’¬</div> Chat Support</div>
         </div>
         <div class="chat-layout">
           <div class="chat-list" id="chatConvList">
@@ -969,9 +969,9 @@
             <div id="adminChatImgPreview" style="display:none;padding:8px 16px;background:rgba(157,78,221,0.06);border-top:1px solid var(--admin-border);"></div>
             <div class="chat-input-area" style="align-items:center;">
               <input type="file" id="adminChatFileInput" accept="image/*" style="display:none" onchange="handleAdminChatFile(event)" />
-              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('adminChatFileInput').click()" title="Attach Screenshot / Image" style="font-size:1.1rem;padding:8px 12px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;">📷</button>
-              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply to user…" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
-              <button class="btn btn-primary" onclick="sendAdminMessage()" style="align-self:stretch;display:flex;align-items:center;justify-content:center;">Send ›</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('adminChatFileInput').click()" title="Attach Screenshot / Image" style="font-size:1.1rem;padding:8px 12px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;">ðŸ“·</button>
+              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply to userâ€¦" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
+              <button class="btn btn-primary" onclick="sendAdminMessage()" style="align-self:stretch;display:flex;align-items:center;justify-content:center;">Send â€º</button>
             </div>
           </div>
         </div>
@@ -979,21 +979,21 @@
         <!-- Fullscreen Image Preview Lightbox for Admin -->
         <div id="adminImageLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(10px);z-index:999999;align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) closeAdminImagePreview()">
           <div style="position:relative;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;">
-            <button onclick="closeAdminImagePreview()" style="position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:#ff0055;color:#fff;border:2px solid #fff;font-weight:900;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(255,0,85,0.5);">✕</button>
+            <button onclick="closeAdminImagePreview()" style="position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:#ff0055;color:#fff;border:2px solid #fff;font-weight:900;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(255,0,85,0.5);">âœ•</button>
             <img id="adminLightboxImg" src="" style="max-width:90vw;max-height:85vh;border-radius:10px;border:1px solid rgba(199,125,255,0.5);box-shadow:0 10px 40px rgba(0,0,0,0.8);" />
           </div>
         </div>
       </section>
 
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- TEAM INCOME (15% 5-UPLINE) SECTION                              -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-teamincome" style="display: none !important;">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">👥</div> Team Income (15% 5-Upline Distribution)</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ‘¥</div> Team Income (15% 5-Upline Distribution)</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="loadTeamIncome()">🔄 Refresh</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadTeamIncome()">ðŸ”„ Refresh</button>
           </div>
         </div>
 
@@ -1001,7 +1001,7 @@
         <div class="stats-grid" style="margin-bottom:20px">
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon purple">💎</div>
+              <div class="stat-icon purple">ðŸ’Ž</div>
               <span class="stat-trend up">15% Total Pool</span>
             </div>
             <div class="stat-value" id="statTeamIncomeGen">$0.00</div>
@@ -1009,7 +1009,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">✅</div>
+              <div class="stat-icon green">âœ…</div>
               <span class="stat-trend up">Paid to Uplines</span>
             </div>
             <div class="stat-value" id="statTeamIncomePaid">$0.00</div>
@@ -1017,7 +1017,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon yellow">⚠️</div>
+              <div class="stat-icon yellow">âš ï¸</div>
               <span class="stat-trend neutral">Passed Up</span>
             </div>
             <div class="stat-value" id="statTeamIncomeUnalloc">$0.00</div>
@@ -1025,7 +1025,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon blue">📋</div>
+              <div class="stat-icon blue">ðŸ“‹</div>
               <span class="stat-trend up">Distributions</span>
             </div>
             <div class="stat-value" id="statTeamIncomeTxCount">0</div>
@@ -1045,8 +1045,8 @@
                 <button class="filter-tab" onclick="setTeamIncomeFilter('unallocated', this)">Unallocated</button>
               </div>
               <div class="search-box" style="margin:0">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" id="teamIncomeSearch" placeholder="Search user or package…" oninput="filterTeamIncomeTable()" />
+                <span class="search-icon">ðŸ”</span>
+                <input type="text" class="search-input" id="teamIncomeSearch" placeholder="Search user or packageâ€¦" oninput="filterTeamIncomeTable()" />
               </div>
             </div>
           </div>
@@ -1073,14 +1073,14 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- NON-WORKING INCOME (30% 8-LEVEL POOL SYSTEM)                   -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-nonworking">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">🔄</div> Non-Working Income (30% 8-Level Pool Engine)</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ”„</div> Non-Working Income (30% 8-Level Pool Engine)</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="loadNonWorkingAdmin()">🔄 Refresh</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadNonWorkingAdmin()">ðŸ”„ Refresh</button>
           </div>
         </div>
 
@@ -1088,7 +1088,7 @@
         <div class="stats-grid" style="margin-bottom:20px">
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon purple">🌐</div>
+              <div class="stat-icon purple">ðŸŒ</div>
               <span class="stat-trend up">30% Share</span>
             </div>
             <div class="stat-value" id="statNwTotalContrib">$0.00</div>
@@ -1096,7 +1096,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon green">🏆</div>
+              <div class="stat-icon green">ðŸ†</div>
               <span class="stat-trend up">Awarded</span>
             </div>
             <div class="stat-value" id="statNwTotalPaid">$0.00</div>
@@ -1104,7 +1104,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon blue">✅</div>
+              <div class="stat-icon blue">âœ…</div>
               <span class="stat-trend up">Completed</span>
             </div>
             <div class="stat-value" id="statNwCompletedPools">0</div>
@@ -1112,7 +1112,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon yellow">⏳</div>
+              <div class="stat-icon yellow">â³</div>
               <span class="stat-trend neutral">In Progress</span>
             </div>
             <div class="stat-value" id="statNwActivePools">0</div>
@@ -1162,8 +1162,8 @@
           <div class="glass-card-header" style="flex-wrap:wrap;gap:10px">
             <div class="glass-card-title">Chronological Member Sequence &amp; 30% Contributions</div>
             <div class="search-box" style="margin:0">
-              <span class="search-icon">🔍</span>
-              <input type="text" class="search-input" id="nwAdminMemberSearch" placeholder="Search member, rank…" oninput="filterNwAdminMembers()" />
+              <span class="search-icon">ðŸ”</span>
+              <input type="text" class="search-input" id="nwAdminMemberSearch" placeholder="Search member, rankâ€¦" oninput="filterNwAdminMembers()" />
             </div>
           </div>
           <div class="table-wrapper">
@@ -1188,13 +1188,13 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- REPORTS SECTION                                                 -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-reports">
 
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">📊</div> Reports</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ“Š</div> Reports</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <div class="filter-tabs">
               <button class="filter-tab active" onclick="loadReports('1');setActiveReportTab(this)">Today</button>
@@ -1202,32 +1202,32 @@
               <button class="filter-tab" onclick="loadReports('30');setActiveReportTab(this)">30 Days</button>
               <button class="filter-tab" onclick="loadReports('month');setActiveReportTab(this)">This Month</button>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="exportCSV('all')">📥 Export CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV('all')">ðŸ“¥ Export CSV</button>
           </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">👥 User Report</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ‘¥ User Report</div></div>
             <div id="reportUsers"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
           </div>
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">💰 Financial Report</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ’° Financial Report</div></div>
             <div id="reportFinancial"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
           </div>
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">📦 Package Report</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ“¦ Package Report</div></div>
             <div id="reportPackages"><div class="empty-state" style="padding:20px"><div class="loading-spinner" style="margin:auto"></div></div></div>
           </div>
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- AUDIT LOGS SECTION                                              -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-audit">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">📋</div> Audit Logs</div>
+          <div class="section-title"><div class="section-title-icon">ðŸ“‹</div> Audit Logs</div>
         </div>
         <div class="glass-card">
           <div class="table-wrap">
@@ -1239,18 +1239,18 @@
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <!-- SETTINGS SECTION                                                -->
-      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <section class="admin-section" id="section-settings">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-icon">⚙️</div> Settings</div>
+          <div class="section-title"><div class="section-title-icon">âš™ï¸</div> Settings</div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px">
           <!-- Profile -->
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">👤 Admin Profile</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ‘¤ Admin Profile</div></div>
             <div class="form-group">
               <label class="form-label">Full Name</label>
               <input type="text" class="form-control" id="settingsName" placeholder="Your name">
@@ -1259,12 +1259,12 @@
               <label class="form-label">Email</label>
               <input type="email" class="form-control" id="settingsEmail" readonly style="opacity:0.6">
             </div>
-            <button class="btn btn-primary" onclick="saveAdminProfile()">💾 Save Profile</button>
+            <button class="btn btn-primary" onclick="saveAdminProfile()">ðŸ’¾ Save Profile</button>
           </div>
 
           <!-- Password -->
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">🔒 Change Password</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ”’ Change Password</div></div>
             <div class="form-group">
               <label class="form-label">New Password</label>
               <input type="password" class="form-control" id="settingsNewPw" placeholder="Min 6 characters">
@@ -1273,17 +1273,17 @@
               <label class="form-label">Confirm Password</label>
               <input type="password" class="form-control" id="settingsNewPw2" placeholder="Repeat password">
             </div>
-            <button class="btn btn-primary" onclick="changeAdminPassword()">🔒 Change Password</button>
+            <button class="btn btn-primary" onclick="changeAdminPassword()">ðŸ”’ Change Password</button>
           </div>
 
           <!-- Security Info -->
           <div class="glass-card" style="margin:0">
-            <div class="glass-card-header"><div class="glass-card-title">🛡 Security Information</div></div>
+            <div class="glass-card-header"><div class="glass-card-title">ðŸ›¡ Security Information</div></div>
             <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7">
-              <p>✓ Role-based access control active</p>
-              <p>✓ Supabase Row Level Security enforced</p>
-              <p>✓ All admin actions are audit-logged</p>
-              <p>✓ No service-role credentials in frontend</p>
+              <p>âœ“ Role-based access control active</p>
+              <p>âœ“ Supabase Row Level Security enforced</p>
+              <p>âœ“ All admin actions are audit-logged</p>
+              <p>âœ“ No service-role credentials in frontend</p>
               <p style="margin-top:12px;color:var(--text-muted);font-size:0.75rem">Normal users cannot access this panel even if they know the URL. Access is verified against the database on every load.</p>
             </div>
           </div>
@@ -1294,16 +1294,16 @@
   </main>
 </div><!-- end .admin-layout -->
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- MODALS                                                                 -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 
 <!-- User Modal -->
 <div id="userModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('userModal')">
   <div class="modal-box wide">
     <div class="modal-header">
-      <div class="modal-title">👤 User Details</div>
-      <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+      <div class="modal-title">ðŸ‘¤ User Details</div>
+      <button class="modal-close" onclick="closeModal('userModal')">âœ•</button>
     </div>
     <div id="userModalBody"></div>
   </div>
@@ -1313,8 +1313,8 @@
 <div id="depositModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('depositModal')">
   <div class="modal-box">
     <div class="modal-header">
-      <div class="modal-title">💰 Deposit Review</div>
-      <button class="modal-close" onclick="closeModal('depositModal')">✕</button>
+      <div class="modal-title">ðŸ’° Deposit Review</div>
+      <button class="modal-close" onclick="closeModal('depositModal')">âœ•</button>
     </div>
     <div id="depositModalBody"></div>
   </div>
@@ -1324,8 +1324,8 @@
 <div id="withdrawalModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('withdrawalModal')">
   <div class="modal-box">
     <div class="modal-header">
-      <div class="modal-title">💸 Withdrawal Review</div>
-      <button class="modal-close" onclick="closeModal('withdrawalModal')">✕</button>
+      <div class="modal-title">ðŸ’¸ Withdrawal Review</div>
+      <button class="modal-close" onclick="closeModal('withdrawalModal')">âœ•</button>
     </div>
     <div id="withdrawalModalBody"></div>
   </div>
@@ -1335,14 +1335,14 @@
 <div id="pkgModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('pkgModal')">
   <div class="modal-box wide">
     <div class="modal-header">
-      <div class="modal-title" id="pkgModalTitle">📦 Package Users</div>
-      <button class="modal-close" onclick="closeModal('pkgModal')">✕</button>
+      <div class="modal-title" id="pkgModalTitle">ðŸ“¦ Package Users</div>
+      <button class="modal-close" onclick="closeModal('pkgModal')">âœ•</button>
     </div>
     <div id="pkgModalBody"></div>
   </div>
 </div>
 
-<!-- ═══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
+<!-- â•â•â• SCRIPTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Filter helpers (must be global for onclick)
@@ -1448,8 +1448,8 @@
           <span>IMPORTANT</span>
         </div>
         <ul class="imp-list">
-          <li><span>?</span> Admin withdrawal fee is 0% (No Fee).</li>
-          <li><span>?</span> Minimum withdrawal is 2 USDT.</li>
+          <li><span>✓</span> Admin withdrawal fee is 0% (No Fee).</li>
+          <li><span>✓</span> Minimum withdrawal is 2 USDT.</li>
         </ul>
       </div>
 
@@ -1463,6 +1463,10 @@
   </div>
 </div>
 </body></html>
+
+
+
+
 
 
 
