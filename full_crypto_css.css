@@ -1,0 +1,509 @@
+       CRYPTO DEPOSIT & WITHDRAW MODALS — Exact Design Match
+    ===================================================== */
+    .wallet-crypto-card {
+      width: 100%;
+      max-width: 440px;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #16042a 0%, #0a0015 100%);
+      box-shadow: 0 16px 60px rgba(0,0,0,0.85), 0 0 30px rgba(157,78,221,0.2);
+      border: 1px solid rgba(199,125,255,0.25);
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(199,125,255,0.3) transparent;
+    }
+
+    .wallet-crypto-card.withdraw-theme {
+      background: linear-gradient(180deg, #021226 0%, #030814 100%);
+      border: 1px solid rgba(0,180,216,0.3);
+      box-shadow: 0 16px 60px rgba(0,0,0,0.85), 0 0 30px rgba(0,180,216,0.2);
+    }
+
+    .crypto-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px 14px;
+      position: sticky;
+      top: 0;
+      background: rgba(22,4,42,0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 10;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .withdraw-theme .crypto-modal-header {
+      background: rgba(2,18,38,0.96);
+    }
+
+    .btn-crypto-back {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #ffffff;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .btn-crypto-back:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(-2px);
+    }
+
+    .crypto-modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .crypto-modal-body {
+      padding: 18px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* Network Row */
+    .crypto-network-row {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tether-logo-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #009393;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .tether-logo-circle.large {
+      width: 44px;
+      height: 44px;
+      box-shadow: 0 4px 15px rgba(0,147,147,0.4);
+    }
+
+    .network-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 2px;
+    }
+
+    .net-sublabel {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      font-weight: 500;
+    }
+
+    .net-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .net-pill-badge {
+      background: rgba(157,78,221,0.2);
+      border: 1px solid rgba(199,125,255,0.3);
+      color: #e0aaff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* Section Card */
+    .crypto-card-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .crypto-sec-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: rgba(224,170,255,0.8);
+      text-transform: uppercase;
+    }
+
+    .withdraw-theme .crypto-sec-label {
+      color: rgba(0,245,212,0.8);
+    }
+
+    /* Deposit Address Display Box */
+    .address-display-box {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(199,125,255,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .address-display-box:hover {
+      border-color: rgba(199,125,255,0.5);
+    }
+
+    .address-display-box input {
+      background: transparent;
+      border: none;
+      color: #e0aaff;
+      font-family: monospace;
+      font-size: 0.78rem;
+      flex: 1;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-copy-inline {
+      background: none;
+      border: none;
+      color: #c77dff;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+    .btn-copy-inline:hover {
+      transform: scale(1.15);
+    }
+
+    /* QR Presentation Wrap */
+    .qr-presentation-wrap {
+      background: rgba(10,0,22,0.6);
+      border: 1px solid rgba(199,125,255,0.15);
+      border-radius: 16px;
+      padding: 16px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .qr-image-frame {
+      position: relative;
+      width: 155px;
+      height: 155px;
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-image-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+      object-fit: contain;
+    }
+
+    .qr-center-tether-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      border-radius: 50%;
+      border: 2px solid #009393;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .qr-sub-warning {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    /* Amount Input Wrap */
+    .crypto-amount-input-wrap {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(199,125,255,0.25);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 4px 12px;
+      gap: 10px;
+    }
+
+    .crypto-amount-input-wrap.cyan-border {
+      border-color: rgba(0,180,216,0.3);
+    }
+
+    .amount-prefix-badge {
+      display: flex;
+      align-items: center;
+    }
+
+    .dollar-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #06d6a0;
+      color: #00382d;
+      font-weight: 900;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .crypto-amount-input-wrap input {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 700;
+      flex: 1;
+      outline: none;
+      padding: 10px 0;
+    }
+
+    .amount-suffix-label {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .crypto-sub-hint {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* Upload Screenshot Box */
+    .crypto-upload-box {
+      background: rgba(157,78,221,0.05);
+      border: 1.5px dashed rgba(199,125,255,0.35);
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .crypto-upload-box:hover {
+      border-color: rgba(199,125,255,0.65);
+      background: rgba(157,78,221,0.1);
+    }
+
+    .upload-cloud-icon {
+      margin-bottom: 2px;
+    }
+
+    .upload-primary-text {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e0aaff;
+    }
+
+    .upload-secondary-text {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 1px;
+    }
+
+    /* Important Box */
+    .crypto-important-box {
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .crypto-important-box.purple-tint {
+      background: rgba(157,78,221,0.08);
+      border: 1px solid rgba(199,125,255,0.2);
+    }
+
+    .crypto-important-box.blue-tint {
+      background: rgba(0,180,216,0.08);
+      border: 1px solid rgba(0,245,212,0.2);
+    }
+
+    .imp-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .imp-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.35;
+    }
+
+    .imp-list span {
+      color: #06d6a0;
+      font-weight: 900;
+      margin-right: 3px;
+    }
+
+    /* Submit Button */
+    .btn-crypto-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-transform: capitalize;
+    }
+
+    .btn-crypto-submit.purple-grad {
+      background: linear-gradient(135deg, #7b2cbf 0%, #9d4edd 50%, #c77dff 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(157,78,221,0.45);
+    }
+    .btn-crypto-submit.purple-grad:hover {
+      background: linear-gradient(135deg, #8b37d4 0%, #ac5eeb 50%, #d495ff 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(157,78,221,0.6);
+    }
+
+    .btn-crypto-submit.blue-grad {
+      background: linear-gradient(135deg, #0077b6 0%, #0096c7 50%, #00b4d8 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,180,216,0.45);
+    }
+    .btn-crypto-submit.blue-grad:hover {
+      background: linear-gradient(135deg, #0088ce 0%, #00abdd 50%, #15c5e8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(0,180,216,0.6);
+    }
+
+    /* Available Bal Card */
+    .crypto-available-bal-card {
+      background: linear-gradient(135deg, rgba(0,119,182,0.2) 0%, rgba(3,4,94,0.3) 100%);
+      border: 1px solid rgba(0,180,216,0.3);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .avail-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: rgba(0,245,212,0.8);
+    }
+
+    .avail-val {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    /* Fee Row */
+    .crypto-fee-row {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .fee-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .fee-desc {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      display: block;
+    }
+
+    .fee-star-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0077b6, #00f5d4);
+      color: #030814;
+      font-weight: 900;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,245,212,0.35);
+    }
+
+    /* Destination Address Input */
+    .crypto-dest-input-wrap {
+      background: rgba(10,0,22,0.85);
+      border: 1px solid rgba(0,180,216,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 2px 12px;
+      gap: 8px;
+    }
+
+    .dest-address-input {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 0.82rem;
+      flex: 1;
+      outline: none;
+      padding: 10px 0;
+    }
+
+    .scan-icon-badge {
+      color: #00f5d4;
+      display: flex;
+      align-items: center;
+    }
+  </style>
