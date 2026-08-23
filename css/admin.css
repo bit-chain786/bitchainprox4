@@ -1305,7 +1305,9 @@ select.form-control {
 
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .admin-content { padding: 16px; }
-  .chat-layout { grid-template-columns: 1fr; grid-template-rows: 280px 1fr; }
+  .chat-layout { display: flex; flex-direction: column; height: auto; min-height: auto; }
+  .chat-list { height: 250px; flex-shrink: 0; }
+  .chat-window { height: 550px; flex-shrink: 0; }
 
   .section-header { flex-direction: column; align-items: flex-start; }
 }
@@ -1316,3 +1318,4 @@ select.form-control {
   .modal-box { padding: 18px; }
   .glass-card { padding: 16px; }
 }
+
