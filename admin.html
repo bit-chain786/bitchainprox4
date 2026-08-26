@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1303,14 +1303,23 @@
           <!-- -->
           <div class="stat-card">
             <div class="stat-card-top">
-              <div class="stat-icon red">💸</div><span class="stat-trend up">All Time</span></div>
+              <div class="stat-icon red">💸</div>
+              <button type="button" onclick="openOutgoingHistoryModal()" style="background:rgba(157,78,221,0.18); border:1px solid rgba(157,78,221,0.4); color:#c77dff; padding:3px 9px; border-radius:6px; font-size:0.72rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;" onmouseover="this.style.background='rgba(157,78,221,0.35)'" onmouseout="this.style.background='rgba(157,78,221,0.18)'">
+                📜 History
+              </button>
+            </div>
             <div class="stat-value" id="statTotalOutgoing">-</div>
             <div class="stat-label">Outgoing Income (Unpaid)</div>
           </div>
-          <div class="stat-card" style="cursor:pointer; border: 1px solid #00f5d4; grid-column: span 1;" onclick="openAdminOutgoingWithdrawModal()">
+          <div class="stat-card" style="border: 1px solid #00f5d4; grid-column: span 1;">
             <div class="stat-card-top">
-              <div style="background:linear-gradient(135deg, #00f5d4, #00b4d8);padding:4px 12px;border-radius:8px;color:#030814;font-size:0.7rem;font-weight:900;text-transform:uppercase;box-shadow:0 0 12px rgba(0,245,212,0.5);">WITHDRAW</div>
-              <span class="stat-trend up" style="color:#00f5d4;background:rgba(0,245,212,0.1);">Admin Wallet</span>
+              <div style="background:linear-gradient(135deg, #00f5d4, #00b4d8);padding:4px 12px;border-radius:8px;color:#030814;font-size:0.7rem;font-weight:900;text-transform:uppercase;box-shadow:0 0 12px rgba(0,245,212,0.5); cursor:pointer;" onclick="openAdminOutgoingWithdrawModal()">WITHDRAW</div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="stat-trend up" style="color:#00f5d4;background:rgba(0,245,212,0.1);">Admin Wallet</span>
+                <button type="button" onclick="openAdminWalletHistoryModal()" style="background:rgba(0,245,212,0.15); border:1px solid rgba(0,245,212,0.35); color:#00f5d4; padding:3px 9px; border-radius:6px; font-size:0.72rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;" onmouseover="this.style.background='rgba(0,245,212,0.3)'" onmouseout="this.style.background='rgba(0,245,212,0.15)'">
+                  📜 History
+                </button>
+              </div>
             </div>
             <div class="stat-value" id="statAdminWalletBal" style="color:#00f5d4;">.00</div>
             <div class="stat-label">Available Balance</div>
@@ -1854,6 +1863,32 @@
   </div>
 </div>
 
+<!-- Outgoing Income History Modal -->
+<div id="outgoingHistoryModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('outgoingHistoryModal')">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">💸 Outgoing Income (Unpaid) Breakdown & History</div>
+      <button class="modal-close" onclick="closeModal('outgoingHistoryModal')">✕</button>
+    </div>
+    <div id="outgoingHistoryModalBody">
+      <div class="empty-state"><div class="loading-spinner" style="margin:auto"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Wallet Master Statement Modal -->
+<div id="adminWalletHistoryModal" class="modal-backdrop" onclick="if(event.target===this)closeModal('adminWalletHistoryModal')">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">🏦 Master Admin Wallet Statement & History</div>
+      <button class="modal-close" onclick="closeModal('adminWalletHistoryModal')">✕</button>
+    </div>
+    <div id="adminWalletHistoryModalBody">
+      <div class="empty-state"><div class="loading-spinner" style="margin:auto"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -1975,6 +2010,7 @@
   </div>
 </div>
 </body></html>
+
 
 
 

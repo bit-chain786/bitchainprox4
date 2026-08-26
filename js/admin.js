@@ -2077,7 +2077,9 @@ window.submitAdminOutgoingWithdraw = async function() {
     alert('Withdrawal recorded successfully!');
     closeAdminOutgoingWithdrawModal();
     // Refresh dashboard stats
-    if (typeof loadDashboardStats === 'function') {
+    if (typeof loadDashboard === 'function') {
+      await loadDashboard();
+    } else if (typeof loadDashboardStats === 'function') {
       await loadDashboardStats();
     }
   } catch(e) {
@@ -2089,6 +2091,319 @@ window.submitAdminOutgoingWithdraw = async function() {
   }
 };
 
+// ==============================================================================
+// OUTGOING INCOME (UNPAID) HISTORY MODAL
+// ==============================================================================
+window.openOutgoingHistoryModal = async function() {
+  const modal = el('outgoingHistoryModal');
+  const body = el('outgoingHistoryModalBody');
+  if (!modal || !body) return;
 
+  modal.classList.add('active');
+  body.innerHTML = `
+    <div class="empty-state" style="padding:40px 20px;">
+      <div class="loading-spinner" style="margin:auto"></div>
+      <div class="empty-state-text" style="margin-top:14px; font-weight:600; color:var(--text-secondary);">
+        Fetching outgoing income ledger...
+      </div>
+    </div>
+  `;
 
+  try {
+    const db = getDB();
+    if (!db) throw new Error('Database connection unavailable.');
 
+    const { data: records, error } = await db
+      .from('outgoing_income_ledger')
+      .select('*')
+      .gt('amount', 0)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const list = records || [];
+
+    // Categorized totals
+    const directList = list.filter(r => (r.income_type || '').toLowerCase().includes('direct'));
+    const teamList = list.filter(r => (r.income_type || '').toLowerCase().includes('team'));
+    const poolList = list.filter(r => (r.income_type || '').toLowerCase().includes('pool') || (r.income_type || '').toLowerCase().includes('non-working'));
+
+    const directTotal = directList.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+    const teamTotal = teamList.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+    const poolTotal = poolList.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+    const allTotal = list.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+
+    let html = `
+      <!-- Summary KPIs -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:22px;">
+        <div style="background:rgba(157,78,221,0.1); border:1px solid rgba(157,78,221,0.25); border-radius:12px; padding:14px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">⚡ Direct Income (40%)</div>
+          <div style="font-size:1.3rem; font-weight:800; color:#00f5d4; margin-top:4px;">$${fmt(directTotal)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">${directList.length} Direct Signups / No Upline</div>
+        </div>
+        <div style="background:rgba(157,78,221,0.1); border:1px solid rgba(157,78,221,0.25); border-radius:12px; padding:14px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">👥 Skipped Team (15%)</div>
+          <div style="font-size:1.3rem; font-weight:800; color:#c77dff; margin-top:4px;">$${fmt(teamTotal)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">${teamList.length} Unqualified uplines skipped</div>
+        </div>
+        <div style="background:rgba(157,78,221,0.1); border:1px solid rgba(157,78,221,0.25); border-radius:12px; padding:14px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">🔄 Unallocated Pool (30%)</div>
+          <div style="font-size:1.3rem; font-weight:800; color:#ffd166; margin-top:4px;">$${fmt(poolTotal)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">${poolList.length} Empty / Unqualified pools</div>
+        </div>
+        <div style="background:linear-gradient(135deg, rgba(0,245,212,0.15), rgba(157,78,221,0.15)); border:1px solid rgba(0,245,212,0.35); border-radius:12px; padding:14px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">💰 Total Unpaid Income</div>
+          <div style="font-size:1.3rem; font-weight:800; color:#fff; margin-top:4px;">$${fmt(allTotal)}</div>
+          <div style="font-size:0.7rem; color:#00f5d4; margin-top:2px;">${list.length} total transactions</div>
+        </div>
+      </div>
+    `;
+
+    if (list.length === 0) {
+      html += `
+        <div class="empty-state" style="padding:40px 20px;">
+          <div class="empty-state-icon">💸</div>
+          <div class="empty-state-text" style="font-size:1rem; font-weight:700; color:#fff;">No Outgoing Income Records Yet</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">
+            When a user with no upline buys a package or when team income skips unranked uplines, funds will appear here in real-time.
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="min-width:140px;">Date & Time</th>
+                <th style="min-width:130px;">Income Type</th>
+                <th style="min-width:110px;">Amount</th>
+                <th>Source & Origin Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(r => {
+                const type = r.income_type || 'Unpaid Income';
+                let badgeStyle = 'background:rgba(157,78,221,0.2); color:#c77dff; border:1px solid rgba(157,78,221,0.4);';
+                if (type.toLowerCase().includes('direct')) {
+                  badgeStyle = 'background:rgba(0,245,212,0.15); color:#00f5d4; border:1px solid rgba(0,245,212,0.35);';
+                } else if (type.toLowerCase().includes('team')) {
+                  badgeStyle = 'background:rgba(199,125,255,0.18); color:#c77dff; border:1px solid rgba(199,125,255,0.35);';
+                } else if (type.toLowerCase().includes('pool') || type.toLowerCase().includes('non-working')) {
+                  badgeStyle = 'background:rgba(255,209,102,0.15); color:#ffd166; border:1px solid rgba(255,209,102,0.35);';
+                }
+
+                return `
+                  <tr>
+                    <td style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap;">
+                      ${fmtDate(r.created_at)}
+                    </td>
+                    <td>
+                      <span class="badge" style="${badgeStyle}">
+                        ${type}
+                      </span>
+                    </td>
+                    <td style="font-weight:800; color:#00f5d4; font-size:0.88rem; white-space:nowrap;">
+                      +$${fmt(r.amount)} USDT
+                    </td>
+                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">
+                      ${r.reason || 'Unallocated payout'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    body.innerHTML = html;
+  } catch(err) {
+    console.error('Error in openOutgoingHistoryModal:', err);
+    body.innerHTML = `<div class="empty-state"><div style="color:#ff4d4d; font-weight:700;">Failed to load history: ${err.message}</div></div>`;
+  }
+};
+
+// ==============================================================================
+// ADMIN WALLET FULL STATEMENT & HISTORY MODAL
+// ==============================================================================
+window.openAdminWalletHistoryModal = async function() {
+  const modal = el('adminWalletHistoryModal');
+  const body = el('adminWalletHistoryModalBody');
+  if (!modal || !body) return;
+
+  modal.classList.add('active');
+  body.innerHTML = `
+    <div class="empty-state" style="padding:40px 20px;">
+      <div class="loading-spinner" style="margin:auto"></div>
+      <div class="empty-state-text" style="margin-top:14px; font-weight:600; color:var(--text-secondary);">
+        Fetching master wallet statement...
+      </div>
+    </div>
+  `;
+
+  try {
+    const db = getDB();
+    if (!db) throw new Error('Database connection unavailable.');
+
+    const [maintRes, outgoingRes] = await Promise.all([
+      db.from('system_maintenance').select('*').order('created_at', { ascending: false }),
+      db.from('outgoing_income_ledger').select('*').order('created_at', { ascending: false })
+    ]);
+
+    const maintList = maintRes.data || [];
+    const outgoingList = outgoingRes.data || [];
+
+    // Unified ledger items
+    const combined = [];
+
+    // 1. Add Maintenance records (10%)
+    maintList.forEach(m => {
+      combined.push({
+        date: m.created_at,
+        category: '10% Maintenance',
+        badgeColor: 'blue',
+        badgeText: '10% Maintenance',
+        amount: parseFloat(m.maintenance_amount || 0),
+        isPositive: true,
+        details: `10% platform fee from @${m.user_name || 'User'} purchasing ${m.package_name || 'Package'} ($${fmt(m.purchase_amount)} USDT)`
+      });
+    });
+
+    // 2. Add Outgoing ledger records (Incomes & Withdrawals)
+    outgoingList.forEach(o => {
+      const amt = parseFloat(o.amount || 0);
+      if (amt < 0) {
+        combined.push({
+          date: o.created_at,
+          category: 'Admin Withdrawal',
+          badgeColor: 'red',
+          badgeText: 'Withdrawal',
+          amount: Math.abs(amt),
+          isPositive: false,
+          details: o.reason || 'Admin Wallet Withdrawal'
+        });
+      } else {
+        const type = o.income_type || 'Unpaid Income';
+        let badgeColor = 'purple';
+        if (type.toLowerCase().includes('direct')) badgeColor = 'cyan';
+        else if (type.toLowerCase().includes('pool')) badgeColor = 'gold';
+
+        combined.push({
+          date: o.created_at,
+          category: type,
+          badgeColor: badgeColor,
+          badgeText: type,
+          amount: amt,
+          isPositive: true,
+          details: o.reason || 'Unallocated income payout'
+        });
+      }
+    });
+
+    // Sort chronologically descending
+    combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // KPI Metrics
+    const totalMaint = maintList.reduce((s, m) => s + parseFloat(m.maintenance_amount || 0), 0);
+    const totalUnpaid = outgoingList.reduce((s, o) => s + (parseFloat(o.amount) > 0 ? parseFloat(o.amount) : 0), 0);
+    const totalWithdrawn = outgoingList.reduce((s, o) => s + (parseFloat(o.amount) < 0 ? Math.abs(parseFloat(o.amount)) : 0), 0);
+    const totalEarned = totalMaint + totalUnpaid;
+    const available = Math.max(0, totalEarned - totalWithdrawn);
+
+    let html = `
+      <!-- Summary KPIs -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:22px;">
+        <div style="background:rgba(58,134,255,0.1); border:1px solid rgba(58,134,255,0.25); border-radius:12px; padding:12px;">
+          <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">🔧 10% Maintenance</div>
+          <div style="font-size:1.25rem; font-weight:800; color:#3a86ff; margin-top:4px;">$${fmt(totalMaint)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">${maintList.length} fees collected</div>
+        </div>
+        <div style="background:rgba(157,78,221,0.1); border:1px solid rgba(157,78,221,0.25); border-radius:12px; padding:12px;">
+          <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">💸 Unpaid / Outgoing</div>
+          <div style="font-size:1.25rem; font-weight:800; color:#c77dff; margin-top:4px;">$${fmt(totalUnpaid)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">Direct & Skipped funds</div>
+        </div>
+        <div style="background:rgba(230,57,70,0.1); border:1px solid rgba(230,57,70,0.25); border-radius:12px; padding:12px;">
+          <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">📤 Total Withdrawn</div>
+          <div style="font-size:1.25rem; font-weight:800; color:#ff4d4d; margin-top:4px;">$${fmt(totalWithdrawn)}</div>
+          <div style="font-size:0.7rem; color:rgba(255,255,255,0.5); margin-top:2px;">Admin payouts</div>
+        </div>
+        <div style="background:linear-gradient(135deg, rgba(0,245,212,0.18), rgba(0,180,216,0.18)); border:1px solid #00f5d4; border-radius:12px; padding:12px; box-shadow:0 0 14px rgba(0,245,212,0.25);">
+          <div style="font-size:0.72rem; color:#00f5d4; text-transform:uppercase; font-weight:800;">🏦 Net Available Balance</div>
+          <div style="font-size:1.35rem; font-weight:900; color:#00f5d4; margin-top:4px;">$${fmt(available)}</div>
+          <div style="font-size:0.7rem; color:#fff; margin-top:2px;">Ready for withdrawal</div>
+        </div>
+      </div>
+    `;
+
+    if (combined.length === 0) {
+      html += `
+        <div class="empty-state" style="padding:40px 20px;">
+          <div class="empty-state-icon">🏦</div>
+          <div class="empty-state-text" style="font-size:1rem; font-weight:700; color:#fff;">No Admin Transactions Yet</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">
+            All 10% maintenance fees, unpaid direct/team incomes, and admin withdrawals will appear in this unified statement.
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="min-width:140px;">Date & Time</th>
+                <th style="min-width:140px;">Category</th>
+                <th style="min-width:120px;">Amount</th>
+                <th>Transaction Details & Memo</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${combined.map(item => {
+                let badgeStyle = 'background:rgba(58,134,255,0.15); color:#3a86ff; border:1px solid rgba(58,134,255,0.35);';
+                if (item.badgeColor === 'purple') {
+                  badgeStyle = 'background:rgba(199,125,255,0.18); color:#c77dff; border:1px solid rgba(199,125,255,0.35);';
+                } else if (item.badgeColor === 'cyan') {
+                  badgeStyle = 'background:rgba(0,245,212,0.15); color:#00f5d4; border:1px solid rgba(0,245,212,0.35);';
+                } else if (item.badgeColor === 'gold') {
+                  badgeStyle = 'background:rgba(255,209,102,0.15); color:#ffd166; border:1px solid rgba(255,209,102,0.35);';
+                } else if (item.badgeColor === 'red') {
+                  badgeStyle = 'background:rgba(230,57,70,0.15); color:#ff4d4d; border:1px solid rgba(230,57,70,0.35);';
+                }
+
+                const amountText = item.isPositive ? `+$${fmt(item.amount)} USDT` : `-$${fmt(item.amount)} USDT`;
+                const amountColor = item.isPositive ? '#00f5d4' : '#ff4d4d';
+
+                return `
+                  <tr>
+                    <td style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap;">
+                      ${fmtDate(item.date)}
+                    </td>
+                    <td>
+                      <span class="badge" style="${badgeStyle}">
+                        ${item.badgeText}
+                      </span>
+                    </td>
+                    <td style="font-weight:800; color:${amountColor}; font-size:0.88rem; white-space:nowrap;">
+                      ${amountText}
+                    </td>
+                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">
+                      ${item.details}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    body.innerHTML = html;
+  } catch(err) {
+    console.error('Error in openAdminWalletHistoryModal:', err);
+    body.innerHTML = `<div class="empty-state"><div style="color:#ff4d4d; font-weight:700;">Failed to load statement: ${err.message}</div></div>`;
+  }
+};
