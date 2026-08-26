@@ -2091,6 +2091,18 @@ window.submitAdminOutgoingWithdraw = async function() {
   }
 };
 
+function formatOriginReason(reason) {
+  if (!reason) return 'Unallocated payout';
+  // Match "Level X (Y%)"
+  const lvlMatch = reason.match(/^(Level\s*\d+\s*\([^\)]+\))\s*(.*)$/i);
+  if (lvlMatch) {
+    const lvlTag = lvlMatch[1]; // e.g. "Level 2 (4%)"
+    const rest = lvlMatch[2];   // e.g. "Unallocated Team Income - Upline tree ended (from @fazal)"
+    return `<span class="badge" style="background:rgba(0,245,212,0.15); color:#00f5d4; border:1px solid rgba(0,245,212,0.35); font-weight:800; font-size:0.75rem; margin-right:6px; vertical-align:middle;">${lvlTag}</span> <span style="vertical-align:middle;">${rest}</span>`;
+  }
+  return reason;
+}
+
 // ==============================================================================
 // OUTGOING INCOME (UNPAID) HISTORY MODAL
 // ==============================================================================
@@ -2206,8 +2218,8 @@ window.openOutgoingHistoryModal = async function() {
                     <td style="font-weight:800; color:#00f5d4; font-size:0.88rem; white-space:nowrap;">
                       +$${fmt(r.amount)} USDT
                     </td>
-                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">
-                      ${r.reason || 'Unallocated payout'}
+                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+                      ${formatOriginReason(r.reason)}
                     </td>
                   </tr>
                 `;
@@ -2389,8 +2401,8 @@ window.openAdminWalletHistoryModal = async function() {
                     <td style="font-weight:800; color:${amountColor}; font-size:0.88rem; white-space:nowrap;">
                       ${amountText}
                     </td>
-                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">
-                      ${item.details}
+                    <td style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+                      ${formatOriginReason(item.details)}
                     </td>
                   </tr>
                 `;
