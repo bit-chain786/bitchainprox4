@@ -1386,6 +1386,26 @@ async function loadMessages(convId) {
   box.scrollTop = box.scrollHeight;
 }
 
+window.focusChatKeyboard = function(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const input = el('chatAdminInput');
+  if (input) {
+    input.removeAttribute('readonly');
+    input.disabled = false;
+    input.focus();
+    const len = input.value.length;
+    try {
+      input.setSelectionRange(len, len);
+    } catch(err) {}
+    setTimeout(() => {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+};
+
 async function sendAdminMessage() {
   if (!_activeConvId) return;
   const input = el('chatAdminInput');

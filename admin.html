@@ -1488,11 +1488,16 @@
             </div>
             <div class="chat-messages" id="chatMessages"></div>
             <div id="adminChatImgPreview" style="display:none;padding:8px 16px;background:rgba(157,78,221,0.06);border-top:1px solid var(--admin-border);"></div>
-            <div class="chat-input-area" style="align-items:center;">
+            <div class="chat-input-area" style="align-items:center; gap:8px;">
               <input type="file" id="adminChatFileInput" accept="image/*" style="display:none" onchange="handleAdminChatFile(event)" />
-              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('adminChatFileInput').click()" title="Attach Screenshot / Image" style="font-size:1.1rem;padding:8px 12px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;">📷</button>
-              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply to user…" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea>
-              <button class="btn btn-primary" onclick="sendAdminMessage()" style="align-self:stretch;display:flex;align-items:center;justify-content:center;">Send ›</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adminChatFileInput').click()" title="Attach Screenshot / Image" style="font-size:1.1rem;padding:8px 10px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;background:rgba(157,78,221,0.08);cursor:pointer;flex-shrink:0;">📷</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="focusChatKeyboard(event)" title="Open Mobile Keyboard" style="font-size:1.1rem;padding:8px 10px;border:1px solid rgba(199,125,255,0.3);border-radius:8px;background:rgba(157,78,221,0.08);color:#c77dff;cursor:pointer;flex-shrink:0;">⌨️</button>
+              <textarea class="chat-input" id="chatAdminInput" placeholder="Type a reply to user…" rows="2" 
+                onclick="this.focus()"
+                ontouchstart="this.focus()"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"
+                style="font-size:0.92rem; -webkit-user-select:text; user-select:text; touch-action:manipulation; cursor:text; min-height:42px;"></textarea>
+              <button type="button" class="btn btn-primary" onclick="sendAdminMessage()" style="align-self:stretch;display:flex;align-items:center;justify-content:center;padding:8px 18px;flex-shrink:0;font-weight:700;">Send ›</button>
             </div>
           </div>
         </div>
