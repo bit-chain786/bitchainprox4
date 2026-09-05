@@ -116,9 +116,14 @@ CREATE TABLE IF NOT EXISTS public.direct_income_log (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Ensure columns exist if table was previously created
+-- Ensure columns exist and relax NOT NULL constraints on existing tables
 DO $$
 BEGIN
+  -- Drop NOT NULL constraint on sponsor_id and sponsor_username so unallocated / direct signups can be logged
+  ALTER TABLE public.direct_income_log ALTER COLUMN sponsor_id DROP NOT NULL;
+  ALTER TABLE public.direct_income_log ALTER COLUMN sponsor_username DROP NOT NULL;
+  
+  -- Add columns if missing
   ALTER TABLE public.direct_income_log ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'paid';
   ALTER TABLE public.direct_income_log ADD COLUMN IF NOT EXISTS reason TEXT;
   ALTER TABLE public.direct_income_log ADD COLUMN IF NOT EXISTS commission_pct NUMERIC(5,2) NOT NULL DEFAULT 40.00;
