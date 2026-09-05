@@ -2083,8 +2083,8 @@ window.submitAdminOutgoingWithdraw = async function() {
   btn.disabled = true;
 
   try {
-    const db = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
-    if (!db) throw new Error('Supabase client not found.');
+    const db = getDB() || (window.BitchainAuth && typeof window.BitchainAuth.getSupabase === 'function' ? window.BitchainAuth.getSupabase() : null);
+    if (!db) throw new Error('Supabase client connection not found. Please refresh the page.');
 
     const { error } = await db.from('outgoing_income_ledger').insert({
       income_type: 'Admin Withdrawal',
