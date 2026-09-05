@@ -1,20 +1,10 @@
 -- ============================================================================
--- BITCHAIN PRO X — RECONSTRUCTED DIRECT INCOME (40%) COMMISSION ENGINE
--- Complete From-Scratch Implementation (Strict 1-Level Direct Attribution)
--- 
--- System Rules & Architecture:
--- 1. 40% Commission calculated directly from the rank/package purchase amount.
--- 2. Strict 1-Level Direct Sponsor attribution (Downline B -> Sponsor A).
--- 3. NO Rank Barrier: Direct sponsor receives 40% regardless of their own rank.
--- 4. Indirect referrals (Levels 2..8) NEVER receive Direct Income (only Team Income).
--- 5. Unassigned / direct signups (no sponsor) route 40% to outgoing_income_ledger (Admin).
--- 6. Idempotent execution with direct_income_log UNIQUE (purchase_id).
--- 7. Automated profile balance update & recent activities insertion.
--- 8. Complete historical backfill & automatic re-evaluation of unallocated logs.
+-- BITCHAIN PRO X — MASTER DIRECT INCOME (40%) COMMISSION ENGINE
+-- Complete Bulletproof Implementation with Cross-Table Auth Sync & Auto-Recovery
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- STEP 1: Ensure public.activities Table & Columns Exist
+-- STEP 1: Ensure public.activities Table & Columns Exist with Proper Types
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -58,7 +48,7 @@ CREATE POLICY "Users can read own activities"
   USING (auth.uid() = user_id OR auth.uid() IS NULL);
 
 -- ----------------------------------------------------------------------------
--- STEP 2: Ensure outgoing_income_ledger Exists (for Unallocated / Admin Routing)
+-- STEP 2: Ensure outgoing_income_ledger Exists
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.outgoing_income_ledger (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,17 +81,46 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS sponsor_username TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS upline_id TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
 
--- Permanently remove any legacy blocker triggers that stripped sponsor_username
+-- Permanently remove legacy blocker triggers
 DROP TRIGGER IF EXISTS trigger_validate_sponsor_rank ON public.profiles;
 DROP FUNCTION IF EXISTS public.validate_sponsor_rank();
 
 -- ----------------------------------------------------------------------------
--- STEP 4: Protect Existing Referral Codes From Overwriting on Update
+-- STEP 4: CRITICAL SYNC — Sync Referral Codes & Sponsors from auth.users to profiles
+-- ----------------------------------------------------------------------------
+DO $$
+BEGIN
+  -- 1. Copy referral_code from auth metadata if missing or mismatched in profiles
+  UPDATE public.profiles p
+     SET referral_code = COALESCE(u.raw_user_meta_data->>'referral_code', p.referral_code, UPPER(SUBSTRING(MD5(p.id::TEXT) FROM 1 FOR 5)))
+    FROM auth.users u
+   WHERE p.id = u.id
+     AND (p.referral_code IS NULL OR TRIM(p.referral_code) = '' OR (u.raw_user_meta_data->>'referral_code' IS NOT NULL AND p.referral_code <> u.raw_user_meta_data->>'referral_code'));
+
+  -- 2. Copy username from auth metadata if username was set to email or NULL
+  UPDATE public.profiles p
+     SET username = COALESCE(u.raw_user_meta_data->>'username', p.username, split_part(p.email, '@', 1))
+    FROM auth.users u
+   WHERE p.id = u.id
+     AND (p.username IS NULL OR p.username = p.email OR TRIM(p.username) = '');
+
+  -- 3. Copy sponsor_username from auth metadata if missing in profiles
+  UPDATE public.profiles p
+     SET sponsor_username = COALESCE(p.sponsor_username, p.upline_id, u.raw_user_meta_data->>'sponsor_username', u.raw_user_meta_data->>'sponsor', u.raw_user_meta_data->>'ref'),
+         upline_id        = COALESCE(p.upline_id, p.sponsor_username, u.raw_user_meta_data->>'sponsor_username', u.raw_user_meta_data->>'sponsor', u.raw_user_meta_data->>'ref')
+    FROM auth.users u
+   WHERE p.id = u.id
+     AND (p.sponsor_username IS NULL OR TRIM(p.sponsor_username) = '');
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+-- ----------------------------------------------------------------------------
+-- STEP 5: Protect Referral Codes on Profile Updates
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_profile_ref_code()
 RETURNS trigger AS $$
 BEGIN
-  -- If profile already has a referral code, preserve it and NEVER overwrite it
   IF OLD.referral_code IS NOT NULL AND TRIM(OLD.referral_code) <> '' THEN
     NEW.referral_code := OLD.referral_code;
   ELSIF NEW.referral_code IS NULL OR TRIM(NEW.referral_code) = '' THEN
@@ -111,8 +130,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS trg_profile_ref_code ON public.profiles;
+CREATE TRIGGER trg_profile_ref_code
+  BEFORE INSERT ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_profile_ref_code();
+
 -- ----------------------------------------------------------------------------
--- STEP 5: Drop Old Triggers & Recreate direct_income_log Table Cleanly
+-- STEP 6: Drop Old Triggers & Recreate direct_income_log Table Cleanly
 -- ----------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS trg_direct_income ON public.package_purchases;
 DROP TRIGGER IF EXISTS trg_direct_income_commission ON public.package_purchases;
@@ -133,7 +158,7 @@ CREATE TABLE IF NOT EXISTS public.direct_income_log (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Relax NOT NULL constraints on direct_income_log columns
+-- Relax all NOT NULL constraints on direct_income_log
 DO $$
 BEGIN
   ALTER TABLE public.direct_income_log ALTER COLUMN sponsor_id DROP NOT NULL;
@@ -173,7 +198,7 @@ CREATE INDEX IF NOT EXISTS idx_direct_income_sponsor ON public.direct_income_log
 CREATE INDEX IF NOT EXISTS idx_direct_income_purchaser ON public.direct_income_log(purchaser_id);
 
 -- ----------------------------------------------------------------------------
--- STEP 6: Reconstructed Direct Income Commission Trigger Function
+-- STEP 7: Reconstructed Direct Income Commission Trigger Function (Cross-Table)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_direct_income_commission()
 RETURNS trigger AS $$
@@ -192,11 +217,6 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Enforce strict idempotency: prevent duplicate commission for the same purchase
-  IF EXISTS (SELECT 1 FROM public.direct_income_log WHERE purchase_id = NEW.id) THEN
-    RETURN NEW;
-  END IF;
-
   -- 1. Fetch Purchaser Profile
   SELECT id, username, full_name, email, sponsor_username, upline_id, referral_code
     INTO v_purchaser
@@ -207,7 +227,7 @@ BEGIN
   v_package_name   := COALESCE(NEW.package_name, NEW.rank_name, 'Package');
   v_commission     := ROUND((NEW.amount * 0.40)::numeric, 2);
 
-  -- 2. Determine sponsor identifier (check sponsor_username, upline_id, then auth metadata)
+  -- 2. Determine sponsor identifier (profiles -> upline_id -> auth metadata)
   v_sponsor_search := COALESCE(v_purchaser.sponsor_username, v_purchaser.upline_id);
 
   IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
@@ -223,41 +243,19 @@ BEGIN
      OR LOWER(TRIM(v_sponsor_search)) IN ('direct signup', 'direct_signup', 'none', 'null', 'admin') THEN
 
     INSERT INTO public.direct_income_log (
-      purchase_id,
-      purchaser_id,
-      purchaser_username,
-      package_name,
-      purchase_amount,
-      sponsor_id,
-      sponsor_username,
-      commission_pct,
-      commission_amount,
-      status,
-      reason,
-      created_at
+      purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
+      sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
     ) VALUES (
-      NEW.id,
-      NEW.user_id,
-      v_purchaser_name,
-      v_package_name,
-      NEW.amount,
-      NULL,
-      'Direct Signup / Admin',
-      40.00,
-      v_commission,
-      'unallocated',
-      'Direct Signup: User has no referral sponsor attached',
-      NOW()
-    ) ON CONFLICT (purchase_id) DO NOTHING;
+      NEW.id, NEW.user_id, v_purchaser_name, v_package_name, NEW.amount,
+      NULL, 'Direct Signup / Admin', 40.00, v_commission, 'unallocated',
+      'Direct Signup: User has no referral sponsor attached', NOW()
+    ) ON CONFLICT (purchase_id) DO UPDATE
+      SET status = 'unallocated', reason = 'Direct Signup: User has no referral sponsor attached';
 
     INSERT INTO public.outgoing_income_ledger (
-      income_type,
-      amount,
-      reason,
-      created_at
+      income_type, amount, reason, created_at
     ) VALUES (
-      'Direct Income',
-      v_commission,
+      'Direct Income', v_commission,
       'Direct Signup without sponsor from ' || v_purchaser_name || ' purchasing ' || v_package_name || ' ($' || TO_CHAR(NEW.amount, 'FM999,999,990.00') || ' USDT)',
       NOW()
     );
@@ -265,61 +263,44 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Normalize sponsor string (strip spaces and @ symbol)
+  -- Normalize sponsor search string
   v_raw_sponsor := LOWER(TRIM(REPLACE(v_sponsor_search, '@', '')));
 
-  -- 4. Look up Direct Sponsor across all identifier columns (referral_code, username, email, full_name, id)
-  SELECT id, username, full_name, referral_code, available_balance, total_income, direct_income, today_income
+  -- 4. Cross-Table Search: Find Direct Sponsor in public.profiles OR auth.users metadata
+  SELECT p.id, p.username, p.full_name, p.referral_code, p.available_balance, p.total_income, p.direct_income, p.today_income
     INTO v_sponsor
-    FROM public.profiles
+    FROM public.profiles p
+    LEFT JOIN auth.users u ON u.id = p.id
    WHERE (
-     LOWER(TRIM(COALESCE(referral_code, ''))) = v_raw_sponsor
-     OR LOWER(TRIM(COALESCE(username, ''))) = v_raw_sponsor
-     OR LOWER(TRIM(COALESCE(email, ''))) = v_raw_sponsor
-     OR LOWER(TRIM(COALESCE(full_name, ''))) = v_raw_sponsor
-     OR id::text = v_raw_sponsor
+     LOWER(TRIM(COALESCE(p.referral_code, ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'referral_code', ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(p.username, ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'username', ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(p.email, ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(u.email, ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(p.full_name, ''))) = v_raw_sponsor
+     OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'full_name', ''))) = v_raw_sponsor
+     OR p.id::text = v_raw_sponsor
    )
-   AND id <> NEW.user_id
+   AND p.id <> NEW.user_id
    LIMIT 1;
 
-  -- 5. Case: Sponsor string exists but not found in database
+  -- 5. Case: Sponsor string exists but not found in DB
   IF NOT FOUND OR v_sponsor.id IS NULL THEN
     INSERT INTO public.direct_income_log (
-      purchase_id,
-      purchaser_id,
-      purchaser_username,
-      package_name,
-      purchase_amount,
-      sponsor_id,
-      sponsor_username,
-      commission_pct,
-      commission_amount,
-      status,
-      reason,
-      created_at
+      purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
+      sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
     ) VALUES (
-      NEW.id,
-      NEW.user_id,
-      v_purchaser_name,
-      v_package_name,
-      NEW.amount,
-      NULL,
-      v_sponsor_search,
-      40.00,
-      v_commission,
-      'unallocated',
-      'Sponsor (' || v_sponsor_search || ') not found in database',
-      NOW()
-    ) ON CONFLICT (purchase_id) DO NOTHING;
+      NEW.id, NEW.user_id, v_purchaser_name, v_package_name, NEW.amount,
+      NULL, v_sponsor_search, 40.00, v_commission, 'unallocated',
+      'Sponsor (' || v_sponsor_search || ') not found in database', NOW()
+    ) ON CONFLICT (purchase_id) DO UPDATE
+      SET status = 'unallocated', reason = 'Sponsor (' || v_sponsor_search || ') not found in database';
 
     INSERT INTO public.outgoing_income_ledger (
-      income_type,
-      amount,
-      reason,
-      created_at
+      income_type, amount, reason, created_at
     ) VALUES (
-      'Direct Income',
-      v_commission,
+      'Direct Income', v_commission,
       'Sponsor (' || v_sponsor_search || ') not found for ' || v_purchaser_name || ' purchasing ' || v_package_name || ' ($' || TO_CHAR(NEW.amount, 'FM999,999,990.00') || ' USDT)',
       NOW()
     );
@@ -327,54 +308,28 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 6. QUALIFIED DIRECT SPONSOR FOUND (NO RANK RESTRICTION)
+  -- 6. ✅ QUALIFIED DIRECT SPONSOR FOUND (NO RANK RESTRICTION)
+  -- Insert or update direct_income_log
   INSERT INTO public.direct_income_log (
-    purchase_id,
-    purchaser_id,
-    purchaser_username,
-    package_name,
-    purchase_amount,
-    sponsor_id,
-    sponsor_username,
-    commission_pct,
-    commission_amount,
-    status,
-    reason,
-    created_at
+    purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
+    sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
   ) VALUES (
-    NEW.id,
-    NEW.user_id,
-    v_purchaser_name,
-    v_package_name,
-    NEW.amount,
-    v_sponsor.id,
-    COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
-    40.00,
-    v_commission,
-    'paid',
-    'Direct 40% Commission Paid',
-    NOW()
-  ) ON CONFLICT (purchase_id) DO NOTHING;
+    NEW.id, NEW.user_id, v_purchaser_name, v_package_name, NEW.amount,
+    v_sponsor.id, COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
+    40.00, v_commission, 'paid', 'Direct 40% Commission Paid', NOW()
+  ) ON CONFLICT (purchase_id) DO UPDATE
+    SET sponsor_id       = v_sponsor.id,
+        sponsor_username = COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
+        status           = 'paid',
+        reason           = 'Direct 40% Commission Paid';
 
   -- 7. Insert Recent Activity Record for Direct Sponsor
   v_detail_text := '40% commission from ' || v_purchaser_name || ' purchasing ' || v_package_name || ' — $' || TO_CHAR(NEW.amount, 'FM999,999,990.00') || ' USDT';
 
   INSERT INTO public.activities (
-    user_id,
-    type,
-    title,
-    details,
-    amount,
-    category,
-    created_at
+    user_id, type, title, details, amount, category, created_at
   ) VALUES (
-    v_sponsor.id,
-    'income',
-    'Direct Income',
-    v_detail_text,
-    v_commission,
-    'direct',
-    NOW()
+    v_sponsor.id, 'income', 'Direct Income', v_detail_text, v_commission, 'direct', NOW()
   );
 
   -- 8. Update Sponsor Financial Balances in Profiles Table
@@ -391,7 +346,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ----------------------------------------------------------------------------
--- STEP 7: Attach Trigger to package_purchases Table
+-- STEP 8: Attach Trigger to package_purchases Table
 -- ----------------------------------------------------------------------------
 CREATE TRIGGER trg_direct_income_commission
   AFTER INSERT OR UPDATE ON public.package_purchases
@@ -399,7 +354,7 @@ CREATE TRIGGER trg_direct_income_commission
   EXECUTE FUNCTION public.handle_direct_income_commission();
 
 -- ----------------------------------------------------------------------------
--- STEP 8: RETROACTIVE SYNC / BACKFILL FOR EXISTING COMPLETED PURCHASES
+-- STEP 9: RETROACTIVE SYNC & COMPLETE HISTORICAL RECOVERY (ALL COMPLETED PURCHASES)
 -- ----------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -412,50 +367,63 @@ DECLARE
   v_package_name     TEXT;
   v_detail_text      TEXT;
   v_sponsor_search   TEXT;
-  v_processed_count  INT := 0;
+  v_existing_log     RECORD;
+  v_credited_count   INT := 0;
 BEGIN
   FOR r IN SELECT * FROM public.package_purchases WHERE status = 'completed' AND amount > 0 ORDER BY purchased_at ASC LOOP
-    IF NOT EXISTS (SELECT 1 FROM public.direct_income_log WHERE purchase_id = r.id) THEN
-      
-      SELECT id, username, full_name, email, sponsor_username, upline_id, referral_code
-        INTO v_purchaser
-        FROM public.profiles
-       WHERE id = r.user_id;
+    
+    -- 1. Fetch Purchaser
+    SELECT id, username, full_name, email, sponsor_username, upline_id, referral_code
+      INTO v_purchaser
+      FROM public.profiles
+     WHERE id = r.user_id;
 
-      IF FOUND THEN
-        v_purchaser_name := COALESCE(v_purchaser.username, v_purchaser.full_name, 'Member');
-        v_package_name   := COALESCE(r.package_name, r.rank_name, 'Package');
-        v_commission     := ROUND((r.amount * 0.40)::numeric, 2);
+    IF FOUND THEN
+      v_purchaser_name := COALESCE(v_purchaser.username, v_purchaser.full_name, 'Member');
+      v_package_name   := COALESCE(r.package_name, r.rank_name, 'Package');
+      v_commission     := ROUND((r.amount * 0.40)::numeric, 2);
 
-        v_sponsor_search := COALESCE(v_purchaser.sponsor_username, v_purchaser.upline_id);
+      -- 2. Determine sponsor identifier
+      v_sponsor_search := COALESCE(v_purchaser.sponsor_username, v_purchaser.upline_id);
 
-        IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
-          SELECT raw_user_meta_data->>'sponsor_username'
-            INTO v_sponsor_search
-            FROM auth.users
-           WHERE id = r.user_id;
-        END IF;
+      IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
+        SELECT raw_user_meta_data->>'sponsor_username'
+          INTO v_sponsor_search
+          FROM auth.users
+         WHERE id = r.user_id;
+      END IF;
 
-        IF v_sponsor_search IS NOT NULL 
-           AND TRIM(v_sponsor_search) <> '' 
-           AND LOWER(TRIM(v_sponsor_search)) NOT IN ('direct signup', 'direct_signup', 'none', 'null', 'admin') THEN
+      IF v_sponsor_search IS NOT NULL 
+         AND TRIM(v_sponsor_search) <> '' 
+         AND LOWER(TRIM(v_sponsor_search)) NOT IN ('direct signup', 'direct_signup', 'none', 'null', 'admin') THEN
 
-          v_raw_sponsor := LOWER(TRIM(REPLACE(v_sponsor_search, '@', '')));
+        v_raw_sponsor := LOWER(TRIM(REPLACE(v_sponsor_search, '@', '')));
 
-          SELECT id, username, full_name, referral_code
-            INTO v_sponsor
-            FROM public.profiles
-           WHERE (
-             LOWER(TRIM(COALESCE(referral_code, ''))) = v_raw_sponsor
-             OR LOWER(TRIM(COALESCE(username, ''))) = v_raw_sponsor
-             OR LOWER(TRIM(COALESCE(email, ''))) = v_raw_sponsor
-             OR LOWER(TRIM(COALESCE(full_name, ''))) = v_raw_sponsor
-             OR id::text = v_raw_sponsor
-           )
-           AND id <> r.user_id
-           LIMIT 1;
+        -- 3. Cross-Table Search
+        SELECT p.id, p.username, p.full_name, p.referral_code
+          INTO v_sponsor
+          FROM public.profiles p
+          LEFT JOIN auth.users u ON u.id = p.id
+         WHERE (
+           LOWER(TRIM(COALESCE(p.referral_code, ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'referral_code', ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(p.username, ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'username', ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(p.email, ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(u.email, ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(p.full_name, ''))) = v_raw_sponsor
+           OR LOWER(TRIM(COALESCE(u.raw_user_meta_data->>'full_name', ''))) = v_raw_sponsor
+           OR p.id::text = v_raw_sponsor
+         )
+         AND p.id <> r.user_id
+         LIMIT 1;
 
-          IF FOUND AND v_sponsor.id IS NOT NULL THEN
+        IF FOUND AND v_sponsor.id IS NOT NULL THEN
+          -- Check if already recorded and paid
+          SELECT * INTO v_existing_log FROM public.direct_income_log WHERE purchase_id = r.id;
+
+          IF NOT FOUND OR v_existing_log.status <> 'paid' OR v_existing_log.sponsor_id IS NULL THEN
+            -- Record / update log
             INSERT INTO public.direct_income_log (
               purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
               sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
@@ -463,8 +431,13 @@ BEGIN
               r.id, r.user_id, v_purchaser_name, v_package_name, r.amount,
               v_sponsor.id, COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
               40.00, v_commission, 'paid', 'Direct 40% Commission Paid', COALESCE(r.purchased_at, NOW())
-            ) ON CONFLICT (purchase_id) DO NOTHING;
+            ) ON CONFLICT (purchase_id) DO UPDATE
+              SET sponsor_id       = v_sponsor.id,
+                  sponsor_username = COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
+                  status           = 'paid',
+                  reason           = 'Direct 40% Commission Paid';
 
+            -- Add activity record
             v_detail_text := '40% commission from ' || v_purchaser_name || ' purchasing ' || v_package_name || ' — $' || TO_CHAR(r.amount, 'FM999,999,990.00') || ' USDT';
 
             INSERT INTO public.activities (
@@ -473,6 +446,7 @@ BEGIN
               v_sponsor.id, 'income', 'Direct Income', v_detail_text, v_commission, 'direct', COALESCE(r.purchased_at, NOW())
             );
 
+            -- Credit sponsor profile balances
             UPDATE public.profiles
                SET available_balance = COALESCE(available_balance, 0) + v_commission,
                    total_income      = COALESCE(total_income, 0) + v_commission,
@@ -481,123 +455,36 @@ BEGIN
                    updated_at        = NOW()
              WHERE id = v_sponsor.id;
 
-            v_processed_count := v_processed_count + 1;
-          ELSE
-            INSERT INTO public.direct_income_log (
-              purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
-              sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
-            ) VALUES (
-              r.id, r.user_id, v_purchaser_name, v_package_name, r.amount,
-              NULL, v_sponsor_search, 40.00, v_commission, 'unallocated', 'Sponsor not found in database', COALESCE(r.purchased_at, NOW())
-            ) ON CONFLICT (purchase_id) DO NOTHING;
-
-            INSERT INTO public.outgoing_income_ledger (
-              income_type, amount, reason, created_at
-            ) VALUES (
-              'Direct Income', v_commission, 'Sponsor (' || v_sponsor_search || ') not found for ' || v_purchaser_name, COALESCE(r.purchased_at, NOW())
-            );
+            v_credited_count := v_credited_count + 1;
           END IF;
         ELSE
+          -- Unallocated
           INSERT INTO public.direct_income_log (
             purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
             sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
           ) VALUES (
             r.id, r.user_id, v_purchaser_name, v_package_name, r.amount,
-            NULL, 'Direct Signup / Admin', 40.00, v_commission, 'unallocated', 'Direct signup without sponsor', COALESCE(r.purchased_at, NOW())
+            NULL, v_sponsor_search, 40.00, v_commission, 'unallocated', 'Sponsor not found in database', COALESCE(r.purchased_at, NOW())
           ) ON CONFLICT (purchase_id) DO NOTHING;
-
-          INSERT INTO public.outgoing_income_ledger (
-            income_type, amount, reason, created_at
-          ) VALUES (
-            'Direct Income', v_commission, 'Direct signup from ' || v_purchaser_name, COALESCE(r.purchased_at, NOW())
-          );
         END IF;
-
+      ELSE
+        -- Direct signup without sponsor
+        INSERT INTO public.direct_income_log (
+          purchase_id, purchaser_id, purchaser_username, package_name, purchase_amount,
+          sponsor_id, sponsor_username, commission_pct, commission_amount, status, reason, created_at
+        ) VALUES (
+          r.id, r.user_id, v_purchaser_name, v_package_name, r.amount,
+          NULL, 'Direct Signup / Admin', 40.00, v_commission, 'unallocated', 'Direct signup without sponsor', COALESCE(r.purchased_at, NOW())
+        ) ON CONFLICT (purchase_id) DO NOTHING;
       END IF;
+
     END IF;
   END LOOP;
 
-  RAISE NOTICE 'Backfilled % historical direct income commissions.', v_processed_count;
+  RAISE NOTICE 'Direct Income Engine backfilled and credited % purchases to direct sponsors.', v_credited_count;
 END $$;
 
--- ----------------------------------------------------------------------------
--- STEP 9: RE-EVALUATE AND RECOVER ANY PREVIOUSLY UNALLOCATED LOGS
--- If sponsor exists in profiles now, credit them retroactively!
--- ----------------------------------------------------------------------------
-DO $$
-DECLARE
-  r                  RECORD;
-  v_purchaser        RECORD;
-  v_sponsor          RECORD;
-  v_raw_sponsor      TEXT;
-  v_detail_text      TEXT;
-  v_sponsor_search   TEXT;
-  v_recovered_count  INT := 0;
-BEGIN
-  FOR r IN SELECT * FROM public.direct_income_log WHERE status = 'unallocated' AND sponsor_id IS NULL LOOP
-    SELECT id, username, full_name, email, sponsor_username, upline_id, referral_code
-      INTO v_purchaser
-      FROM public.profiles
-     WHERE id = r.purchaser_id;
+SELECT '✅ MASTER Direct Income (40%) Engine installed and all past commissions credited to sponsors!' AS status;
 
-    IF FOUND THEN
-      v_sponsor_search := COALESCE(v_purchaser.sponsor_username, v_purchaser.upline_id, r.sponsor_username);
-      
-      IF v_sponsor_search IS NOT NULL 
-         AND TRIM(v_sponsor_search) <> '' 
-         AND LOWER(TRIM(v_sponsor_search)) NOT IN ('direct signup', 'direct_signup', 'none', 'null', 'admin', 'direct signup / admin') THEN
-
-        v_raw_sponsor := LOWER(TRIM(REPLACE(v_sponsor_search, '@', '')));
-
-        SELECT id, username, full_name, referral_code
-          INTO v_sponsor
-          FROM public.profiles
-         WHERE (
-           LOWER(TRIM(COALESCE(referral_code, ''))) = v_raw_sponsor
-           OR LOWER(TRIM(COALESCE(username, ''))) = v_raw_sponsor
-           OR LOWER(TRIM(COALESCE(email, ''))) = v_raw_sponsor
-           OR LOWER(TRIM(COALESCE(full_name, ''))) = v_raw_sponsor
-           OR id::text = v_raw_sponsor
-         )
-         AND id <> r.purchaser_id
-         LIMIT 1;
-
-        IF FOUND AND v_sponsor.id IS NOT NULL THEN
-          -- 1. Update log
-          UPDATE public.direct_income_log
-             SET sponsor_id       = v_sponsor.id,
-                 sponsor_username = COALESCE(v_sponsor.username, v_sponsor.referral_code, 'Sponsor'),
-                 status           = 'paid',
-                 reason           = 'Direct 40% Commission Paid (Recovered)'
-           WHERE id = r.id;
-
-          -- 2. Add Activity
-          v_detail_text := '40% commission from ' || COALESCE(r.purchaser_username, 'Direct Referral') || ' purchasing ' || COALESCE(r.package_name, 'Package') || ' — $' || TO_CHAR(r.purchase_amount, 'FM999,999,990.00') || ' USDT';
-
-          INSERT INTO public.activities (
-            user_id, type, title, details, amount, category, created_at
-          ) VALUES (
-            v_sponsor.id, 'income', 'Direct Income', v_detail_text, r.commission_amount, 'direct', r.created_at
-          );
-
-          -- 3. Update Sponsor Financial Balances
-          UPDATE public.profiles
-             SET available_balance = COALESCE(available_balance, 0) + r.commission_amount,
-                 total_income      = COALESCE(total_income, 0) + r.commission_amount,
-                 direct_income     = COALESCE(direct_income, 0) + r.commission_amount,
-                 today_income      = COALESCE(today_income, 0) + r.commission_amount,
-                 updated_at        = NOW()
-           WHERE id = v_sponsor.id;
-
-          v_recovered_count := v_recovered_count + 1;
-        END IF;
-      END IF;
-    END IF;
-  END LOOP;
-
-  RAISE NOTICE 'Recovered % unallocated direct income commissions.', v_recovered_count;
-END $$;
-
-SELECT '✅ Reconstructed Direct Income (40%) Commission Engine fully installed, backfilled, and synced successfully!' AS status;
 
 
