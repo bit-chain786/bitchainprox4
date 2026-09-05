@@ -342,9 +342,15 @@ async function getUserActivities(userId, limit = 15) {
       client.from('team_income_log').select('*').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(limit)
     ]);
 
-    // 1. Activities
+    // 1. Activities (Direct income, team income, rewards, system credits)
+    // Note: Withdrawals and deposits are handled exclusively below from their primary tables.
     if (actRes.status === 'fulfilled' && actRes.value.data) {
       actRes.value.data.forEach(item => {
+        // Skip any withdrawal records from activities table to prevent duplicate feed entries
+        if (item.category === 'withdrawal' || item.type === 'withdrawal' || (item.title && item.title.toLowerCase().includes('withdrawal'))) {
+          return;
+        }
+
         combinedList.push({
           id: item.id,
           title: safeStr(item.title, 'Income Received'),
