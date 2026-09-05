@@ -351,6 +351,11 @@ async function getUserActivities(userId, limit = 15) {
           return;
         }
 
+        // Skip premature "Ready to Claim" notifications — only show when actually claimed
+        if (item.type === 'claimable' || (item.title && item.title.toLowerCase().includes('ready to claim'))) {
+          return;
+        }
+
         combinedList.push({
           id: item.id,
           title: safeStr(item.title, 'Income Received'),
