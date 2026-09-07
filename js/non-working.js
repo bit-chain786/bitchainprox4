@@ -262,6 +262,40 @@
         } catch (_) {}
       }
 
+      // Fetch all profiles for direct requirement validation across all members
+      const { data: allProfiles } = await client.from('profiles').select('id, username, referral_code, sponsor_username, rank_value');
+      const requiredDirects = (lvl === 1) ? 1 : 2;
+
+      // Check direct referral qualification for each member in this level
+      const membersWithQualification = levelMembers.map(m => {
+        const mProf = (allProfiles || []).find(p => p.id === m.user_id || (p.username && m.username && p.username.toLowerCase() === m.username.toLowerCase()));
+        const mUsername = (mProf?.username || m.username || '').trim().toLowerCase();
+        const mRefCode = (mProf?.referral_code || '').trim().toLowerCase();
+
+        const directCount = (allProfiles || []).filter(p => {
+          if (p.id === m.user_id) return false;
+          const sp = (p.sponsor_username || '').trim().toLowerCase();
+          const isDirect = (mUsername && sp === mUsername) || (mRefCode && sp === mRefCode);
+          const hasRank = p.rank_value && parseInt(p.rank_value) >= 1;
+          return isDirect && hasRank;
+        }).length;
+
+        const isQualified = directCount >= requiredDirects;
+        return {
+          ...m,
+          direct_count: directCount,
+          is_qualified: isQualified
+        };
+      });
+
+      // ONLY members who have fulfilled the direct requirement qualify for the sequence winners queue
+      const qualifiedMembers = membersWithQualification
+        .filter(m => m.is_qualified)
+        .map((m, idx) => ({
+          ...m,
+          qualified_seq_num: idx + 1
+        }));
+
       // 2. Fetch all pools for this level
       const { data: pools } = await client
         .from('non_working_pools')
@@ -275,7 +309,7 @@
       const activePoolNum = Math.floor(levelMembers.length / 5) + 1;
       const activePoolRecord = levelPools.find(p => p.pool_num === activePoolNum) || null;
 
-      // Members in active pool block: sequence ((activePoolNum-1)*5 + 1) to (activePoolNum*5)
+      // Members in active pool block (all 5 contributors who paid into this block)
       const startSeq = (activePoolNum - 1) * 5 + 1;
       const endSeq = activePoolNum * 5;
       const activeBlockMembers = levelMembers.filter(m => m.sequence_num >= startSeq && m.sequence_num <= endSeq);
@@ -298,21 +332,21 @@
         _hideClaimedGate();
       }
 
-      // Render Active Pool Card (including claim banner if eligible)
-      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, levelMembers, levelPools, userClaimableForLevel, userPaidForLevel);
+      // Render Active Pool Card (Designated winner and user position based on qualified queue)
+      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, qualifiedMembers, levelPools, userClaimableForLevel, userPaidForLevel, levelMembers);
 
-      // Render Sequence List in Drawer
-      _currentLevelMembers = levelMembers;
+      // Render Sequence List in Drawer (ONLY qualified members who met direct requirements)
+      _currentLevelMembers = qualifiedMembers;
       const countEl = document.getElementById('nwAllMembersCount');
-      if (countEl) countEl.textContent = levelMembers.length;
+      if (countEl) countEl.textContent = qualifiedMembers.length;
 
       const headingEl = document.getElementById('nwAllMembersHeading');
       if (headingEl) headingEl.textContent = `📜 Chronological Sequence in Level ${lvl} (${tier.name})`;
 
-      renderSequenceList(levelMembers, tier);
+      renderSequenceList(qualifiedMembers, tier);
 
-      // Render Achievers Table
-      renderAchieversTable(levelMembers, tier);
+      // Render Achievers Table (qualified sequence achievers)
+      renderAchieversTable(qualifiedMembers, tier);
 
       // Render Completed Pools Table
       const completedPools = levelPools.filter(p => p.status === 'completed');
@@ -444,7 +478,7 @@
   }
 
   // ─── Render Active Pool Card ───────────────────────────────────────────────
-  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null, userPaid = null) {
+  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null, userPaid = null, rawLevelMembers = []) {
     const count = blockMembers.length;
     const isCompleted = count >= 5;
 
@@ -494,27 +528,31 @@
     const progText = document.getElementById('nwProgressText');
     if (progText) progText.textContent = `${count} of 5 Members Joined (${pct}%)`;
 
-    // Designated Winner (User #poolNum in this level)
-    const winnerUser = allLevelMembers.find(m => m.sequence_num === poolNum) || null;
+    // Designated Winner (Qualified User #poolNum in this level)
+    const winnerUser = allLevelMembers.find(m => (m.qualified_seq_num || m.sequence_num) === poolNum) || allLevelMembers[poolNum - 1] || null;
     const winnerNameEl = document.getElementById('nwWinnerName');
     if (winnerNameEl) {
       if (winnerUser) {
         winnerNameEl.textContent = `User #${poolNum}: ${winnerUser.full_name || winnerUser.username} (@${winnerUser.username})`;
       } else {
-        winnerNameEl.textContent = `User #${poolNum} (Awaiting Member #${poolNum})`;
+        winnerNameEl.textContent = `User #${poolNum} (Awaiting Qualified Member #${poolNum})`;
       }
     }
 
     // User's own position in this level
     const myEntry = allLevelMembers.find(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
+    const rawMyEntry = (rawLevelMembers || []).find(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
     const posTag = document.getElementById('nwUserPositionTag');
     if (posTag) {
       if (myEntry) {
+        const mySeq = myEntry.qualified_seq_num || myEntry.sequence_num;
         if (userPaid) {
-          posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · <strong>✅ Reward CLAIMED!</strong>`;
+          posTag.innerHTML = `👤 Your Qualified Sequence: <strong>#${mySeq}</strong> · <strong>✅ Reward CLAIMED!</strong>`;
         } else {
-          posTag.innerHTML = `👤 Your Sequence: <strong>#${myEntry.sequence_num}</strong> (in Pool #${myEntry.pool_num || poolNum}) · You win Pool #${myEntry.sequence_num} Prize!`;
+          posTag.innerHTML = `👤 Your Qualified Sequence: <strong>#${mySeq}</strong> · You win Pool #${mySeq} Prize!`;
         }
+      } else if (rawMyEntry) {
+        posTag.innerHTML = `👤 Joined Level · <span style="color:#f59e0b;">⏳ Direct Requirement Pending (Invite ${tier.level === 1 ? 1 : 2} Directs to Enter Winner Sequence)</span>`;
       } else if (_userMaxLevel >= tier.level) {
         posTag.innerHTML = `👤 Level ${tier.level} Achieved · Your slot will appear upon pool entry!`;
       } else {
@@ -570,7 +608,7 @@
             <div class="nw-slot-card filled ${isMe ? 'is-me' : ''} ${isWinner ? 'winner' : ''}">
               ${isMe ? '<span class="nw-slot-badge-you">⭐ You</span>' : (isWinner ? '<span class="nw-slot-badge-winner">🏆 Winner</span>' : '')}
               <div class="nw-slot-avatar">${(member.full_name || member.username || 'U').charAt(0).toUpperCase()}</div>
-              <div class="nw-slot-seq">Sequence #${member.sequence_num}</div>
+              <div class="nw-slot-seq">Slot #${i + 1}</div>
               <div class="nw-slot-user" title="${member.full_name || member.username}">
                 ${member.username || 'Member'} ${isMe ? '<span style="color:#00f5d4;font-size:0.7rem;">(You)</span>' : ''}
               </div>
@@ -581,7 +619,7 @@
           slotsHtml += `
             <div class="nw-slot-card">
               <div class="nw-slot-avatar" style="opacity:0.4;">⏳</div>
-              <div class="nw-slot-seq" style="color:rgba(255,255,255,0.4);">Slot #${targetSeq}</div>
+              <div class="nw-slot-seq" style="color:rgba(255,255,255,0.4);">Slot #${i + 1}</div>
               <div class="nw-slot-empty-text">Waiting for user #${targetSeq}…</div>
               <div class="nw-slot-contrib" style="opacity:0.5;">30% = $${tier.contrib.toFixed(2)}</div>
             </div>
@@ -607,40 +645,39 @@
       filtered = filtered.filter(m => {
         const u = (m.username || '').toLowerCase();
         const fn = (m.full_name || '').toLowerCase();
-        const seq = String(m.sequence_num);
+        const seq = String(m.qualified_seq_num || m.sequence_num);
         return u.includes(query) || fn.includes(query) || seq.includes(query) || ('#' + seq).includes(query);
       });
     }
 
     if (filtered.length === 0) {
-      listEl.innerHTML = `<div class="nw-empty-state" style="padding:20px;text-align:center;">No sequence members matching "${query}" in this level yet.</div>`;
+      listEl.innerHTML = `<div class="nw-empty-state" style="padding:20px;text-align:center;">No qualified sequence members matching "${query}" in this level yet.</div>`;
       return;
     }
 
-    listEl.innerHTML = filtered.map(m => {
+    listEl.innerHTML = filtered.map((m, idx) => {
       const isMe = (m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
-      const wasMoved = m.was_moved === true;
+      const seqNum = m.qualified_seq_num || (idx + 1);
 
       return `
-        <div class="nw-seq-item ${isMe ? 'is-me' : ''} ${wasMoved ? 'was-moved' : ''}">
+        <div class="nw-seq-item ${isMe ? 'is-me' : ''}">
           <div class="nw-seq-item-left">
-            <div class="nw-seq-num-badge">#${m.sequence_num}</div>
+            <div class="nw-seq-num-badge">#${seqNum}</div>
             <div class="nw-seq-user-info">
               <div class="nw-seq-user-name">
                 <span>${m.full_name || m.username}</span>
                 <span style="color:rgba(224,170,255,0.6);font-weight:400;font-size:0.75rem;">(@${m.username})</span>
                 ${isMe ? '<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;">⭐ YOU</span>' : ''}
-                ${wasMoved ? '<span class="nw-moved-badge">⟳ Moved to End</span>' : ''}
+                <span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(0,245,212,0.15);color:#00f5d4;border:1px solid rgba(0,245,212,0.3);">✓ Qualified</span>
               </div>
               <div class="nw-seq-user-details">
                 ${m.rank_name || t.name} · Joined: ${fmtDate(m.created_at)}
-                ${wasMoved ? '<span style="color:#f59e0b;font-size:0.7rem;margin-left:6px;">⚠ Missing directs — invite more to qualify</span>' : ''}
               </div>
             </div>
           </div>
           <div class="nw-seq-item-right">
             <div class="nw-seq-contrib-val">+$${fmt(m.contribution_amount || t.contrib)} USDT</div>
-            <div class="nw-seq-pool-tag">Assigned to Pool #${m.pool_num}</div>
+            <div class="nw-seq-pool-tag">Assigned to Pool #${Math.floor((seqNum - 1) / 5) + 1}</div>
           </div>
         </div>
       `;
@@ -676,7 +713,7 @@
       const isMe = m.user_id === _activeUser?.id;
       return `
         <tr style="${isMe ? 'background:rgba(0,245,212,0.06);font-weight:700;' : ''}">
-          <td><span class="nw-seq-badge">#${m.sequence_num}</span></td>
+          <td><span class="nw-seq-badge">#${m.qualified_seq_num || m.sequence_num}</span></td>
           <td>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:0.9rem;">${isMe ? '⭐' : '👤'}</span>

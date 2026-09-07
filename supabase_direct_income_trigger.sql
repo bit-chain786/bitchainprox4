@@ -4,6 +4,160 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
+-- STEP 0: Core Rank, Tier & Package Helper Functions (Dependency Resolution)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_rank_level(p_rank TEXT)
+RETURNS INT AS $$
+BEGIN
+  IF p_rank IS NULL OR TRIM(p_rank) = '' THEN
+    RETURN 0;
+  END IF;
+  CASE LOWER(TRIM(p_rank))
+    WHEN 'starter'   THEN RETURN 1;
+    WHEN 'basic'     THEN RETURN 2;
+    WHEN 'silver'    THEN RETURN 3;
+    WHEN 'gold'      THEN RETURN 4;
+    WHEN 'diamond'   THEN RETURN 5;
+    WHEN 'elite'     THEN RETURN 6;
+    WHEN 'executive' THEN RETURN 7;
+    WHEN 'royal'     THEN RETURN 8;
+    ELSE RETURN 0;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_level_name(p_level INT)
+RETURNS TEXT AS $$
+BEGIN
+  CASE p_level
+    WHEN 1 THEN RETURN 'Starter';
+    WHEN 2 THEN RETURN 'Basic';
+    WHEN 3 THEN RETURN 'Silver';
+    WHEN 4 THEN RETURN 'Gold';
+    WHEN 5 THEN RETURN 'Diamond';
+    WHEN 6 THEN RETURN 'Elite';
+    WHEN 7 THEN RETURN 'Executive';
+    WHEN 8 THEN RETURN 'Royal';
+    ELSE RETURN 'Unknown';
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_package_level(p_val NUMERIC)
+RETURNS INT AS $$
+BEGIN
+  IF p_val >= 640 THEN RETURN 8;
+  ELSIF p_val >= 320 THEN RETURN 7;
+  ELSIF p_val >= 160 THEN RETURN 6;
+  ELSIF p_val >= 80  THEN RETURN 5;
+  ELSIF p_val >= 40  THEN RETURN 4;
+  ELSIF p_val >= 20  THEN RETURN 3;
+  ELSIF p_val >= 10  THEN RETURN 2;
+  ELSIF p_val >= 5   THEN RETURN 1;
+  ELSE RETURN 1;
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_package_level(p_val TEXT)
+RETURNS INT AS $$
+BEGIN
+  RETURN public.get_rank_level(p_val);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_rank_tier_level(p_str TEXT)
+RETURNS INT AS $$
+DECLARE
+  clean_str TEXT;
+BEGIN
+  IF p_str IS NULL THEN RETURN 0; END IF;
+  clean_str := LOWER(TRIM(p_str));
+  IF clean_str IN ('starter', '1') THEN RETURN 1;
+  ELSIF clean_str IN ('basic', '2') THEN RETURN 2;
+  ELSIF clean_str IN ('silver', '3') THEN RETURN 3;
+  ELSIF clean_str IN ('gold', '4') THEN RETURN 4;
+  ELSIF clean_str IN ('diamond', '5') THEN RETURN 5;
+  ELSIF clean_str IN ('elite', '6') THEN RETURN 6;
+  ELSIF clean_str IN ('executive', '7') THEN RETURN 7;
+  ELSIF clean_str IN ('royal', '8') THEN RETURN 8;
+  ELSE RETURN 0;
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_rank_tier_price(p_level INT)
+RETURNS NUMERIC AS $$
+BEGIN
+  CASE p_level
+    WHEN 1 THEN RETURN 5.00;
+    WHEN 2 THEN RETURN 10.00;
+    WHEN 3 THEN RETURN 20.00;
+    WHEN 4 THEN RETURN 40.00;
+    WHEN 5 THEN RETURN 80.00;
+    WHEN 6 THEN RETURN 160.00;
+    WHEN 7 THEN RETURN 320.00;
+    WHEN 8 THEN RETURN 640.00;
+    ELSE RETURN 0.00;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_rank_tier_name(p_level INT)
+RETURNS TEXT AS $$
+BEGIN
+  CASE p_level
+    WHEN 1 THEN RETURN 'STARTER';
+    WHEN 2 THEN RETURN 'BASIC';
+    WHEN 3 THEN RETURN 'SILVER';
+    WHEN 4 THEN RETURN 'GOLD';
+    WHEN 5 THEN RETURN 'DIAMOND';
+    WHEN 6 THEN RETURN 'ELITE';
+    WHEN 7 THEN RETURN 'EXECUTIVE';
+    WHEN 8 THEN RETURN 'ROYAL';
+    ELSE RETURN 'NONE';
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_rank_tier_key(p_level INT)
+RETURNS TEXT AS $$
+BEGIN
+  CASE p_level
+    WHEN 1 THEN RETURN 'starter';
+    WHEN 2 THEN RETURN 'basic';
+    WHEN 3 THEN RETURN 'silver';
+    WHEN 4 THEN RETURN 'gold';
+    WHEN 5 THEN RETURN 'diamond';
+    WHEN 6 THEN RETURN 'elite';
+    WHEN 7 THEN RETURN 'executive';
+    WHEN 8 THEN RETURN 'royal';
+    ELSE RETURN 'none';
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Fix legacy non-working distribution trigger and column compatibility
+DO $$
+BEGIN
+  ALTER TABLE public.non_working_distributions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+  ALTER TABLE public.non_working_distributions ADD COLUMN IF NOT EXISTS distributed_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.log_unallocated_non_working()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.status = 'unallocated' THEN
+    INSERT INTO public.outgoing_income_ledger (income_type, amount, reason, created_at)
+    VALUES ('Non-Working Pool', NEW.amount, 'No qualified members in pool', NOW());
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ----------------------------------------------------------------------------
 -- STEP 1: Ensure public.activities Table & Columns Exist with Proper Types
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.activities (
@@ -77,6 +231,10 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS direct_income NUMERIC(14,2)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS total_income NUMERIC(14,2) DEFAULT 0.00;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS available_balance NUMERIC(14,2) DEFAULT 0.00;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS today_income NUMERIC(14,2) DEFAULT 0.00;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_package TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_rank TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rank TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rank_value INT DEFAULT 1;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS sponsor_username TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS upline_id TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
@@ -116,31 +274,11 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ----------------------------------------------------------------------------
--- STEP 5: Protect Referral Codes on Profile Updates
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.handle_profile_ref_code()
-RETURNS trigger AS $$
-BEGIN
-  IF OLD.referral_code IS NOT NULL AND TRIM(OLD.referral_code) <> '' THEN
-    NEW.referral_code := OLD.referral_code;
-  ELSIF NEW.referral_code IS NULL OR TRIM(NEW.referral_code) = '' THEN
-    NEW.referral_code := UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 5));
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS trg_profile_ref_code ON public.profiles;
-CREATE TRIGGER trg_profile_ref_code
-  BEFORE INSERT ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_profile_ref_code();
-
--- ----------------------------------------------------------------------------
 -- STEP 6: Drop Old Triggers & Recreate direct_income_log Table Cleanly
 -- ----------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS trg_direct_income ON public.package_purchases;
 DROP TRIGGER IF EXISTS trg_direct_income_commission ON public.package_purchases;
+DROP TRIGGER IF EXISTS trg_profile_package_sync_to_purchases ON public.profiles;
 
 CREATE TABLE IF NOT EXISTS public.direct_income_log (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -198,7 +336,7 @@ CREATE INDEX IF NOT EXISTS idx_direct_income_sponsor ON public.direct_income_log
 CREATE INDEX IF NOT EXISTS idx_direct_income_purchaser ON public.direct_income_log(purchaser_id);
 
 -- ----------------------------------------------------------------------------
--- STEP 7: Reconstructed Direct Income Commission Trigger Function (Cross-Table)
+-- STEP 7: Master Direct Income Commission Trigger Function (Cross-Table)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_direct_income_commission()
 RETURNS trigger AS $$
@@ -232,6 +370,20 @@ BEGIN
 
   IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
     SELECT raw_user_meta_data->>'sponsor_username'
+      INTO v_sponsor_search
+      FROM auth.users
+     WHERE id = NEW.user_id;
+  END IF;
+
+  IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
+    SELECT raw_user_meta_data->>'sponsor'
+      INTO v_sponsor_search
+      FROM auth.users
+     WHERE id = NEW.user_id;
+  END IF;
+
+  IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
+    SELECT raw_user_meta_data->>'ref'
       INTO v_sponsor_search
       FROM auth.users
      WHERE id = NEW.user_id;
@@ -354,11 +506,68 @@ CREATE TRIGGER trg_direct_income_commission
   EXECUTE FUNCTION public.handle_direct_income_commission();
 
 -- ----------------------------------------------------------------------------
--- STEP 9: RETROACTIVE SYNC & COMPLETE HISTORICAL RECOVERY (ALL COMPLETED PURCHASES)
+-- STEP 9: Profile Rank Auto-Sync Trigger
+-- Automatically creates missing package_purchases records whenever a profile's
+-- rank/package is upgraded (via Admin Panel, SQL Editor, or API)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.handle_profile_package_sync()
+RETURNS trigger AS $$
+DECLARE
+  v_lvl INT;
+  i     INT;
+BEGIN
+  v_lvl := GREATEST(
+    public.get_rank_tier_level(NEW.current_package),
+    public.get_rank_tier_level(NEW.current_rank),
+    public.get_rank_tier_level(NEW.rank),
+    COALESCE(NEW.rank_value, 0)
+  );
+
+  IF v_lvl > 0 THEN
+    FOR i IN 1..v_lvl LOOP
+      IF NOT EXISTS (
+        SELECT 1 FROM public.package_purchases
+         WHERE user_id = NEW.id
+           AND (
+             LOWER(package_key) = public.get_rank_tier_key(i)
+             OR LOWER(rank_name) = public.get_rank_tier_key(i)
+             OR LOWER(package_name) = public.get_rank_tier_name(i)
+           )
+      ) THEN
+        INSERT INTO public.package_purchases (
+          user_id, package_key, package_name, rank_name, amount, status, purchased_at
+        ) VALUES (
+          NEW.id,
+          public.get_rank_tier_key(i),
+          public.get_rank_tier_name(i),
+          INITCAP(public.get_rank_tier_key(i)),
+          public.get_rank_tier_price(i),
+          'completed',
+          NOW()
+        );
+      END IF;
+    END LOOP;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_profile_package_sync_to_purchases
+  AFTER INSERT OR UPDATE OF current_package, current_rank, rank, rank_value ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_profile_package_sync();
+
+-- ----------------------------------------------------------------------------
+-- STEP 10: RETROACTIVE SYNC & HISTORICAL RECOVERY (PROFILES + PURCHASES)
+-- Backfills all missing purchases from profiles and credits direct sponsors
 -- ----------------------------------------------------------------------------
 DO $$
 DECLARE
+  prof               RECORD;
   r                  RECORD;
+  v_lvl              INT;
+  i                  INT;
   v_purchaser        RECORD;
   v_sponsor          RECORD;
   v_commission       NUMERIC(14,2);
@@ -368,8 +577,47 @@ DECLARE
   v_detail_text      TEXT;
   v_sponsor_search   TEXT;
   v_existing_log     RECORD;
+  v_inserted_pkgs    INT := 0;
   v_credited_count   INT := 0;
 BEGIN
+  -- A. Reconcile Profiles into package_purchases
+  FOR prof IN SELECT * FROM public.profiles LOOP
+    v_lvl := GREATEST(
+      public.get_rank_tier_level(prof.current_package),
+      public.get_rank_tier_level(prof.current_rank),
+      public.get_rank_tier_level(prof.rank),
+      COALESCE(prof.rank_value, 0)
+    );
+
+    IF v_lvl > 0 THEN
+      FOR i IN 1..v_lvl LOOP
+        IF NOT EXISTS (
+          SELECT 1 FROM public.package_purchases
+           WHERE user_id = prof.id
+             AND (
+               LOWER(package_key) = public.get_rank_tier_key(i)
+               OR LOWER(rank_name) = public.get_rank_tier_key(i)
+               OR LOWER(package_name) = public.get_rank_tier_name(i)
+             )
+        ) THEN
+          INSERT INTO public.package_purchases (
+            user_id, package_key, package_name, rank_name, amount, status, purchased_at
+          ) VALUES (
+            prof.id,
+            public.get_rank_tier_key(i),
+            public.get_rank_tier_name(i),
+            INITCAP(public.get_rank_tier_key(i)),
+            public.get_rank_tier_price(i),
+            'completed',
+            COALESCE(prof.updated_at, prof.created_at, NOW())
+          );
+          v_inserted_pkgs := v_inserted_pkgs + 1;
+        END IF;
+      END LOOP;
+    END IF;
+  END LOOP;
+
+  -- B. Ensure Every Completed Purchase has its 40% Direct Income Logged and Credited
   FOR r IN SELECT * FROM public.package_purchases WHERE status = 'completed' AND amount > 0 ORDER BY purchased_at ASC LOOP
     
     -- 1. Fetch Purchaser
@@ -388,6 +636,20 @@ BEGIN
 
       IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
         SELECT raw_user_meta_data->>'sponsor_username'
+          INTO v_sponsor_search
+          FROM auth.users
+         WHERE id = r.user_id;
+      END IF;
+
+      IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
+        SELECT raw_user_meta_data->>'sponsor'
+          INTO v_sponsor_search
+          FROM auth.users
+         WHERE id = r.user_id;
+      END IF;
+
+      IF v_sponsor_search IS NULL OR TRIM(v_sponsor_search) = '' THEN
+        SELECT raw_user_meta_data->>'ref'
           INTO v_sponsor_search
           FROM auth.users
          WHERE id = r.user_id;
@@ -481,10 +743,11 @@ BEGIN
     END IF;
   END LOOP;
 
-  RAISE NOTICE 'Direct Income Engine backfilled and credited % purchases to direct sponsors.', v_credited_count;
+  RAISE NOTICE 'Auto-sync created % missing package purchases and credited % direct income commissions.', v_inserted_pkgs, v_credited_count;
 END $$;
 
-SELECT '✅ MASTER Direct Income (40%) Engine installed and all past commissions credited to sponsors!' AS status;
+SELECT '✅ MASTER Direct Income (40%) Engine + Profile Auto-Sync installed and all direct commissions credited!' AS status;
+
 
 
 
