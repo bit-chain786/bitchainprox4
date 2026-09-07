@@ -173,9 +173,19 @@ BEGIN
              updated_at         = NOW()
        WHERE id = v_pool.id;
 
-    -- CASE B: NO qualified user in queue at pool completion time -> Route directly to ADMIN!
+    -- CASE B: NO qualified user in queue at pool completion time -> Route directly to OUTGOING INCOME LEDGER & Admin!
     ELSE
       v_admin_id := public.get_admin_user_id();
+
+      -- 1. Insert into outgoing_income_ledger (Feeds Admin Outgoing Income stat & history modal)
+      INSERT INTO public.outgoing_income_ledger (
+        income_type, amount, reason, created_at
+      ) VALUES (
+        'Non-Working Income',
+        v_pool.total_pool_amount,
+        'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' completed without a qualified user in queue',
+        NOW()
+      );
 
       IF v_admin_id IS NOT NULL THEN
         -- Credit Admin wallet balance immediately
@@ -186,13 +196,13 @@ BEGIN
                updated_at         = NOW()
          WHERE id = v_admin_id;
 
-        -- Record distribution as paid to admin (Company Retained)
+        -- Record distribution as outgoing/unallocated
         INSERT INTO public.non_working_distributions (
           pool_id, level, pool_num, recipient_user_id, recipient_username,
           amount, status, requires_directs, distributed_at
         ) VALUES (
-          v_pool.id, v_level, v_pool_num, v_admin_id, 'ADMIN (Company Retained)',
-          v_pool.total_pool_amount, 'paid', 0, NOW()
+          v_pool.id, v_level, v_pool_num, v_admin_id, 'ADMIN (Outgoing / Unallocated)',
+          v_pool.total_pool_amount, 'unallocated', 0, NOW()
         );
 
         -- Activity log for Admin
@@ -202,17 +212,17 @@ BEGIN
           v_admin_id,
           'non_working',
           'income',
-          '🏢 Company Pool Retained (No Qualified User)',
-          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' completed without a qualified user in queue. $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT credited to Admin.',
+          '🏢 Outgoing Income: Unallocated Pool Retained',
+          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' completed without a qualified user in queue. $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT logged to Outgoing Income.',
           v_pool.total_pool_amount,
           NOW()
         );
 
-        -- Mark Pool as Completed by Admin
+        -- Mark Pool as Completed
         UPDATE public.non_working_pools
            SET status             = 'completed',
                recipient_user_id  = v_admin_id,
-               recipient_username = 'ADMIN (Company Retained)',
+               recipient_username = 'ADMIN (Outgoing / Unallocated)',
                completed_at       = NOW(),
                updated_at         = NOW()
          WHERE id = v_pool.id;
@@ -220,7 +230,7 @@ BEGIN
         -- Fallback if admin ID not found
         UPDATE public.non_working_pools
            SET status             = 'completed',
-               recipient_username = 'ADMIN (Company Retained)',
+               recipient_username = 'ADMIN (Outgoing / Unallocated)',
                completed_at       = NOW(),
                updated_at         = NOW()
          WHERE id = v_pool.id;
@@ -233,6 +243,25 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 3. Ensure outgoing_income_ledger table exists and permissions are granted
+CREATE TABLE IF NOT EXISTS public.outgoing_income_ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  income_type TEXT NOT NULL,
+  amount NUMERIC(14,2) NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.outgoing_income_ledger ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow select outgoing ledger" ON public.outgoing_income_ledger;
+CREATE POLICY "Allow select outgoing ledger" ON public.outgoing_income_ledger FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow insert outgoing ledger" ON public.outgoing_income_ledger;
+CREATE POLICY "Allow insert outgoing ledger" ON public.outgoing_income_ledger FOR INSERT WITH CHECK (true);
+GRANT ALL ON public.outgoing_income_ledger TO authenticated, anon, service_role;
+
+-- Clean up any conflicting legacy trigger on non_working_distributions
+DROP TRIGGER IF EXISTS trg_non_working_eligibility ON public.non_working_distributions;
 
 -- Re-bind trigger on package_purchases
 DROP TRIGGER IF EXISTS trg_package_non_working_income ON public.package_purchases;
