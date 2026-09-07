@@ -1,6 +1,6 @@
 /* ==========================================================================
    BITCHAIN PRO X — TEAM STRUCTURE & HIERARCHY CALCULATION ENGINE
-   10-Level Dynamic Downline Traversal, Real-Time Supabase Integration
+   5-Level Dynamic Downline Traversal (Directs + 4 Levels of Indirects)
    ========================================================================== */
 
 'use strict';
@@ -39,7 +39,6 @@ window.BitchainTeam = (function() {
   function formatPhoneDisplay(phone) {
     if (!phone || phone.trim() === '') return 'Not Provided';
     const clean = phone.trim();
-    // Return formatted phone directly
     return clean;
   }
 
@@ -57,8 +56,12 @@ window.BitchainTeam = (function() {
   }
 
   /**
-   * Authoritative 10-Level Hierarchy Builder
-   * Fetches all profiles, builds referral index graph, and computes recursive levels for the given root user.
+   * Authoritative 5-Level Hierarchy Builder
+   * Level 1: My Directs
+   * Level 2: Level 1's Directs (Indirect L2)
+   * Level 3: Level 2's Directs (Indirect L3)
+   * Level 4: Level 3's Directs (Indirect L4)
+   * Level 5: Level 4's Directs (Indirect L5)
    */
   async function computeTeamHierarchy(rootUserId) {
     const client = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
@@ -83,8 +86,8 @@ window.BitchainTeam = (function() {
     if (profilesList.length === 0) {
       return {
         rootProfile: null,
-        levels: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
-        levelCounts: Array(10).fill(0),
+        levels: Array.from({ length: 5 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
+        levelCounts: Array(5).fill(0),
         directTeamCount: 0,
         downlineTeamCount: 0,
         totalTeamCount: 0
@@ -96,14 +99,13 @@ window.BitchainTeam = (function() {
     if (!rootProfile) {
       return {
         rootProfile: null,
-        levels: Array.from({ length: 10 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
-        levelCounts: Array(10).fill(0),
+        levels: Array.from({ length: 5 }, (_, i) => ({ level: i + 1, members: [], count: 0 })),
+        levelCounts: Array(5).fill(0),
         directTeamCount: 0,
         downlineTeamCount: 0,
         totalTeamCount: 0
       };
     }
-
 
     // Build fast lookup by normalized sponsor keys
     // Children can refer to a sponsor by sponsor's username OR sponsor's referral_code
@@ -154,9 +156,9 @@ window.BitchainTeam = (function() {
     }
 
     /**
-     * Recursively computes the total downline count (all unique descendants up to 10 levels) for any given member.
+     * Recursively computes the total downline count (all unique descendants up to 5 levels) for any given member.
      */
-    function computeDownlineCountForMember(memberProfile, maxDepth = 10) {
+    function computeDownlineCountForMember(memberProfile, maxDepth = 5) {
       const visited = new Set([memberProfile.id]);
       let currentLevelMembers = getDirectChildren(memberProfile);
       let count = 0;
@@ -182,15 +184,15 @@ window.BitchainTeam = (function() {
       return count;
     }
 
-    // 10-Level Breadth-First-Search (BFS) traversal from root
-    // levels[0] = Level 1 (Direct), levels[1] = Level 2, ... levels[9] = Level 10
-    const levels = Array.from({ length: 10 }, () => []);
+    // 5-Level Breadth-First-Search (BFS) traversal from root
+    // levels[0] = Level 1 (Directs), levels[1] = Level 2 (Indirects), ... levels[4] = Level 5 (Indirects)
+    const levels = Array.from({ length: 5 }, () => []);
     const visitedGlobal = new Set([rootProfile.id]);
     const membersWithHierarchyData = new Map();
 
     let currentQueue = getDirectChildren(rootProfile).map(m => ({ profile: m, level: 1, parentId: rootProfile.id }));
 
-    for (let currentLevel = 1; currentLevel <= 10; currentLevel++) {
+    for (let currentLevel = 1; currentLevel <= 5; currentLevel++) {
       const nextQueue = [];
 
       for (const item of currentQueue) {
@@ -198,8 +200,8 @@ window.BitchainTeam = (function() {
         if (visitedGlobal.has(p.id)) continue;
         visitedGlobal.add(p.id);
 
-        // Compute this member's own downline team count
-        const memberDownlineCount = computeDownlineCountForMember(p, 10);
+        // Compute this member's own downline team count up to 5 levels
+        const memberDownlineCount = computeDownlineCountForMember(p, 5);
         const rankInfo = getRankInfo(p.rank || p.current_rank, p.current_package || p.package_name);
 
         const enhancedMember = {
@@ -216,8 +218,8 @@ window.BitchainTeam = (function() {
         levels[currentLevel - 1].push(enhancedMember);
         membersWithHierarchyData.set(p.id, enhancedMember);
 
-        // Enqueue direct children for next level if within 10 levels
-        if (currentLevel < 10) {
+        // Enqueue direct children for next level if within 5 levels
+        if (currentLevel < 5) {
           const directChildren = getDirectChildren(p);
           for (const child of directChildren) {
             if (!visitedGlobal.has(child.id)) {
@@ -241,7 +243,7 @@ window.BitchainTeam = (function() {
       rootProfile,
       directTeamCount,
       totalTeamCount,
-      levels, // Array of 10 arrays (levels[0] to levels[9])
+      levels, // Array of 5 arrays (levels[0] to levels[4])
       membersWithHierarchyData, // Map by ID
       getDirectChildren
     };

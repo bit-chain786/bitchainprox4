@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BITCHAIN PRO X — Team Structure (10-Level Downline)</title>
-  <meta name="description" content="Explore your 10-level referral network and team downline hierarchy with live real-time statistics.">
+  <title>BITCHAIN PRO X — Team Structure (5-Level Downline)</title>
+  <meta name="description" content="Explore your 5-level referral network and team downline hierarchy with live real-time statistics.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/team.css">
@@ -98,7 +98,7 @@
           <span>Back to Dashboard</span>
         </a>
         <h1 class="team-main-title">TEAM STRUCTURE</h1>
-        <p class="team-sub-title">10 Level Team Network</p>
+        <p class="team-sub-title">5 Level Team Network</p>
       </div>
 
       <!-- View Switcher (Tree View vs List View) -->
@@ -153,7 +153,7 @@
         </h2>
         <button type="button" class="btn-view-all-levels" id="btnOpenLevelPicker">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          View All Levels (1-10)
+          View All Levels (1-5)
         </button>
       </div>
 
@@ -186,15 +186,15 @@
 
   </main>
 
-  <!-- MODAL 1: 10-LEVEL PICKER POPUP -->
+  <!-- MODAL 1: 5-LEVEL PICKER POPUP -->
   <div class="team-modal-backdrop" id="levelPickerModal">
     <div class="team-modal-card">
       <button type="button" class="modal-close-btn" onclick="closeLevelPickerModal()">&times;</button>
       <h3 class="modal-header-title">Select Team Level</h3>
-      <p class="modal-header-sub">Jump to any specific level within your 10-level hierarchy.</p>
+      <p class="modal-header-sub">Jump to any specific level within your 5-level hierarchy.</p>
 
       <div class="level-picker-grid" id="levelPickerGrid">
-        <!-- 10 level items populated via JS -->
+        <!-- 5 level items populated via JS -->
       </div>
     </div>
   </div>
@@ -262,7 +262,7 @@
   <!-- Page Interaction & Render Controller -->
   <script>
     let teamDataState = null;
-    let selectedLevelIndex = 0; // 0 = Level 1, 9 = Level 10
+    let selectedLevelIndex = 0; // 0 = Level 1, 4 = Level 5
     let currentViewMode = 'list'; // 'list' | 'tree'
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -357,12 +357,12 @@
         document.getElementById('membersListWrapper').innerHTML = `
           <div class="team-empty-box">
             <div class="empty-icon-glyph">⏳</div>
-            <div class="empty-title-text">CALCULATING 10-LEVEL HIERARCHY...</div>
+            <div class="empty-title-text">CALCULATING 5-LEVEL HIERARCHY...</div>
             <div class="empty-desc-text">Fetching real-time team downline from Supabase database.</div>
           </div>
         `;
 
-        // 2. Authoritative 10-Level Downline Calculation
+        // 2. Authoritative 5-Level Downline Calculation
         teamDataState = await window.BitchainTeam.computeTeamHierarchy(userId);
 
         // 3. Render Top Metrics
@@ -388,30 +388,20 @@
     }
 
     /**
-     * Render Level Tabs (Levels 1 to 5 + picker)
+     * Render Level Tabs (Levels 1 to 5)
      */
     function renderLevelTabs() {
       if (!teamDataState) return;
       const tabsContainer = document.getElementById('levelTabsContainer');
       let html = '';
 
-      // Tabs 1 to 5 for quick access
+      // Tabs 1 to 5
       for (let i = 0; i < 5; i++) {
-        const count = teamDataState.levels[i].length;
+        const count = teamDataState.levels[i] ? teamDataState.levels[i].length : 0;
         const isActive = selectedLevelIndex === i;
         html += `
           <button type="button" class="level-tab-btn ${isActive ? 'active' : ''}" onclick="selectLevel(${i})">
             Level ${i + 1} <span class="level-count-pill">(${count})</span>
-          </button>
-        `;
-      }
-
-      // If active level is > 5, display it dynamically as active tab
-      if (selectedLevelIndex >= 5) {
-        const activeCount = teamDataState.levels[selectedLevelIndex].length;
-        html += `
-          <button type="button" class="level-tab-btn active" onclick="selectLevel(${selectedLevelIndex})">
-            Level ${selectedLevelIndex + 1} <span class="level-count-pill">(${activeCount})</span>
           </button>
         `;
       }
@@ -571,7 +561,7 @@
     }
 
     /**
-     * Level Picker Modal (Levels 1 to 10)
+     * Level Picker Modal (Levels 1 to 5)
      */
     function openLevelPickerModal() {
       if (!teamDataState) return;
@@ -579,8 +569,8 @@
       const grid = document.getElementById('levelPickerGrid');
 
       let html = '';
-      for (let i = 0; i < 10; i++) {
-        const count = teamDataState.levels[i].length;
+      for (let i = 0; i < 5; i++) {
+        const count = teamDataState.levels[i] ? teamDataState.levels[i].length : 0;
         const isCurrent = selectedLevelIndex === i;
         html += `
           <div class="level-picker-item ${isCurrent ? 'active' : ''}" onclick="selectLevel(${i})">
