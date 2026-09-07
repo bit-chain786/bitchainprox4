@@ -314,15 +314,15 @@
       const endSeq = activePoolNum * 5;
       const activeBlockMembers = levelMembers.filter(m => m.sequence_num >= startSeq && m.sequence_num <= endSeq);
 
-      // Check if current user has any distributions for this level
-      const { data: userDists } = await client
+      // Check all distributions for this level to determine which users have already won
+      const { data: allDists } = await client
         .from('non_working_distributions')
         .select('*')
-        .eq('recipient_user_id', _activeUser.id)
         .eq('level', lvl);
+      const levelDists = allDists || [];
 
-      const userClaimableForLevel = userDists?.find(d => d.status === 'claimable') || null;
-      const userPaidForLevel = userDists?.find(d => d.status === 'paid') || null;
+      const userClaimableForLevel = levelDists.find(d => d.recipient_user_id === _activeUser.id && d.status === 'claimable') || null;
+      const userPaidForLevel = levelDists.find(d => d.recipient_user_id === _activeUser.id && d.status === 'paid') || null;
 
       if (userPaidForLevel && !userClaimableForLevel) {
         _hideDirectsGate();
@@ -333,7 +333,7 @@
       }
 
       // Render Active Pool Card (Designated winner and user position based on qualified queue)
-      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, qualifiedMembers, levelPools, userClaimableForLevel, userPaidForLevel, levelMembers);
+      renderActivePoolCard(tier, activePoolNum, activePoolRecord, activeBlockMembers, startSeq, endSeq, qualifiedMembers, levelPools, userClaimableForLevel, userPaidForLevel, levelMembers, levelDists);
 
       // Render Sequence List in Drawer (ONLY qualified members who met direct requirements)
       _currentLevelMembers = qualifiedMembers;
@@ -343,7 +343,7 @@
       const headingEl = document.getElementById('nwAllMembersHeading');
       if (headingEl) headingEl.textContent = `📜 Chronological Sequence in Level ${lvl} (${tier.name})`;
 
-      renderSequenceList(qualifiedMembers, tier);
+      renderSequenceList(qualifiedMembers, tier, levelDists, activePoolNum);
 
       // Render Achievers Table (qualified sequence achievers)
       renderAchieversTable(qualifiedMembers, tier);
@@ -478,7 +478,7 @@
   }
 
   // ─── Render Active Pool Card ───────────────────────────────────────────────
-  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null, userPaid = null, rawLevelMembers = []) {
+  function renderActivePoolCard(tier, poolNum, poolRecord, blockMembers, startSeq, endSeq, allLevelMembers, allPools = [], userClaimable = null, userPaid = null, rawLevelMembers = [], levelDists = []) {
     const count = blockMembers.length;
     const isCompleted = count >= 5;
 
@@ -528,14 +528,16 @@
     const progText = document.getElementById('nwProgressText');
     if (progText) progText.textContent = `${count} of 5 Members Joined (${pct}%)`;
 
-    // Designated Winner (Qualified User #poolNum in this level)
-    const winnerUser = allLevelMembers.find(m => (m.qualified_seq_num || m.sequence_num) === poolNum) || allLevelMembers[poolNum - 1] || null;
+    // Designated Winner: Next qualified user in queue who hasn't received a pool prize for this level yet
+    const unreceivedQualified = (allLevelMembers || []).filter(m => !levelDists.some(d => d.recipient_user_id === m.user_id));
+    const nextWinner = unreceivedQualified[0] || null;
+
     const winnerNameEl = document.getElementById('nwWinnerName');
     if (winnerNameEl) {
-      if (winnerUser) {
-        winnerNameEl.textContent = `User #${poolNum}: ${winnerUser.full_name || winnerUser.username} (@${winnerUser.username})`;
+      if (nextWinner) {
+        winnerNameEl.textContent = `Next Winner: ${nextWinner.full_name || nextWinner.username} (@${nextWinner.username})`;
       } else {
-        winnerNameEl.textContent = `User #${poolNum} (Awaiting Qualified Member #${poolNum})`;
+        winnerNameEl.textContent = `Awaiting Next Qualified Member (or Admin Fallback upon completion)`;
       }
     }
 
@@ -544,15 +546,21 @@
     const rawMyEntry = (rawLevelMembers || []).find(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
     const posTag = document.getElementById('nwUserPositionTag');
     if (posTag) {
-      if (myEntry) {
-        const mySeq = myEntry.qualified_seq_num || myEntry.sequence_num;
-        if (userPaid) {
-          posTag.innerHTML = `👤 Your Qualified Sequence: <strong>#${mySeq}</strong> · <strong>✅ Reward CLAIMED!</strong>`;
+      if (userPaid) {
+        posTag.innerHTML = `👤 Status: <strong>✅ Reward CLAIMED!</strong>`;
+      } else if (userClaimable) {
+        posTag.innerHTML = `👤 Status: <strong style="color:#00f5d4;">🎉 Reward Ready to Claim!</strong>`;
+      } else if (myEntry) {
+        const queueIndex = unreceivedQualified.findIndex(m => m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
+        if (queueIndex === 0) {
+          posTag.innerHTML = `👤 Qualified Winner Queue: <strong style="color:#00f5d4;">⭐ Next Winner in Line! (You win Pool #${poolNum} upon completion)</strong>`;
+        } else if (queueIndex > 0) {
+          posTag.innerHTML = `👤 Qualified Winner Queue: <strong>#${queueIndex + 1} in waiting queue</strong> (You win when upcoming pools complete)`;
         } else {
-          posTag.innerHTML = `👤 Your Qualified Sequence: <strong>#${mySeq}</strong> · You win Pool #${mySeq} Prize!`;
+          posTag.innerHTML = `👤 Qualified Member · Reward in process`;
         }
       } else if (rawMyEntry) {
-        posTag.innerHTML = `👤 Joined Level · <span style="color:#f59e0b;">⏳ Direct Requirement Pending (Invite ${tier.level === 1 ? 1 : 2} Directs to Enter Winner Sequence)</span>`;
+        posTag.innerHTML = `👤 Joined Level · <span style="color:#f59e0b;">⏳ Direct Requirement Pending (Invite ${tier.level === 1 ? 1 : 2} Directs to Enter Winner Queue)</span>`;
       } else if (_userMaxLevel >= tier.level) {
         posTag.innerHTML = `👤 Level ${tier.level} Achieved · Your slot will appear upon pool entry!`;
       } else {
@@ -633,7 +641,7 @@
   // ─── Render All Members Sequence Drawer List ──────────────────────────────
   let _currentLevelMembers = [];
 
-  function renderSequenceList(members, tier) {
+  function renderSequenceList(members, tier, levelDists = [], activePoolNum = 1) {
     const listEl = document.getElementById('nwSeqList');
     if (!listEl) return;
 
@@ -655,9 +663,29 @@
       return;
     }
 
+    // Determine queue positions among unreceived qualified members
+    const unreceivedIds = (members || []).filter(m => !levelDists.some(d => d.recipient_user_id === m.user_id)).map(m => m.user_id);
+
     listEl.innerHTML = filtered.map((m, idx) => {
       const isMe = (m.user_id === _activeUser.id || (m.username && _userProfile?.username && m.username.toLowerCase() === _userProfile.username.toLowerCase()));
       const seqNum = m.qualified_seq_num || (idx + 1);
+      const dist = levelDists.find(d => d.recipient_user_id === m.user_id);
+
+      let statusBadge = '';
+      if (dist && dist.status === 'paid') {
+        statusBadge = `<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(0,200,83,0.15);color:#00ff88;border:1px solid rgba(0,200,83,0.3);">✓ Pool #${dist.pool_num} Claimed</span>`;
+      } else if (dist && dist.status === 'claimable') {
+        statusBadge = `<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(245,158,11,0.2);color:#f59e0b;border:1px solid rgba(245,158,11,0.4);">⚡ Pool #${dist.pool_num} Claim Ready</span>`;
+      } else {
+        const qPos = unreceivedIds.indexOf(m.user_id);
+        if (qPos === 0) {
+          statusBadge = `<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(0,245,212,0.15);color:#00f5d4;border:1px solid rgba(0,245,212,0.3);">⭐ Next Winner</span>`;
+        } else if (qPos > 0) {
+          statusBadge = `<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);">⏳ Queue #${qPos + 1}</span>`;
+        } else {
+          statusBadge = `<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(0,245,212,0.15);color:#00f5d4;border:1px solid rgba(0,245,212,0.3);">✓ Qualified</span>`;
+        }
+      }
 
       return `
         <div class="nw-seq-item ${isMe ? 'is-me' : ''}">
@@ -668,7 +696,7 @@
                 <span>${m.full_name || m.username}</span>
                 <span style="color:rgba(224,170,255,0.6);font-weight:400;font-size:0.75rem;">(@${m.username})</span>
                 ${isMe ? '<span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;">⭐ YOU</span>' : ''}
-                <span class="nw-slot-badge-you" style="position:static;display:inline-block;margin-left:6px;font-size:0.6rem;padding:2px 6px;background:rgba(0,245,212,0.15);color:#00f5d4;border:1px solid rgba(0,245,212,0.3);">✓ Qualified</span>
+                ${statusBadge}
               </div>
               <div class="nw-seq-user-details">
                 ${m.rank_name || t.name} · Joined: ${fmtDate(m.created_at)}
@@ -677,7 +705,7 @@
           </div>
           <div class="nw-seq-item-right">
             <div class="nw-seq-contrib-val">+$${fmt(m.contribution_amount || t.contrib)} USDT</div>
-            <div class="nw-seq-pool-tag">Assigned to Pool #${Math.floor((seqNum - 1) / 5) + 1}</div>
+            <div class="nw-seq-pool-tag">${dist ? `Won Pool #${dist.pool_num}` : `In Winner Queue`}</div>
           </div>
         </div>
       `;
@@ -738,19 +766,21 @@
       return;
     }
 
-    tbody.innerHTML = pools.map(p => `
-      <tr>
-        <td><span class="nw-seq-badge" style="background:rgba(0,200,83,0.15);color:#00ff88;">Pool #${p.pool_num}</span></td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span>🏆</span>
-            <span style="font-weight:700;">User #${p.target_recipient_seq} (@${p.recipient_username || 'winner'})</span>
-          </div>
-        </td>
-        <td><span style="color:#00f5d4;font-weight:900;">$${fmt(p.total_pool_amount || tier.contrib * 5)} USDT</span></td>
-        <td style="color:rgba(255,255,255,0.5);font-size:0.75rem;">${fmtDate(p.completed_at || p.updated_at)}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = pools.map(p => {
+      const isAdmin = p.recipient_username && (p.recipient_username.includes('ADMIN') || p.recipient_username.includes('Company'));
+      const winnerHtml = isAdmin
+        ? `<div style="display:flex;align-items:center;gap:6px;"><span>🏢</span><span style="font-weight:700;color:#c77dff;">Admin / Company Retained <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);">(No Qualified User in Queue)</span></span></div>`
+        : `<div style="display:flex;align-items:center;gap:6px;"><span>🏆</span><span style="font-weight:700;">${p.recipient_username || 'Winner'}</span></div>`;
+
+      return `
+        <tr>
+          <td><span class="nw-seq-badge" style="background:rgba(0,200,83,0.15);color:#00ff88;">Pool #${p.pool_num}</span></td>
+          <td>${winnerHtml}</td>
+          <td><span style="color:#00f5d4;font-weight:900;">$${fmt(p.total_pool_amount || tier.contrib * 5)} USDT</span></td>
+          <td style="color:rgba(255,255,255,0.5);font-size:0.75rem;">${fmtDate(p.completed_at || p.updated_at)}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // ─── 2 Direct Referrals Requirement Engine ───────────────────────────────

@@ -66,6 +66,24 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_user_direct_count(UUID) TO authenticated, anon;
 
+-- 2b. Helper function to find Admin User ID
+CREATE OR REPLACE FUNCTION public.get_admin_user_id()
+RETURNS UUID AS $$
+DECLARE
+  v_id UUID;
+BEGIN
+  SELECT id INTO v_id 
+    FROM public.profiles 
+   WHERE role = 'admin' 
+      OR LOWER(TRIM(email)) IN ('bitchainpro@gmail.com', 'bitchain3@gmail.com')
+   ORDER BY (CASE WHEN LOWER(TRIM(email)) = 'bitchainpro@gmail.com' THEN 0 ELSE 1 END) ASC, created_at ASC
+   LIMIT 1;
+  RETURN v_id;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_admin_user_id() TO authenticated, anon, service_role;
+
 -- 3. Ensure non_working_income column exists in profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS non_working_income NUMERIC(14,2) DEFAULT 0.00;
 
@@ -163,6 +181,7 @@ DECLARE
   v_user_profile        RECORD;
   v_recip_id            UUID;
   v_recip_username      TEXT;
+  v_admin_id            UUID;
   v_already_processed   BOOLEAN;
   v_direct_count        INT;
   v_target_seq          INT;
@@ -261,47 +280,110 @@ BEGIN
   -- 10. Check if 5-Member Block is Complete
   IF v_pool.current_count >= 5 AND v_pool.status = 'active' THEN
 
-    -- Find the designated winner = first member of this pool (pool's target_recipient_seq)
-    SELECT user_id, username INTO v_recip_id, v_recip_username
-      FROM public.non_working_members
-     WHERE level = v_level AND sequence_num = v_pool.target_recipient_seq;
+    -- Find the next eligible qualified winner who has NOT yet received a pool prize for this level
+    SELECT m.user_id, m.username INTO v_recip_id, v_recip_username
+      FROM public.non_working_members m
+     WHERE m.level = v_level
+       AND public.get_user_direct_count(m.user_id) >= v_required_directs
+       AND NOT EXISTS (
+         SELECT 1 FROM public.non_working_distributions d
+          WHERE d.level = v_level AND d.recipient_user_id = m.user_id
+       )
+     ORDER BY m.sequence_num ASC
+     LIMIT 1;
 
-    -- ✅ Always create a CLAIMABLE distribution (no auto-pay — user must claim manually)
-    -- Only insert if not already inserted for this pool
-    IF v_recip_id IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.non_working_distributions
-       WHERE pool_id = v_pool.id AND recipient_user_id = v_recip_id
-    ) THEN
-      INSERT INTO public.non_working_distributions (
-        pool_id, level, pool_num, recipient_user_id, recipient_username,
-        amount, status, requires_directs, distributed_at
-      ) VALUES (
-        v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
-        v_pool.total_pool_amount, 'claimable', v_required_directs, NOW()
-      );
+    -- CASE A: Qualified winner is waiting in line!
+    IF v_recip_id IS NOT NULL THEN
+      -- Create a CLAIMABLE distribution for the qualified user
+      IF NOT EXISTS (
+        SELECT 1 FROM public.non_working_distributions
+         WHERE pool_id = v_pool.id AND recipient_user_id = v_recip_id
+      ) THEN
+        INSERT INTO public.non_working_distributions (
+          pool_id, level, pool_num, recipient_user_id, recipient_username,
+          amount, status, requires_directs, distributed_at
+        ) VALUES (
+          v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
+          v_pool.total_pool_amount, 'claimable', v_required_directs, NOW()
+        );
 
-      -- Notify winner: their prize is ready to claim
-      INSERT INTO public.activities (
-        user_id, category, type, title, details, amount, created_at
-      ) VALUES (
-        v_recip_id,
-        'non_working',
-        'claimable',
-        '🎉 Non-Working Prize Ready to Claim!',
-        'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' is complete! Your prize of $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT is ready. Go to Non-Working page to claim it.',
-        v_pool.total_pool_amount,
-        NOW()
-      );
+        -- Notify winner: their prize is ready to claim
+        INSERT INTO public.activities (
+          user_id, category, type, title, details, amount, created_at
+        ) VALUES (
+          v_recip_id,
+          'non_working',
+          'claimable',
+          '🎉 Non-Working Prize Ready to Claim!',
+          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' is complete! Your prize of $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT is ready. Go to Non-Working page to claim it.',
+          v_pool.total_pool_amount,
+          NOW()
+        );
+      END IF;
+
+      -- Mark Pool as Completed with this qualified recipient
+      UPDATE public.non_working_pools
+         SET status             = 'completed',
+             recipient_user_id  = v_recip_id,
+             recipient_username = v_recip_username,
+             completed_at       = NOW(),
+             updated_at         = NOW()
+       WHERE id = v_pool.id;
+
+    -- CASE B: NO qualified user in queue at pool completion time -> Route directly to ADMIN!
+    ELSE
+      v_admin_id := public.get_admin_user_id();
+
+      IF v_admin_id IS NOT NULL THEN
+        -- Credit Admin wallet balance immediately
+        UPDATE public.profiles
+           SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
+               total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
+               non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
+               updated_at         = NOW()
+         WHERE id = v_admin_id;
+
+        -- Record distribution as paid to admin (Company Retained)
+        INSERT INTO public.non_working_distributions (
+          pool_id, level, pool_num, recipient_user_id, recipient_username,
+          amount, status, requires_directs, distributed_at
+        ) VALUES (
+          v_pool.id, v_level, v_pool_num, v_admin_id, 'ADMIN (Company Retained)',
+          v_pool.total_pool_amount, 'paid', 0, NOW()
+        );
+
+        -- Activity log for Admin
+        INSERT INTO public.activities (
+          user_id, category, type, title, details, amount, created_at
+        ) VALUES (
+          v_admin_id,
+          'non_working',
+          'income',
+          '🏢 Company Pool Retained (No Qualified User)',
+          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' completed without a qualified user in queue. $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT credited to Admin.',
+          v_pool.total_pool_amount,
+          NOW()
+        );
+
+        -- Mark Pool as Completed by Admin
+        UPDATE public.non_working_pools
+           SET status             = 'completed',
+               recipient_user_id  = v_admin_id,
+               recipient_username = 'ADMIN (Company Retained)',
+               completed_at       = NOW(),
+               updated_at         = NOW()
+         WHERE id = v_pool.id;
+      ELSE
+        -- Fallback if admin ID not found
+        UPDATE public.non_working_pools
+           SET status             = 'completed',
+               recipient_username = 'ADMIN (Company Retained)',
+               completed_at       = NOW(),
+               updated_at         = NOW()
+         WHERE id = v_pool.id;
+      END IF;
+
     END IF;
-
-    -- Mark Pool as Completed
-    UPDATE public.non_working_pools
-       SET status             = 'completed',
-           recipient_user_id  = v_recip_id,
-           recipient_username = v_recip_username,
-           completed_at       = NOW(),
-           updated_at         = NOW()
-     WHERE id = v_pool.id;
 
   END IF;
 
