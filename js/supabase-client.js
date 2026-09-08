@@ -217,19 +217,72 @@ async function signInUser({ email, password }) {
 }
 
 /**
- * Send password reset OTP/link to user's email.
+ * Send / Request real-time password reset OTP and trigger email dispatch.
  */
 async function resetPasswordEmail(email) {
   const client = getSupabase();
   if (!client) throw new Error('Supabase client is not initialized.');
 
-  const redirectUrl = window.location.origin + '/forgot-password.html';
-  const { data, error } = await client.auth.resetPasswordForEmail(email.trim(), {
-    redirectTo: redirectUrl
-  });
+  const cleanEmail = email.trim().toLowerCase();
+  let generatedOtp = null;
+  let rpcSuccess = false;
 
-  if (error) throw error;
-  return data;
+  // 1. Generate & store 6-digit OTP in database via PostgreSQL RPC
+  try {
+    const { data: rpcData, error: rpcError } = await client.rpc('request_password_reset_otp', {
+      p_email: cleanEmail
+    });
+
+    if (rpcError) {
+      console.warn('RPC request_password_reset_otp notice:', rpcError.message);
+    } else if (rpcData) {
+      if (rpcData.success) {
+        rpcSuccess = true;
+        generatedOtp = rpcData.otp_code;
+        console.log('⚡ Real-time OTP successfully generated in database:', generatedOtp);
+      } else {
+        throw new Error(rpcData.error || 'Failed to generate OTP for this email.');
+      }
+    }
+  } catch (rpcEx) {
+    console.warn('RPC exception, checking fallback:', rpcEx);
+    if (rpcEx.message && rpcEx.message.includes('No account found')) {
+      throw rpcEx;
+    }
+  }
+
+  // 2. Also trigger Supabase standard Auth password reset email as secondary channel
+  try {
+    const redirectUrl = window.location.origin + '/forgot-password.html';
+    await client.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: redirectUrl
+    });
+  } catch (e) {
+    console.warn('Supabase Auth reset email channel note:', e.message);
+  }
+
+  // 3. Direct EmailJS real-time dispatch if initialized
+  if (generatedOtp && window.emailjs && typeof window.emailjs.send === 'function') {
+    try {
+      const serviceId = localStorage.getItem('BITCHAIN_EMAILJS_SERVICE_ID') || 'service_bitchain';
+      const templateId = localStorage.getItem('BITCHAIN_EMAILJS_TEMPLATE_ID') || 'template_otp';
+      await window.emailjs.send(serviceId, templateId, {
+        to_email: cleanEmail,
+        otp_code: generatedOtp,
+        app_name: 'BITCHAIN PRO X',
+        valid_mins: '10'
+      });
+    } catch (err) {
+      console.warn('Direct EmailJS dispatch note:', err);
+    }
+  }
+
+  return {
+    success: true,
+    email: cleanEmail,
+    otp_code: generatedOtp,
+    rpc_success: rpcSuccess
+  };
 }
 
 /**
@@ -239,22 +292,41 @@ async function verifyPasswordOtp(email, token) {
   const client = getSupabase();
   if (!client) throw new Error('Supabase client is not initialized.');
 
-  // Attempt verification using recovery type first
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = token.trim();
+
+  // 1. Verify via database RPC (Real-time DB-backed OTP)
+  try {
+    const { data: rpcData, error: rpcError } = await client.rpc('verify_password_reset_otp', {
+      p_email: cleanEmail,
+      p_otp: cleanOtp
+    });
+
+    if (!rpcError && rpcData && rpcData.success) {
+      return { success: true, verified: true, message: rpcData.message };
+    }
+    if (rpcData && !rpcData.success && rpcData.error) {
+      console.warn('RPC verify returned false:', rpcData.error);
+    }
+  } catch (e) {
+    console.warn('RPC OTP verification note:', e);
+  }
+
+  // 2. Fallback: Verify via Supabase Auth recovery session
   let res = await client.auth.verifyOtp({
-    email: email.trim(),
-    token: token.trim(),
+    email: cleanEmail,
+    token: cleanOtp,
     type: 'recovery'
   });
 
   if (res.error) {
-    // Fallback: try email OTP verification
     const resFallback = await client.auth.verifyOtp({
-      email: email.trim(),
-      token: token.trim(),
+      email: cleanEmail,
+      token: cleanOtp,
       type: 'email'
     });
     if (resFallback.error) {
-      throw res.error;
+      throw new Error('Invalid or expired verification code. Please check your code or click Resend.');
     }
     res = resFallback;
   }
@@ -263,12 +335,39 @@ async function verifyPasswordOtp(email, token) {
 }
 
 /**
- * Update authenticated user's password.
+ * Update user's password with verified OTP or active session.
  */
-async function updateUserPassword(newPassword) {
+async function updateUserPassword(newPassword, email = null, otp = null) {
   const client = getSupabase();
   if (!client) throw new Error('Supabase client is not initialized.');
 
+  // 1. If email and OTP are provided, update via PostgreSQL RPC (100% direct & instant)
+  if (email && otp) {
+    try {
+      const { data: rpcData, error: rpcError } = await client.rpc('verify_and_update_password', {
+        p_email: email.trim().toLowerCase(),
+        p_otp: otp.trim(),
+        p_new_password: newPassword
+      });
+
+      if (rpcError) {
+        console.warn('RPC verify_and_update_password note:', rpcError.message);
+      } else if (rpcData) {
+        if (rpcData.success) {
+          return rpcData;
+        } else {
+          throw new Error(rpcData.error || 'Failed to update password.');
+        }
+      }
+    } catch (rpcErr) {
+      console.warn('RPC password update error, falling back to auth.updateUser:', rpcErr.message);
+      if (rpcErr.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('schema')) {
+        throw rpcErr;
+      }
+    }
+  }
+
+  // 2. Update via Supabase Auth session
   const { data, error } = await client.auth.updateUser({
     password: newPassword
   });

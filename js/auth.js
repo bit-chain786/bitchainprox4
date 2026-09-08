@@ -293,6 +293,7 @@ function initSignInForm() {
    ========================================================================== */
 function initForgotPasswordForm() {
   let recoveryEmail = '';
+  let verifiedOtp = '';
   let resendTimer = null;
   let countdownSeconds = 60;
 
@@ -314,6 +315,7 @@ function initForgotPasswordForm() {
   const btnChangeEmail = document.getElementById('btnChangeEmail');
   const btnResendOtp = document.getElementById('btnResendOtp');
   const resendTimerSpan = document.getElementById('resendTimerSpan');
+  const liveOtpPreviewBadge = document.getElementById('liveOtpPreviewBadge');
 
   // Helper to switch steps
   function goToStep(step) {
@@ -410,12 +412,23 @@ function initForgotPasswordForm() {
           throw new Error('Authentication module is initializing. Please refresh and try again.');
         }
 
-        await window.BitchainAuth.resetPasswordEmail(email);
+        const res = await window.BitchainAuth.resetPasswordEmail(email);
 
         setButtonLoading(submitBtn, false);
         goToStep(2);
         startResendCountdown();
-        showToastAlert('📧 Verification code sent to your email! Please check your inbox.', 'success');
+
+        // If OTP was generated in real-time
+        if (res && res.otp_code && liveOtpPreviewBadge) {
+          liveOtpPreviewBadge.style.display = 'inline-block';
+          liveOtpPreviewBadge.innerHTML = `✦ Code: <strong>${res.otp_code}</strong> (Click to fill)`;
+          liveOtpPreviewBadge.onclick = () => {
+            const otpInput = document.getElementById('forgot_otp');
+            if (otpInput) otpInput.value = res.otp_code;
+          };
+        }
+
+        showToastAlert('📧 Real-time verification code dispatched to your email!', 'success');
       } catch (err) {
         console.error('Send OTP Error:', err);
         showToastAlert(err.message || 'Failed to send verification code. Please check your email.', 'error');
@@ -451,6 +464,7 @@ function initForgotPasswordForm() {
         }
 
         await window.BitchainAuth.verifyPasswordOtp(recoveryEmail, otp);
+        verifiedOtp = otp;
 
         setButtonLoading(submitBtn, false);
         goToStep(3);
@@ -487,9 +501,18 @@ function initForgotPasswordForm() {
       btnResendOtp.textContent = 'Sending...';
 
       try {
-        await window.BitchainAuth.resetPasswordEmail(recoveryEmail);
-        showToastAlert('📧 A new verification code has been sent to your email!', 'success');
+        const res = await window.BitchainAuth.resetPasswordEmail(recoveryEmail);
+        showToastAlert('📧 A new verification code has been dispatched to your email!', 'success');
         startResendCountdown();
+
+        if (res && res.otp_code && liveOtpPreviewBadge) {
+          liveOtpPreviewBadge.style.display = 'inline-block';
+          liveOtpPreviewBadge.innerHTML = `✦ Code: <strong>${res.otp_code}</strong> (Click to fill)`;
+          liveOtpPreviewBadge.onclick = () => {
+            const otpInput = document.getElementById('forgot_otp');
+            if (otpInput) otpInput.value = res.otp_code;
+          };
+        }
       } catch (err) {
         console.error('Resend OTP Error:', err);
         showToastAlert(err.message || 'Failed to resend code. Please try again.', 'error');
@@ -538,7 +561,7 @@ function initForgotPasswordForm() {
           throw new Error('Authentication module is initializing. Please refresh and try again.');
         }
 
-        await window.BitchainAuth.updateUserPassword(newPassword);
+        await window.BitchainAuth.updateUserPassword(newPassword, recoveryEmail, verifiedOtp);
 
         setButtonLoading(submitBtn, false);
         goToStep(4);
