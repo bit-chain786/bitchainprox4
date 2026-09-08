@@ -217,19 +217,49 @@ async function signInUser({ email, password }) {
 }
 
 /**
- * Send password reset link to user's email.
+ * Send password reset OTP/link to user's email.
  */
 async function resetPasswordEmail(email) {
   const client = getSupabase();
   if (!client) throw new Error('Supabase client is not initialized.');
 
-  const redirectUrl = window.location.origin + '/reset-password.html';
+  const redirectUrl = window.location.origin + '/forgot-password.html';
   const { data, error } = await client.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: redirectUrl
   });
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Verify OTP code for password recovery.
+ */
+async function verifyPasswordOtp(email, token) {
+  const client = getSupabase();
+  if (!client) throw new Error('Supabase client is not initialized.');
+
+  // Attempt verification using recovery type first
+  let res = await client.auth.verifyOtp({
+    email: email.trim(),
+    token: token.trim(),
+    type: 'recovery'
+  });
+
+  if (res.error) {
+    // Fallback: try email OTP verification
+    const resFallback = await client.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: 'email'
+    });
+    if (resFallback.error) {
+      throw res.error;
+    }
+    res = resFallback;
+  }
+
+  return res.data;
 }
 
 /**
@@ -592,6 +622,7 @@ window.BitchainAuth = {
   signUpUser,
   signInUser,
   resetPasswordEmail,
+  verifyPasswordOtp,
   updateUserPassword,
   getUserProfile,
   getUserActivities,

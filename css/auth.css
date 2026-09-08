@@ -1132,3 +1132,210 @@ html, body {
     font-size: 1.15rem;
   }
 }
+
+/* --------------------------------------------------------------------------
+   MULTI-STEP FORGOT PASSWORD & OTP VERIFICATION STYLES
+   -------------------------------------------------------------------------- */
+.forgot-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  padding: 6px 12px;
+  background: rgba(15, 7, 39, 0.7);
+  border: 1px solid rgba(199, 125, 255, 0.2);
+  border-radius: var(--radius-pill);
+}
+
+.step-indicator-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.step-indicator-item .step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 800;
+  transition: all 0.3s ease;
+}
+
+.step-indicator-item.active {
+  color: var(--primary-neon);
+}
+
+.step-indicator-item.active .step-num {
+  background: linear-gradient(135deg, var(--primary-purple), var(--primary-light));
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(199, 125, 255, 0.6);
+}
+
+.step-indicator-item.completed {
+  color: var(--accent-emerald);
+}
+
+.step-indicator-item.completed .step-num {
+  background: var(--accent-emerald);
+  color: #0d0622;
+}
+
+.step-indicator-arrow {
+  color: rgba(199, 125, 255, 0.3);
+  font-size: 0.75rem;
+}
+
+.auth-step-panel {
+  display: none;
+  animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-step-panel.active {
+  display: block;
+}
+
+/* OTP Code Specific Input */
+.otp-input-large {
+  font-family: 'Outfit', monospace, sans-serif !important;
+  font-size: 1.45rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.45em !important;
+  text-align: center !important;
+  padding: 0 16px !important;
+  color: var(--primary-neon) !important;
+  background: rgba(15, 7, 39, 0.95) !important;
+  border: 1.5px solid rgba(199, 125, 255, 0.4) !important;
+  text-transform: uppercase;
+}
+
+.otp-input-large:focus {
+  border-color: var(--primary-light) !important;
+  box-shadow: 0 0 20px rgba(199, 125, 255, 0.5) !important;
+}
+
+.otp-target-email-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(157, 78, 221, 0.12);
+  border: 1px solid rgba(199, 125, 255, 0.25);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  font-size: 0.84rem;
+  color: var(--text-sub);
+}
+
+.otp-target-email-badge strong {
+  color: #ffffff;
+  word-break: break-all;
+}
+
+.btn-change-email {
+  color: var(--primary-light);
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.btn-change-email:hover {
+  color: #ffffff;
+}
+
+.resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.btn-resend-otp {
+  background: none;
+  border: none;
+  color: var(--primary-light);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.btn-resend-otp:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-resend-otp:not(:disabled):hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* Success Card */
+.auth-success-screen {
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.success-icon-glow {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.4));
+  border: 2px solid var(--accent-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+  animation: scaleBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.success-icon-glow svg {
+  width: 36px;
+  height: 36px;
+  stroke: #ffffff;
+}
+
+@keyframes scaleBounce {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.auth-success-title {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.auth-success-desc {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+

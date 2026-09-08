@@ -289,36 +289,307 @@ function initSignInForm() {
 }
 
 /* ==========================================================================
-   6. FORGOT PASSWORD FORM & RESET REQUEST
+   6. MULTI-STEP FORGOT PASSWORD (EMAIL -> OTP VERIFICATION -> NEW PASSWORD)
    ========================================================================== */
 function initForgotPasswordForm() {
-  const form = document.getElementById('forgotPasswordForm');
-  if (!form) return;
+  let recoveryEmail = '';
+  let resendTimer = null;
+  let countdownSeconds = 60;
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  const stepIndicator = document.getElementById('stepIndicator');
+  const stepBadge1 = document.getElementById('stepBadge1');
+  const stepBadge2 = document.getElementById('stepBadge2');
+  const stepBadge3 = document.getElementById('stepBadge3');
+
+  const step1Panel = document.getElementById('step1Panel');
+  const step2Panel = document.getElementById('step2Panel');
+  const step3Panel = document.getElementById('step3Panel');
+  const step4Panel = document.getElementById('step4Panel');
+
+  const step1Form = document.getElementById('step1Form');
+  const step2Form = document.getElementById('step2Form');
+  const step3Form = document.getElementById('step3Form');
+
+  const targetEmailText = document.getElementById('targetEmailText');
+  const btnChangeEmail = document.getElementById('btnChangeEmail');
+  const btnResendOtp = document.getElementById('btnResendOtp');
+  const resendTimerSpan = document.getElementById('resendTimerSpan');
+
+  // Helper to switch steps
+  function goToStep(step) {
     clearAllErrors();
 
-    const email = document.getElementById('forgot_email').value.trim();
-    const submitBtn = document.getElementById('btnForgotSubmit');
+    // Reset panels
+    [step1Panel, step2Panel, step3Panel, step4Panel].forEach(p => {
+      if (p) p.classList.remove('active');
+    });
 
-    if (!email || !validateEmail(email)) {
-      showFieldError('forgot_email', 'Please enter a valid email address');
-      return;
+    if (step === 1 && step1Panel) {
+      step1Panel.classList.add('active');
+      if (stepIndicator) stepIndicator.style.display = 'flex';
+      if (stepBadge1) { stepBadge1.className = 'step-indicator-item active'; }
+      if (stepBadge2) { stepBadge2.className = 'step-indicator-item'; }
+      if (stepBadge3) { stepBadge3.className = 'step-indicator-item'; }
+      const emailInput = document.getElementById('forgot_email');
+      if (emailInput) emailInput.focus();
+    } else if (step === 2 && step2Panel) {
+      step2Panel.classList.add('active');
+      if (stepIndicator) stepIndicator.style.display = 'flex';
+      if (stepBadge1) { stepBadge1.className = 'step-indicator-item completed'; }
+      if (stepBadge2) { stepBadge2.className = 'step-indicator-item active'; }
+      if (stepBadge3) { stepBadge3.className = 'step-indicator-item'; }
+      if (targetEmailText) targetEmailText.textContent = recoveryEmail;
+      const otpInput = document.getElementById('forgot_otp');
+      if (otpInput) {
+        otpInput.value = '';
+        otpInput.focus();
+      }
+    } else if (step === 3 && step3Panel) {
+      step3Panel.classList.add('active');
+      if (stepIndicator) stepIndicator.style.display = 'flex';
+      if (stepBadge1) { stepBadge1.className = 'step-indicator-item completed'; }
+      if (stepBadge2) { stepBadge2.className = 'step-indicator-item completed'; }
+      if (stepBadge3) { stepBadge3.className = 'step-indicator-item active'; }
+      const newPassInput = document.getElementById('new_password');
+      if (newPassInput) newPassInput.focus();
+    } else if (step === 4 && step4Panel) {
+      step4Panel.classList.add('active');
+      if (stepIndicator) stepIndicator.style.display = 'none';
+    }
+  }
+
+  // Resend Timer Controller
+  function startResendCountdown() {
+    if (resendTimer) clearInterval(resendTimer);
+    countdownSeconds = 60;
+    if (btnResendOtp) {
+      btnResendOtp.disabled = true;
+      btnResendOtp.innerHTML = `Resend in <span id="resendTimerSpan">${countdownSeconds}</span>s`;
     }
 
-    setButtonLoading(submitBtn, true);
+    resendTimer = setInterval(() => {
+      countdownSeconds--;
+      const span = document.getElementById('resendTimerSpan');
+      if (span) span.textContent = countdownSeconds;
 
-    try {
-      await window.BitchainAuth.resetPasswordEmail(email);
-      showToastAlert('📧 Password reset instructions have been sent to your email!', 'success');
-      setButtonLoading(submitBtn, false);
-    } catch (err) {
-      console.error('Forgot Password Error:', err);
-      showToastAlert(err.message || 'Failed to send reset link. Try again later.', 'error');
-      setButtonLoading(submitBtn, false);
-    }
-  });
+      if (countdownSeconds <= 0) {
+        clearInterval(resendTimer);
+        resendTimer = null;
+        if (btnResendOtp) {
+          btnResendOtp.disabled = false;
+          btnResendOtp.innerHTML = 'Resend Code 🔄';
+        }
+      }
+    }, 1000);
+  }
+
+  // --- STEP 1: SEND OTP EMAIL ---
+  if (step1Form) {
+    step1Form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors();
+
+      const emailInput = document.getElementById('forgot_email');
+      const email = emailInput ? emailInput.value.trim() : '';
+      const submitBtn = document.getElementById('btnSendOtp');
+
+      if (!email) {
+        showFieldError('forgot_email', 'Please enter your email address');
+        return;
+      }
+      if (!validateEmail(email)) {
+        showFieldError('forgot_email', 'Please enter a valid email address');
+        return;
+      }
+
+      recoveryEmail = email;
+      setButtonLoading(submitBtn, true);
+
+      try {
+        if (!window.BitchainAuth || typeof window.BitchainAuth.resetPasswordEmail !== 'function') {
+          throw new Error('Authentication module is initializing. Please refresh and try again.');
+        }
+
+        await window.BitchainAuth.resetPasswordEmail(email);
+
+        setButtonLoading(submitBtn, false);
+        goToStep(2);
+        startResendCountdown();
+        showToastAlert('📧 Verification code sent to your email! Please check your inbox.', 'success');
+      } catch (err) {
+        console.error('Send OTP Error:', err);
+        showToastAlert(err.message || 'Failed to send verification code. Please check your email.', 'error');
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  // --- STEP 2: VERIFY OTP ---
+  if (step2Form) {
+    step2Form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors();
+
+      const otpInput = document.getElementById('forgot_otp');
+      const otp = otpInput ? otpInput.value.trim() : '';
+      const submitBtn = document.getElementById('btnVerifyOtp');
+
+      if (!otp) {
+        showFieldError('forgot_otp', 'Enter the 6-digit verification code');
+        return;
+      }
+      if (otp.length < 6) {
+        showFieldError('forgot_otp', 'Verification code must be at least 6 digits');
+        return;
+      }
+
+      setButtonLoading(submitBtn, true);
+
+      try {
+        if (!window.BitchainAuth || typeof window.BitchainAuth.verifyPasswordOtp !== 'function') {
+          throw new Error('Authentication module is initializing. Please refresh and try again.');
+        }
+
+        await window.BitchainAuth.verifyPasswordOtp(recoveryEmail, otp);
+
+        setButtonLoading(submitBtn, false);
+        goToStep(3);
+        showToastAlert('⚡ Verification code confirmed! Set your new password.', 'success');
+      } catch (err) {
+        console.error('Verify OTP Error:', err);
+        let userMsg = err.message || 'Invalid verification code.';
+        if (userMsg.toLowerCase().includes('token has expired') || userMsg.toLowerCase().includes('expired')) {
+          userMsg = 'Verification code has expired. Please click Resend Code.';
+        } else if (userMsg.toLowerCase().includes('invalid') || userMsg.toLowerCase().includes('not found')) {
+          userMsg = 'Invalid verification code. Please double check the 6-digit code in your email.';
+        }
+        showToastAlert(userMsg, 'error');
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  // Change Email link in Step 2
+  if (btnChangeEmail) {
+    btnChangeEmail.addEventListener('click', (e) => {
+      e.preventDefault();
+      goToStep(1);
+    });
+  }
+
+  // Resend OTP button in Step 2
+  if (btnResendOtp) {
+    btnResendOtp.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (btnResendOtp.disabled || !recoveryEmail) return;
+
+      btnResendOtp.disabled = true;
+      btnResendOtp.textContent = 'Sending...';
+
+      try {
+        await window.BitchainAuth.resetPasswordEmail(recoveryEmail);
+        showToastAlert('📧 A new verification code has been sent to your email!', 'success');
+        startResendCountdown();
+      } catch (err) {
+        console.error('Resend OTP Error:', err);
+        showToastAlert(err.message || 'Failed to resend code. Please try again.', 'error');
+        btnResendOtp.disabled = false;
+        btnResendOtp.textContent = 'Resend Code 🔄';
+      }
+    });
+  }
+
+  // --- STEP 3: UPDATE PASSWORD ---
+  if (step3Form) {
+    step3Form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors();
+
+      const newPassInput = document.getElementById('new_password');
+      const confirmPassInput = document.getElementById('confirm_new_password');
+      const newPassword = newPassInput ? newPassInput.value : '';
+      const confirmPassword = confirmPassInput ? confirmPassInput.value : '';
+      const submitBtn = document.getElementById('btnResetSubmit');
+
+      let hasError = false;
+
+      if (!newPassword) {
+        showFieldError('new_password', 'Password is required');
+        hasError = true;
+      } else if (newPassword.length < 6) {
+        showFieldError('new_password', 'Password must be at least 6 characters');
+        hasError = true;
+      }
+
+      if (!confirmPassword) {
+        showFieldError('confirm_new_password', 'Please confirm your new password');
+        hasError = true;
+      } else if (newPassword !== confirmPassword) {
+        showFieldError('confirm_new_password', 'Passwords do not match');
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      setButtonLoading(submitBtn, true);
+
+      try {
+        if (!window.BitchainAuth || typeof window.BitchainAuth.updateUserPassword !== 'function') {
+          throw new Error('Authentication module is initializing. Please refresh and try again.');
+        }
+
+        await window.BitchainAuth.updateUserPassword(newPassword);
+
+        setButtonLoading(submitBtn, false);
+        goToStep(4);
+        showToastAlert('🎉 Password updated successfully!', 'success');
+
+        // Automatically redirect to login page after 3.5s
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 3500);
+      } catch (err) {
+        console.error('Reset Password Error:', err);
+        showToastAlert(err.message || 'Failed to update password. Please try again.', 'error');
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  // Check URL for direct recovery token (from email link or hash)
+  const hash = window.location.hash;
+  const urlParams = new URLSearchParams(window.location.search);
+  const isRecoveryLink = (hash && hash.includes('type=recovery')) || urlParams.get('type') === 'recovery' || urlParams.get('code');
+
+  if (isRecoveryLink) {
+    goToStep(3);
+    showToastAlert('🔑 Email recovery session detected. Please set your new password.', 'success');
+  }
+
+  // Fallback support for single-page forgotPasswordForm if exists
+  const legacyForm = document.getElementById('forgotPasswordForm');
+  if (legacyForm && !step1Form) {
+    legacyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors();
+      const email = document.getElementById('forgot_email').value.trim();
+      const submitBtn = document.getElementById('btnForgotSubmit');
+      if (!email || !validateEmail(email)) {
+        showFieldError('forgot_email', 'Please enter a valid email address');
+        return;
+      }
+      setButtonLoading(submitBtn, true);
+      try {
+        await window.BitchainAuth.resetPasswordEmail(email);
+        showToastAlert('📧 Password reset instructions have been sent to your email!', 'success');
+        setButtonLoading(submitBtn, false);
+      } catch (err) {
+        console.error('Forgot Password Error:', err);
+        showToastAlert(err.message || 'Failed to send reset link.', 'error');
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
 }
 
 /* ==========================================================================
