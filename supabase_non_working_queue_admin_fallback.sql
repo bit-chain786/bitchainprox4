@@ -1,9 +1,73 @@
 -- ============================================================================
--- BITCHAIN PRO X — NON-WORKING POOL: QUALIFIED WINNER QUEUE + ADMIN FALLBACK
+-- BITCHAIN PRO X — NON-WORKING POOL: QUALIFIED WINNER QUEUE + ADMIN FALLBACK + CLAIM ENGINE
 -- Run this in Supabase SQL Editor
 -- ============================================================================
 
--- 1. Helper function to find Admin User ID
+-- 1. Helper function for Rank Levels (1..8)
+CREATE OR REPLACE FUNCTION public.get_rank_level(p_rank TEXT)
+RETURNS INT AS $$
+BEGIN
+  IF p_rank IS NULL OR TRIM(p_rank) = '' THEN
+    RETURN 0;
+  END IF;
+  CASE LOWER(TRIM(p_rank))
+    WHEN 'starter'   THEN RETURN 1;
+    WHEN 'basic'     THEN RETURN 2;
+    WHEN 'silver'    THEN RETURN 3;
+    WHEN 'gold'      THEN RETURN 4;
+    WHEN 'diamond'   THEN RETURN 5;
+    WHEN 'elite'     THEN RETURN 6;
+    WHEN 'executive' THEN RETURN 7;
+    WHEN 'royal'     THEN RETURN 8;
+    ELSE RETURN 0;
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.get_level_name(p_level INT)
+RETURNS TEXT AS $$
+BEGIN
+  CASE p_level
+    WHEN 1 THEN RETURN 'Starter';
+    WHEN 2 THEN RETURN 'Basic';
+    WHEN 3 THEN RETURN 'Silver';
+    WHEN 4 THEN RETURN 'Gold';
+    WHEN 5 THEN RETURN 'Diamond';
+    WHEN 6 THEN RETURN 'Elite';
+    WHEN 7 THEN RETURN 'Executive';
+    WHEN 8 THEN RETURN 'Royal';
+    ELSE RETURN 'Unknown';
+  END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- 2. Direct Referrals Count Helper
+CREATE OR REPLACE FUNCTION public.get_user_direct_count(p_user_id UUID)
+RETURNS INT AS $$
+DECLARE
+  v_uname TEXT;
+  v_refcode TEXT;
+  v_count INT;
+BEGIN
+  SELECT username, referral_code INTO v_uname, v_refcode
+    FROM public.profiles WHERE id = p_user_id;
+
+  SELECT COUNT(*) INTO v_count
+    FROM public.profiles
+   WHERE id != p_user_id
+     AND (
+       (v_uname IS NOT NULL AND TRIM(v_uname) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_uname))) OR
+       (v_refcode IS NOT NULL AND TRIM(v_refcode) != '' AND LOWER(TRIM(sponsor_username)) = LOWER(TRIM(v_refcode)))
+     )
+     AND (rank_value IS NOT NULL AND rank_value >= 1);
+
+  RETURN COALESCE(v_count, 0);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_user_direct_count(UUID) TO authenticated, anon, service_role;
+
+-- 3. Helper function to find Admin User ID
 CREATE OR REPLACE FUNCTION public.get_admin_user_id()
 RETURNS UUID AS $$
 DECLARE
@@ -21,7 +85,7 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_admin_user_id() TO authenticated, anon, service_role;
 
--- 2. Core Processing Function for Non-Working Pool (30%)
+-- 4. Core Processing Function for Non-Working Pool (30%)
 CREATE OR REPLACE FUNCTION public.process_non_working_income()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -137,6 +201,7 @@ BEGIN
      LIMIT 1;
 
     -- CASE A: Qualified winner is waiting in line!
+    -- Create CLAIMABLE reward ONLY. DO NOT credit user wallet until claimed!
     IF v_recip_id IS NOT NULL THEN
       IF NOT EXISTS (
         SELECT 1 FROM public.non_working_distributions
@@ -148,19 +213,6 @@ BEGIN
         ) VALUES (
           v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
           v_pool.total_pool_amount, 'claimable', v_required_directs, NOW()
-        );
-
-        -- Notify winner
-        INSERT INTO public.activities (
-          user_id, category, type, title, details, amount, created_at
-        ) VALUES (
-          v_recip_id,
-          'non_working',
-          'claimable',
-          '🎉 Non-Working Prize Ready to Claim!',
-          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' is complete! Your prize of $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT is ready. Go to Non-Working page to claim it.',
-          v_pool.total_pool_amount,
-          NOW()
         );
       END IF;
 
@@ -193,6 +245,7 @@ BEGIN
            SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
                total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
                non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
+               today_income       = COALESCE(today_income, 0) + v_pool.total_pool_amount,
                updated_at         = NOW()
          WHERE id = v_admin_id;
 
@@ -244,7 +297,124 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. Ensure outgoing_income_ledger table exists and permissions are granted
+-- 5. CLAIM FUNCTION FOR USERS (Idempotent, Atomic Row-Locking & Single-Credit Guarantee)
+CREATE OR REPLACE FUNCTION public.claim_non_working_reward(p_distribution_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_user_id UUID;
+  v_dist RECORD;
+  v_direct_count INT;
+  v_needed INT;
+  v_level_name TEXT;
+  v_updated_rows INT;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+
+  -- 1. Row-level lock to prevent concurrent claims
+  SELECT * INTO v_dist
+    FROM public.non_working_distributions
+   WHERE id = p_distribution_id AND recipient_user_id = v_user_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward record not found');
+  END IF;
+
+  IF v_dist.status = 'paid' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward already claimed');
+  END IF;
+
+  IF v_dist.status <> 'claimable' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward is not yet claimable');
+  END IF;
+
+  -- 2. Verify Direct Referral Requirement
+  v_needed := CASE WHEN v_dist.level = 1 THEN 1 ELSE 2 END;
+  v_direct_count := public.get_user_direct_count(v_user_id);
+
+  IF v_direct_count < v_needed THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'You need ' || v_needed || ' direct referral(s) to claim. You have ' || v_direct_count || '/' || v_needed
+    );
+  END IF;
+
+  v_level_name := public.get_level_name(v_dist.level);
+
+  -- 3. Atomic State Transition: claimable -> paid
+  UPDATE public.non_working_distributions
+     SET status         = 'paid',
+         distributed_at = NOW()
+   WHERE id = v_dist.id 
+     AND status = 'claimable'
+     AND recipient_user_id = v_user_id;
+
+  GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+  IF v_updated_rows = 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward was already processed or is not claimable');
+  END IF;
+
+  -- 4. Credit User Balance EXACTLY ONCE
+  UPDATE public.profiles
+     SET available_balance  = COALESCE(available_balance, 0) + v_dist.amount,
+         total_income       = COALESCE(total_income, 0) + v_dist.amount,
+         non_working_income = COALESCE(non_working_income, 0) + v_dist.amount,
+         today_income       = COALESCE(today_income, 0) + v_dist.amount,
+         updated_at         = NOW()
+   WHERE id = v_user_id;
+
+  -- 5. Insert ONE Authoritative Financial Activity Record
+  INSERT INTO public.activities (
+    user_id, category, type, title, details, amount, created_at
+  ) VALUES (
+    v_user_id,
+    'non_working',
+    'income',
+    'Non-Working Income Claimed ✅',
+    'Level ' || v_dist.level || ' (' || v_level_name || ') Pool #' || v_dist.pool_num || ' — $' || TO_CHAR(v_dist.amount, 'FM999,990.00') || ' USDT credited to your wallet',
+    v_dist.amount,
+    NOW()
+  );
+
+  RETURN jsonb_build_object(
+    'success', true, 
+    'amount', v_dist.amount, 
+    'level', v_dist.level, 
+    'pool_num', v_dist.pool_num
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.claim_non_working_reward(UUID) TO authenticated, anon, service_role;
+
+-- 6. Dynamic Today's Income Function (Calculates only realized income transactions since 00:00:00)
+CREATE OR REPLACE FUNCTION public.get_user_today_income(p_user_id UUID)
+RETURNS NUMERIC AS $$
+DECLARE
+  v_today_start TIMESTAMPTZ;
+  v_today_income NUMERIC(14,2);
+BEGIN
+  v_today_start := DATE_TRUNC('day', NOW());
+
+  SELECT COALESCE(SUM(amount), 0.00)
+    INTO v_today_income
+    FROM public.activities
+   WHERE user_id = p_user_id
+     AND amount > 0
+     AND type = 'income'
+     AND category IN ('direct', 'team', 'non_working', 'reward', 'income')
+     AND created_at >= v_today_start;
+
+  RETURN COALESCE(v_today_income, 0.00);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_user_today_income(UUID) TO authenticated, anon, service_role;
+
+-- 7. Ensure outgoing_income_ledger table exists and permissions are granted
 CREATE TABLE IF NOT EXISTS public.outgoing_income_ledger (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   income_type TEXT NOT NULL,

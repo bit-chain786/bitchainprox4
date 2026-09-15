@@ -480,8 +480,8 @@ async function getUserActivities(userId, limit = 15) {
           return;
         }
 
-        // Skip premature "Ready to Claim" notifications — only show when actually claimed
-        if (item.type === 'claimable' || (item.title && item.title.toLowerCase().includes('ready to claim'))) {
+        // Skip premature notifications or non-financial items — only show when actually claimed / income
+        if (item.type === 'claimable' || item.type === 'info' || (item.title && item.title.toLowerCase().includes('ready to claim')) || (parseFloat(item.amount) || 0) <= 0) {
           return;
         }
 
@@ -617,12 +617,13 @@ async function getUserActivities(userId, limit = 15) {
       });
     }
 
-    // 7. Non-Working Income Distributions
+    // 7. Non-Working Income Distributions (Fallback for legacy paid records without activity entry)
     try {
       const { data: nwData } = await client
         .from('non_working_distributions')
         .select('*')
         .eq('recipient_user_id', userId)
+        .eq('status', 'paid') // ONLY paid records! Never claimable or unallocated
         .order('distributed_at', { ascending: false })
         .limit(limit);
 
@@ -634,8 +635,8 @@ async function getUserActivities(userId, limit = 15) {
           if (!isDup) {
             combinedList.push({
               id: nw.id,
-              title: `Non-Working Pool #${nw.pool_num} Won`,
-              details: `Level ${nw.level} Prize Pool Completed — $${parseFloat(nw.amount || 0).toFixed(2)} USDT (5 Members)`,
+              title: `Non-Working Income Claimed ✅`,
+              details: `Level ${nw.level} Pool #${nw.pool_num} — $${parseFloat(nw.amount || 0).toFixed(2)} USDT credited to your wallet`,
               amount: parseFloat(nw.amount) || 0,
               type: 'income',
               status: 'completed',
@@ -684,6 +685,7 @@ async function getUserTodayIncome(userId) {
       .select('amount')
       .eq('user_id', userId)
       .gt('amount', 0)
+      .eq('type', 'income')
       .in('category', ['direct', 'team', 'non_working', 'reward', 'income'])
       .gte('created_at', startOfTodayIso);
 

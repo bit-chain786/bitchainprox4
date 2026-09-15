@@ -293,8 +293,8 @@ BEGIN
      LIMIT 1;
 
     -- CASE A: Qualified winner is waiting in line!
+    -- Create CLAIMABLE reward ONLY. DO NOT credit user wallet until claimed!
     IF v_recip_id IS NOT NULL THEN
-      -- Create a CLAIMABLE distribution for the qualified user
       IF NOT EXISTS (
         SELECT 1 FROM public.non_working_distributions
          WHERE pool_id = v_pool.id AND recipient_user_id = v_recip_id
@@ -305,19 +305,6 @@ BEGIN
         ) VALUES (
           v_pool.id, v_level, v_pool_num, v_recip_id, v_recip_username,
           v_pool.total_pool_amount, 'claimable', v_required_directs, NOW()
-        );
-
-        -- Notify winner: their prize is ready to claim
-        INSERT INTO public.activities (
-          user_id, category, type, title, details, amount, created_at
-        ) VALUES (
-          v_recip_id,
-          'non_working',
-          'claimable',
-          '🎉 Non-Working Prize Ready to Claim!',
-          'Level ' || v_level || ' (' || v_level_name || ') Pool #' || v_pool_num || ' is complete! Your prize of $' || TO_CHAR(v_pool.total_pool_amount, 'FM999,990.00') || ' USDT is ready. Go to Non-Working page to claim it.',
-          v_pool.total_pool_amount,
-          NOW()
         );
       END IF;
 
@@ -350,6 +337,7 @@ BEGIN
            SET available_balance  = COALESCE(available_balance, 0) + v_pool.total_pool_amount,
                total_income       = COALESCE(total_income, 0) + v_pool.total_pool_amount,
                non_working_income = COALESCE(non_working_income, 0) + v_pool.total_pool_amount,
+               today_income       = COALESCE(today_income, 0) + v_pool.total_pool_amount,
                updated_at         = NOW()
          WHERE id = v_admin_id;
 
@@ -408,7 +396,7 @@ CREATE TRIGGER trg_package_non_working_income
   FOR EACH ROW
   EXECUTE FUNCTION public.process_non_working_income();
 
--- 10. CLAIM FUNCTION FOR USERS
+-- 10. CLAIM FUNCTION FOR USERS (Idempotent, Atomic Row-Locking & Single-Credit Guarantee)
 CREATE OR REPLACE FUNCTION public.claim_non_working_reward(p_distribution_id UUID)
 RETURNS JSONB AS $$
 DECLARE
@@ -417,12 +405,14 @@ DECLARE
   v_direct_count INT;
   v_needed INT;
   v_level_name TEXT;
+  v_updated_rows INT;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
 
+  -- 1. Row-level lock to prevent concurrent claims
   SELECT * INTO v_dist
     FROM public.non_working_distributions
    WHERE id = p_distribution_id AND recipient_user_id = v_user_id
@@ -440,6 +430,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Reward is not yet claimable');
   END IF;
 
+  -- 2. Verify Direct Referral Requirement
   v_needed := CASE WHEN v_dist.level = 1 THEN 1 ELSE 2 END;
   v_direct_count := public.get_user_direct_count(v_user_id);
 
@@ -452,28 +443,39 @@ BEGIN
 
   v_level_name := public.get_level_name(v_dist.level);
 
-  -- Credit Balance
+  -- 3. Atomic State Transition: claimable -> paid
+  UPDATE public.non_working_distributions
+     SET status         = 'paid',
+         distributed_at = NOW()
+   WHERE id = v_dist.id 
+     AND status = 'claimable'
+     AND recipient_user_id = v_user_id;
+
+  GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+  IF v_updated_rows = 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Reward was already processed or is not claimable');
+  END IF;
+
+  -- 4. Credit User Balance EXACTLY ONCE
   UPDATE public.profiles
      SET available_balance  = COALESCE(available_balance, 0) + v_dist.amount,
          total_income       = COALESCE(total_income, 0) + v_dist.amount,
          non_working_income = COALESCE(non_working_income, 0) + v_dist.amount,
+         today_income       = COALESCE(today_income, 0) + v_dist.amount,
          updated_at         = NOW()
    WHERE id = v_user_id;
 
-  -- Mark Claimed
-  UPDATE public.non_working_distributions
-     SET status         = 'paid',
-         distributed_at = NOW()
-   WHERE id = v_dist.id;
-
-  -- Activity Log
+  -- 5. Insert ONE Authoritative Financial Activity Record
   INSERT INTO public.activities (
     user_id, category, type, title, details, amount, created_at
   ) VALUES (
-    v_user_id, 'non_working', 'income',
+    v_user_id,
+    'non_working',
+    'income',
     'Non-Working Income Claimed ✅',
     'Level ' || v_dist.level || ' (' || v_level_name || ') Pool #' || v_dist.pool_num || ' — $' || TO_CHAR(v_dist.amount, 'FM999,990.00') || ' USDT credited to your wallet',
-    v_dist.amount, NOW()
+    v_dist.amount,
+    NOW()
   );
 
   RETURN jsonb_build_object(
@@ -485,9 +487,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.claim_non_working_reward(UUID) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_non_working_reward(UUID) TO authenticated, anon, service_role;
 
--- 11. DYNAMIC TODAY'S INCOME FUNCTION (Calculates only today's income since 00:00:00)
+-- 11. DYNAMIC TODAY'S INCOME FUNCTION (Calculates only realized income transactions since 00:00:00)
 CREATE OR REPLACE FUNCTION public.get_user_today_income(p_user_id UUID)
 RETURNS NUMERIC AS $$
 DECLARE
@@ -501,6 +503,7 @@ BEGIN
     FROM public.activities
    WHERE user_id = p_user_id
      AND amount > 0
+     AND type = 'income'
      AND category IN ('direct', 'team', 'non_working', 'reward', 'income')
      AND created_at >= v_today_start;
 
@@ -508,7 +511,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.get_user_today_income(UUID) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.get_user_today_income(UUID) TO authenticated, anon, service_role;
 
 -- 12. Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_nw_pools_level ON public.non_working_pools(level);

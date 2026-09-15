@@ -999,18 +999,33 @@
   }
 
   // ─── Claim Non-Working Reward ─────────────────────────────────────────────
+  let _isClaimingReward = false;
+
   async function claimReward(distributionId, btnEl) {
+    if (_isClaimingReward) return;
     const client = getClient();
     if (!client || !distributionId) return;
 
+    _isClaimingReward = true;
     const btn = btnEl || document.querySelector('.btn-claim-reward');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Claiming…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.7';
+      btn.textContent = '⏳ Claiming…';
+    }
 
     try {
       const { data, error } = await client.rpc('claim_non_working_reward', { p_distribution_id: distributionId });
 
       if (error) {
-        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim USDT'; }
+        _isClaimingReward = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.style.pointerEvents = '';
+          btn.style.opacity = '';
+          btn.textContent = '⚡ Claim USDT';
+        }
         alert(error.message || 'Failed to claim reward');
         return;
       }
@@ -1021,24 +1036,42 @@
           btn.textContent = '✅ Claimed!';
           btn.style.background = '#00f5d4';
           btn.style.color = '#000';
+          btn.style.pointerEvents = 'none';
         }
         if (window.BitchainAuth && typeof window.BitchainAuth.getUserProfile === 'function') {
           _userProfile = await window.BitchainAuth.getUserProfile(_activeUser.id);
-          if (_userProfile) {
-            localStorage.setItem('bitchain_user_profile', JSON.stringify(_userProfile));
-          }
+        } else {
+          const { data: prof } = await client.from('profiles').select('*').eq('id', _activeUser.id).maybeSingle();
+          if (prof) _userProfile = prof;
         }
+
+        if (_userProfile) {
+          localStorage.setItem('bitchain_user_profile', JSON.stringify(_userProfile));
+        }
+
         renderHeaderStats();
         await loadDirectsRequirement();
         await loadLevelData(_selectedLevel);
       } else {
         alert(data?.error || 'Could not claim reward');
-        if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+        if (btn) {
+          btn.disabled = false;
+          btn.style.pointerEvents = '';
+          btn.style.opacity = '';
+          btn.textContent = '⚡ Claim Reward';
+        }
       }
     } catch (err) {
       console.error('Claim exception:', err);
       alert('Network error while claiming reward.');
-      if (btn) { btn.disabled = false; btn.textContent = '⚡ Claim Reward'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.style.pointerEvents = '';
+        btn.style.opacity = '';
+        btn.textContent = '⚡ Claim Reward';
+      }
+    } finally {
+      _isClaimingReward = false;
     }
   }
 
