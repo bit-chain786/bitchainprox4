@@ -1,0 +1,13 @@
+{
+  "name": "bitchainprox4",
+  "version": "1.0.0",
+  "description": "BITCHAIN PRO X",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo \"Build completed successfully (Static site ready)\"",
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
