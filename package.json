@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "build": "echo \"Build completed successfully (Static site ready)\"",
-    "start": "npx serve ."
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
