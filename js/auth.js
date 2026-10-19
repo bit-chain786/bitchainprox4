@@ -292,23 +292,30 @@ function initSignInForm() {
    6. FORGOT PASSWORD (EMAIL RESET LINK DISPATCH)
    ========================================================================== */
 function initForgotPasswordForm() {
+  const step1Form = document.getElementById('step1Form');
+  const legacyForm = document.getElementById('forgotPasswordForm');
+  // Exit immediately if this page does not contain the forgot password form
+  if (!step1Form && !legacyForm) return;
+
   let recoveryEmail = '';
   let resendTimer = null;
   let countdownSeconds = 60;
 
   const step1Panel = document.getElementById('step1Panel');
   const step2Panel = document.getElementById('step2Panel');
-  const step1Form = document.getElementById('step1Form');
   const targetEmailText = document.getElementById('targetEmailText');
   const btnChangeEmail = document.getElementById('btnChangeEmail');
   const btnResendOtp = document.getElementById('btnResendOtp');
 
-  // Forward to reset-password.html if a recovery token or PKCE code is detected in URL
-  const hash = window.location.hash || '';
-  const search = window.location.search || '';
-  if (hash.includes('type=recovery') || hash.includes('access_token=') || search.includes('code=')) {
-    window.location.replace(`reset-password.html${search}${hash}`);
-    return;
+  // Forward to reset-password.html ONLY if currently on forgot-password page
+  const pathname = window.location.pathname.toLowerCase();
+  if (pathname.includes('forgot-password') || pathname.includes('forgot')) {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (hash.includes('type=recovery') || hash.includes('access_token=') || search.includes('code=')) {
+      window.location.replace(`reset-password.html${search}${hash}`);
+      return;
+    }
   }
 
   function goToStep(step) {
@@ -422,7 +429,6 @@ function initForgotPasswordForm() {
   }
 
   // Fallback support for single-page forgotPasswordForm if exists
-  const legacyForm = document.getElementById('forgotPasswordForm');
   if (legacyForm && !step1Form) {
     legacyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -466,6 +472,13 @@ function initResetPasswordForm() {
   const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
   const code = searchParams.get('code') || hashParams.get('code');
 
+  let toastNotified = false;
+  function notifyRecovery() {
+    if (toastNotified) return;
+    toastNotified = true;
+    showToastAlert('🔑 Password reset session confirmed. Enter your new password.', 'success');
+  }
+
   if (client) {
     if (accessToken && refreshToken) {
       client.auth.setSession({
@@ -473,7 +486,7 @@ function initResetPasswordForm() {
         refresh_token: refreshToken
       }).then(({ data, error }) => {
         if (!error && data?.session) {
-          showToastAlert('🔑 Password reset session confirmed. Enter your new password.', 'success');
+          notifyRecovery();
         } else if (error) {
           console.warn('Set session notice:', error.message);
         }
@@ -481,7 +494,7 @@ function initResetPasswordForm() {
     } else if (code) {
       client.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data?.session) {
-          showToastAlert('🔑 Recovery link verified. Please enter your new password.', 'success');
+          notifyRecovery();
         }
       }).catch(err => {
         console.warn('PKCE exchange error notice:', err.message);
@@ -490,7 +503,7 @@ function initResetPasswordForm() {
 
     client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        showToastAlert('🔑 Password reset session confirmed. Enter your new password.', 'success');
+        notifyRecovery();
       }
     });
   }
