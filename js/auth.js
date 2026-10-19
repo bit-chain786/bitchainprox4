@@ -456,13 +456,29 @@ function initResetPasswordForm() {
 
   const client = window.BitchainAuth ? window.BitchainAuth.getSupabase() : null;
 
-  // Check URL parameters for PKCE code or recovery hash
-  const hash = window.location.hash || '';
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
+  // Check URL parameters for access_token, refresh_token, or PKCE code
+  const rawHref = window.location.href;
+  const hashPart = window.location.hash ? window.location.hash.substring(1) : (rawHref.includes('%23') ? rawHref.split('%23')[1] : '');
+  const hashParams = new URLSearchParams(hashPart);
+  const searchParams = new URLSearchParams(window.location.search);
+
+  const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+  const code = searchParams.get('code') || hashParams.get('code');
 
   if (client) {
-    if (code) {
+    if (accessToken && refreshToken) {
+      client.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      }).then(({ data, error }) => {
+        if (!error && data?.session) {
+          showToastAlert('🔑 Password reset session confirmed. Enter your new password.', 'success');
+        } else if (error) {
+          console.warn('Set session notice:', error.message);
+        }
+      });
+    } else if (code) {
       client.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data?.session) {
           showToastAlert('🔑 Recovery link verified. Please enter your new password.', 'success');

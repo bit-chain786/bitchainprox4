@@ -22,8 +22,15 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  // Parse clean URL
-  let parsedUrl = req.url.split('?')[0].split('#')[0];
+  // If URL has %23 (encoded #), redirect to proper hash
+  if (req.url.includes('%23')) {
+    const fixedUrl = req.url.replace(/%23/g, '#');
+    res.writeHead(302, { 'Location': fixedUrl });
+    return res.end();
+  }
+
+  // Parse clean URL (strip query, hash, or %23)
+  let parsedUrl = req.url.split('?')[0].split('#')[0].split('%23')[0];
   if (parsedUrl === '/') {
     parsedUrl = '/index.html';
   } else if (!path.extname(parsedUrl)) {
